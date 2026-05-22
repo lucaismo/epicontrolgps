@@ -14,16 +14,291 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      colaboradores: {
+        Row: {
+          created_at: string
+          data_admissao: string | null
+          funcao: string
+          gestor: string | null
+          id: string
+          matricula: string
+          nome: string
+          observacoes: string | null
+          setor: string
+          status: Database["public"]["Enums"]["colaborador_status"]
+          turno: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_admissao?: string | null
+          funcao: string
+          gestor?: string | null
+          id?: string
+          matricula: string
+          nome: string
+          observacoes?: string | null
+          setor: string
+          status?: Database["public"]["Enums"]["colaborador_status"]
+          turno?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_admissao?: string | null
+          funcao?: string
+          gestor?: string | null
+          id?: string
+          matricula?: string
+          nome?: string
+          observacoes?: string | null
+          setor?: string
+          status?: Database["public"]["Enums"]["colaborador_status"]
+          turno?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      epis: {
+        Row: {
+          ca: string | null
+          categoria: string
+          created_at: string
+          custo_unitario: number
+          estoque_atual: number
+          estoque_minimo: number
+          id: string
+          localizacao: string | null
+          modelo: string | null
+          nome: string
+          status: Database["public"]["Enums"]["epi_status"]
+          tamanho: string | null
+          updated_at: string
+        }
+        Insert: {
+          ca?: string | null
+          categoria: string
+          created_at?: string
+          custo_unitario?: number
+          estoque_atual?: number
+          estoque_minimo?: number
+          id?: string
+          localizacao?: string | null
+          modelo?: string | null
+          nome: string
+          status?: Database["public"]["Enums"]["epi_status"]
+          tamanho?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ca?: string | null
+          categoria?: string
+          created_at?: string
+          custo_unitario?: number
+          estoque_atual?: number
+          estoque_minimo?: number
+          id?: string
+          localizacao?: string | null
+          modelo?: string | null
+          nome?: string
+          status?: Database["public"]["Enums"]["epi_status"]
+          tamanho?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      inventario_itens: {
+        Row: {
+          diferenca: number | null
+          epi_id: string
+          id: string
+          inventario_id: string
+          quantidade_contada: number | null
+          quantidade_sistema: number
+        }
+        Insert: {
+          diferenca?: number | null
+          epi_id: string
+          id?: string
+          inventario_id: string
+          quantidade_contada?: number | null
+          quantidade_sistema?: number
+        }
+        Update: {
+          diferenca?: number | null
+          epi_id?: string
+          id?: string
+          inventario_id?: string
+          quantidade_contada?: number | null
+          quantidade_sistema?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventario_itens_epi_id_fkey"
+            columns: ["epi_id"]
+            isOneToOne: false
+            referencedRelation: "epis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventario_itens_inventario_id_fkey"
+            columns: ["inventario_id"]
+            isOneToOne: false
+            referencedRelation: "inventarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventarios: {
+        Row: {
+          data_fim: string | null
+          data_inicio: string
+          id: string
+          local: string
+          responsavel: string | null
+          status: Database["public"]["Enums"]["inventario_status"]
+        }
+        Insert: {
+          data_fim?: string | null
+          data_inicio?: string
+          id?: string
+          local: string
+          responsavel?: string | null
+          status?: Database["public"]["Enums"]["inventario_status"]
+        }
+        Update: {
+          data_fim?: string | null
+          data_inicio?: string
+          id?: string
+          local?: string
+          responsavel?: string | null
+          status?: Database["public"]["Enums"]["inventario_status"]
+        }
+        Relationships: []
+      }
+      movimentacoes: {
+        Row: {
+          colaborador_id: string | null
+          data_movimentacao: string
+          epi_id: string
+          id: string
+          motivo: string | null
+          observacao: string | null
+          quantidade: number
+          tipo: Database["public"]["Enums"]["movimentacao_tipo"]
+          usuario_responsavel: string | null
+        }
+        Insert: {
+          colaborador_id?: string | null
+          data_movimentacao?: string
+          epi_id: string
+          id?: string
+          motivo?: string | null
+          observacao?: string | null
+          quantidade: number
+          tipo: Database["public"]["Enums"]["movimentacao_tipo"]
+          usuario_responsavel?: string | null
+        }
+        Update: {
+          colaborador_id?: string | null
+          data_movimentacao?: string
+          epi_id?: string
+          id?: string
+          motivo?: string | null
+          observacao?: string | null
+          quantidade?: number
+          tipo?: Database["public"]["Enums"]["movimentacao_tipo"]
+          usuario_responsavel?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimentacoes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacoes_epi_id_fkey"
+            columns: ["epi_id"]
+            isOneToOne: false
+            referencedRelation: "epis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          nome: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id: string
+          nome: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_role: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "tecnico" | "almoxarife" | "lider"
+      colaborador_status: "ativo" | "afastado" | "desligado"
+      epi_status: "ativo" | "inativo"
+      inventario_status: "em_andamento" | "finalizado"
+      movimentacao_tipo:
+        | "entrega"
+        | "devolucao_normal"
+        | "avariado"
+        | "descarte"
+        | "troca"
+        | "perda"
+        | "entrada_estoque"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +425,20 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "tecnico", "almoxarife", "lider"],
+      colaborador_status: ["ativo", "afastado", "desligado"],
+      epi_status: ["ativo", "inativo"],
+      inventario_status: ["em_andamento", "finalizado"],
+      movimentacao_tipo: [
+        "entrega",
+        "devolucao_normal",
+        "avariado",
+        "descarte",
+        "troca",
+        "perda",
+        "entrada_estoque",
+      ],
+    },
   },
 } as const
