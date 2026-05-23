@@ -6,8 +6,8 @@ import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/_app")({
   beforeLoad: async () => {
-    const { data } = await supabase.auth.getSession();
-    if (!data.session) throw redirect({ to: "/login" });
+    const { data, error } = await supabase.auth.getUser();
+    if (error || !data.user) throw redirect({ to: "/login" });
   },
   component: AppShell,
 });
@@ -30,7 +30,9 @@ function AppGuard() {
     );
   }
   if (!user) {
-    window.location.href = "/login";
+    supabase.auth.signOut().finally(() => {
+      window.location.replace("/login");
+    });
     return null;
   }
   return (
