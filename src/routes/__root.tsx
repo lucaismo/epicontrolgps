@@ -80,6 +80,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:description", content: "Sistema interno para controle de estoque, entrega e devolução de EPIs." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "EPI Control — Gestão de EPIs" },
+      { name: "twitter:description", content: "Sistema interno para controle de estoque, entrega e devolução de EPIs." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/3b1858b9-82d3-4909-9635-544e7817c13d/id-preview-43976f17--0616b0dd-5435-4624-b51d-b4ea3f8d48d3.lovable.app-1779543538581.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/3b1858b9-82d3-4909-9635-544e7817c13d/id-preview-43976f17--0616b0dd-5435-4624-b51d-b4ea3f8d48d3.lovable.app-1779543538581.png" },
     ],
     links: [
       {
