@@ -13,6 +13,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppUsuariosRouteImport } from './routes/_app/usuarios'
 import { Route as AppRelatoriosRouteImport } from './routes/_app/relatorios'
 import { Route as AppInventarioRouteImport } from './routes/_app/inventario'
 import { Route as AppEpisRouteImport } from './routes/_app/epis'
@@ -40,6 +41,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppUsuariosRoute = AppUsuariosRouteImport.update({
+  id: '/usuarios',
+  path: '/usuarios',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppRelatoriosRoute = AppRelatoriosRouteImport.update({
   id: '/relatorios',
@@ -93,6 +99,7 @@ export interface FileRoutesByFullPath {
   '/epis': typeof AppEpisRoute
   '/inventario': typeof AppInventarioRoute
   '/relatorios': typeof AppRelatoriosRoute
+  '/usuarios': typeof AppUsuariosRoute
   '/colaboradores/$id': typeof AppColaboradoresIdRoute
 }
 export interface FileRoutesByTo {
@@ -106,6 +113,7 @@ export interface FileRoutesByTo {
   '/epis': typeof AppEpisRoute
   '/inventario': typeof AppInventarioRoute
   '/relatorios': typeof AppRelatoriosRoute
+  '/usuarios': typeof AppUsuariosRoute
   '/colaboradores/$id': typeof AppColaboradoresIdRoute
 }
 export interface FileRoutesById {
@@ -121,6 +129,7 @@ export interface FileRoutesById {
   '/_app/epis': typeof AppEpisRoute
   '/_app/inventario': typeof AppInventarioRoute
   '/_app/relatorios': typeof AppRelatoriosRoute
+  '/_app/usuarios': typeof AppUsuariosRoute
   '/_app/colaboradores/$id': typeof AppColaboradoresIdRoute
 }
 export interface FileRouteTypes {
@@ -136,6 +145,7 @@ export interface FileRouteTypes {
     | '/epis'
     | '/inventario'
     | '/relatorios'
+    | '/usuarios'
     | '/colaboradores/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -149,6 +159,7 @@ export interface FileRouteTypes {
     | '/epis'
     | '/inventario'
     | '/relatorios'
+    | '/usuarios'
     | '/colaboradores/$id'
   id:
     | '__root__'
@@ -163,6 +174,7 @@ export interface FileRouteTypes {
     | '/_app/epis'
     | '/_app/inventario'
     | '/_app/relatorios'
+    | '/_app/usuarios'
     | '/_app/colaboradores/$id'
   fileRoutesById: FileRoutesById
 }
@@ -202,6 +214,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_app/usuarios': {
+      id: '/_app/usuarios'
+      path: '/usuarios'
+      fullPath: '/usuarios'
+      preLoaderRoute: typeof AppUsuariosRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_app/relatorios': {
       id: '/_app/relatorios'
@@ -281,6 +300,7 @@ interface AppRouteChildren {
   AppEpisRoute: typeof AppEpisRoute
   AppInventarioRoute: typeof AppInventarioRoute
   AppRelatoriosRoute: typeof AppRelatoriosRoute
+  AppUsuariosRoute: typeof AppUsuariosRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -291,6 +311,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppEpisRoute: AppEpisRoute,
   AppInventarioRoute: AppInventarioRoute,
   AppRelatoriosRoute: AppRelatoriosRoute,
+  AppUsuariosRoute: AppUsuariosRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
@@ -304,3 +325,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

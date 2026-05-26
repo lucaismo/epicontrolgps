@@ -1,0 +1,97 @@
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
+
+const RoleSchema = z.enum(["admin", "tecnico", "almoxarife", "lider"]);
+
+async function assertCallerIsAdmin(userId: string) {
+  const { data, error } = await supabaseAdmin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("role", "admin")
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Apenas administradores podem executar esta ação");
+}
+
+export const listUsers = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertCallerIsAdmin(context.userId);
+    const [{ data: profiles, error: pErr }, { data: roles, error: rErr }] = await Promise.all([
+      supabaseAdmin.from("profiles").select("id,nome,email,created_at").order("nome"),
+      supabaseAdmin.from("user_roles").select("user_id,role"),
+    ]);
+    if (pErr) throw new Error(pErr.message);
+    if (rErr) throw new Error(rErr.message);
+    const roleMap = new Map<string, string[]>();
+    (roles ?? []).forEach((r: any) => {
+      const arr = roleMap.get(r.user_id) ?? [];
+      arr.push(r.role);
+      roleMap.set(r.user_id, arr);
+    });
+    return (profiles ?? []).map((p: any) => ({ ...p, roles: roleMap.get(p.id) ?? [] }));
+  });
+
+export const createUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({
+      email: z.string().email().max(255),
+      password: z.string().min(8).max(128),
+      nome: z.string().min(2).max(120),
+      role: RoleSchema,
+    }).parse(input),
+  )
+  .handler(async ({ context, data }) => {
+    await assertCallerIsAdmin(context.userId);
+    const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
+      email: data.email,
+      password: data.password,
+      email_confirm: true,
+      user_metadata: { nome: data.nome },
+    });
+    if (error) throw new Error(error.message);
+    const uid = created.user!.id;
+    // Remove qualquer role default e atribui a escolhida pelo admin
+    await supabaseAdmin.from("user_roles").delete().eq("user_id", uid);
+    const { error: rErr } = await supabaseAdmin.from("user_roles").insert({ user_id: uid, role: data.role });
+    if (rErr) throw new Error(rErr.message);
+    return { ok: true, id: uid };
+  });
+
+export const updateUserRole = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ user_id: z.string().uuid(), role: RoleSchema }).parse(input),
+  )
+  .handler(async ({ context, data }) => {
+    await assertCallerIsAdmin(context.userId);
+    await supabaseAdmin.from("user_roles").delete().eq("user_id", data.user_id);
+    const { error } = await supabaseAdmin.from("user_roles").insert({ user_id: data.user_id, role: data.role });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const deleteUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ user_id: z.string().uuid() }).parse(input))
+  .handler(async ({ context, data }) => {
+    await assertCallerIsAdmin(context.userId);
+    if (data.user_id === context.userId) throw new Error("Você não pode excluir a si mesmo");
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(data.user_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const hasAnyAdmin = createServerFn({ method: "GET" }).handler(async () => {
+  const { data, error } = await supabaseAdmin
+    .from("user_roles")
+    .select("user_id")
+    .eq("role", "admin")
+    .limit(1);
+  if (error) throw new Error(error.message);
+  return { hasAdmin: (data?.length ?? 0) > 0 };
+});
