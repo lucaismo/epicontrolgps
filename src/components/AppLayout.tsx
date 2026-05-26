@@ -1,14 +1,14 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, Users, HardHat, PackageCheck, Undo2,
-  ClipboardList, FileBarChart, LogOut, Shield, Menu,
+  ClipboardList, FileBarChart, LogOut, Shield, Menu, ShieldCheck,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useState, type ReactNode } from "react";
 
-const nav = [
+const baseNav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/colaboradores", label: "Colaboradores", icon: Users },
   { to: "/epis", label: "EPIs", icon: HardHat },
@@ -17,12 +17,14 @@ const nav = [
   { to: "/inventario", label: "Inventário", icon: ClipboardList },
   { to: "/relatorios", label: "Relatórios", icon: FileBarChart },
 ];
+const adminExtra = [{ to: "/usuarios", label: "Usuários", icon: ShieldCheck }];
 
-const bottomNav = nav.slice(0, 5);
+const bottomNav = baseNav.slice(0, 5);
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const { user, role, signOut } = useAuth();
+  const nav = role === "admin" ? [...baseNav, ...adminExtra] : baseNav;
 
   return (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
