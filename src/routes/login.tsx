@@ -1,24 +1,30 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Shield, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { hasAnyAdmin } from "@/lib/admin-users.functions";
 
-export const Route = createFileRoute("/login")({
-  component: LoginPage,
-});
+export const Route = createFileRoute("/login")({ component: LoginPage });
 
 function LoginPage() {
   const navigate = useNavigate();
+  const checkAdmin = useServerFn(hasAnyAdmin);
   const [mode, setMode] = useState<"login" | "signup" | "reset">("login");
+  const [bootstrap, setBootstrap] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [nome, setNome] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    checkAdmin().then((r) => setBootstrap(!r.hasAdmin)).catch(() => setBootstrap(false));
+  }, [checkAdmin]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -29,12 +35,13 @@ function LoginPage() {
         if (error) throw error;
         await navigate({ to: "/dashboard", replace: true });
       } else if (mode === "signup") {
+        if (!bootstrap) throw new Error("Cadastro restrito — solicite ao administrador");
         const { error } = await supabase.auth.signUp({
           email, password,
           options: { data: { nome }, emailRedirectTo: `${window.location.origin}/dashboard` },
         });
         if (error) throw error;
-        toast.success("Conta criada! Verifique seu email se necessário.");
+        toast.success("Conta de administrador criada! Faça login.");
         setMode("login");
       } else {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -64,12 +71,14 @@ function LoginPage() {
 
         <Card className="p-6 shadow-xl">
           <h2 className="text-lg font-semibold mb-1">
-            {mode === "login" ? "Entrar" : mode === "signup" ? "Criar conta" : "Recuperar senha"}
+            {mode === "login" ? "Entrar" : mode === "signup" ? "Cadastro inicial" : "Recuperar senha"}
           </h2>
           <p className="text-sm text-muted-foreground mb-5">
-            {mode === "login" ? "Acesse o sistema com suas credenciais." :
-             mode === "signup" ? "Cadastro inicial — primeiro usuário vira Administrador." :
-             "Informe seu email para receber instruções."}
+            {mode === "login"
+              ? "Acesse o sistema com suas credenciais."
+              : mode === "signup"
+              ? "Apenas o primeiro acesso. Esta conta será o Administrador."
+              : "Informe seu email para receber instruções."}
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -92,7 +101,7 @@ function LoginPage() {
 
             <Button type="submit" className="w-full" disabled={loading}>
               {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {mode === "login" ? "Entrar" : mode === "signup" ? "Criar conta" : "Enviar email"}
+              {mode === "login" ? "Entrar" : mode === "signup" ? "Criar administrador" : "Enviar email"}
             </Button>
           </form>
 
@@ -100,12 +109,22 @@ function LoginPage() {
             {mode === "login" ? (
               <>
                 <button type="button" onClick={() => setMode("reset")} className="hover:text-primary">Esqueci a senha</button>
-                <button type="button" onClick={() => setMode("signup")} className="hover:text-primary">Criar conta</button>
+                {bootstrap && (
+                  <button type="button" onClick={() => setMode("signup")} className="hover:text-primary">
+                    Criar administrador
+                  </button>
+                )}
               </>
             ) : (
               <button type="button" onClick={() => setMode("login")} className="hover:text-primary">Voltar ao login</button>
             )}
           </div>
+
+          {!bootstrap && mode === "login" && (
+            <p className="mt-4 text-[11px] text-muted-foreground border-t pt-3">
+              Novos usuários são criados pelo administrador. Solicite acesso ao responsável.
+            </p>
+          )}
         </Card>
 
         <p className="mt-6 text-center text-xs text-white/40">
