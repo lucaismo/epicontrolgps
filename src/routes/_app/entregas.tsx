@@ -91,27 +91,39 @@ function EntregasPage() {
 
   const epiSel = epis.find((e) => e.id === epiId);
   const devEpiSel = epis.find((e) => e.id === devEpiId);
-  const opt = DEV_OPTS.find((o) => o.value === devTipo)!;
-  const exigeEpiAnterior = devTipo !== "nenhuma" && !opt.simples;
-  const exigeApenasMotivo = !!opt.simples;
+  const opt = DEV_OPTS.find((o) => o.value === devTipo);
+  const exigeEpiAnterior = !!opt && opt.value !== "nenhuma" && !opt.simples;
+  const exigeApenasMotivo = !!opt?.simples;
+
+  // Validação reativa — usada para desabilitar botão e exibir mensagens inline
+  const erros = {
+    colaborador: !colaboradorId,
+    epi: !epiId,
+    quantidade: quantidade < 1,
+    estoque: !!epiSel && epiSel.estoque_atual < quantidade,
+    devTipo: !devTipo,
+    devEpi: exigeEpiAnterior && !devEpiId,
+    devEpiIgual: exigeEpiAnterior && !!devEpiId && devEpiId === epiId && devTipo !== "troca",
+    devQtd: exigeEpiAnterior && devQtd < 1,
+    devMotivoSimples: exigeApenasMotivo && !devMotivo.trim(),
+    devMotivoAvariado: devTipo === "avariado" && !devMotivo.trim(),
+  };
+  const formValido = !Object.values(erros).some(Boolean);
 
   function resetForm() {
     setColaboradorId(""); setEpiId(""); setQuantidade(1); setObs("");
-    setDevTipo("nenhuma"); setDevEpiId(""); setDevQtd(1); setDevMotivo("");
+    setDevTipo(""); setDevEpiId(""); setDevQtd(1); setDevMotivo("");
   }
 
   async function entregar() {
-    if (!colaboradorId || !epiId || quantidade < 1) { toast.error("Preencha colaborador, EPI e quantidade"); return; }
-    if (epiSel && epiSel.estoque_atual < quantidade) { toast.error("Estoque insuficiente"); return; }
+    if (erros.colaborador || erros.epi || erros.quantidade) { toast.error("Preencha colaborador, EPI e quantidade"); return; }
+    if (erros.estoque) { toast.error("Estoque insuficiente"); return; }
+    if (erros.devTipo) { toast.error("Selecione o destino do EPI anterior"); return; }
+    if (erros.devEpi || erros.devQtd) { toast.error("Informe o EPI anterior e a quantidade da devolução"); return; }
+    if (erros.devEpiIgual) { toast.error("O EPI devolvido não pode ser o mesmo que está sendo entregue (exceto em trocas)"); return; }
+    if (erros.devMotivoSimples) { toast.error(`Informe o que aconteceu (${opt!.label.toLowerCase()})`); return; }
+    if (erros.devMotivoAvariado) { toast.error("Descreva o dano para registrar o EPI avariado"); return; }
 
-    if (exigeEpiAnterior && (!devEpiId || devQtd < 1)) {
-      toast.error("Informe o EPI anterior e a quantidade da devolução");
-      return;
-    }
-    if (exigeApenasMotivo && !devMotivo.trim()) {
-      toast.error(`Informe o que aconteceu (${opt.label.toLowerCase()})`);
-      return;
-    }
 
     setSaving(true);
     const movData = new Date(data).toISOString();
