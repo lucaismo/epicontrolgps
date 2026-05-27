@@ -41,7 +41,7 @@ function EntregasPage() {
   const [data, setData] = useState(new Date().toISOString().slice(0, 10));
 
   // Devolução integrada
-  const [devTipo, setDevTipo] = useState<DevTipo>("nenhuma");
+  const [devTipo, setDevTipo] = useState<DevTipo>("");
   const [devEpiId, setDevEpiId] = useState("");
   const [devQtd, setDevQtd] = useState(1);
   const [devMotivo, setDevMotivo] = useState("");
