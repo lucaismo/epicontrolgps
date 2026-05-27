@@ -57,10 +57,36 @@ function EntregasPage() {
   });
   const { data: ultimas = [] } = useQuery({
     queryKey: ["ultimas-entregas"],
-    queryFn: async () => (await supabase.from("movimentacoes")
-      .select("*, epis(nome), colaboradores(nome,matricula)")
-      .eq("tipo", "entrega").order("data_movimentacao", { ascending: false }).limit(20)).data ?? [],
+    queryFn: async () => {
+      const { data: ents } = await supabase.from("movimentacoes")
+        .select("*, epis(nome), colaboradores(nome,matricula)")
+        .eq("tipo", "entrega").order("data_movimentacao", { ascending: false }).limit(20);
+      const entregas = ents ?? [];
+      if (entregas.length === 0) return [];
+      const colabIds = Array.from(new Set(entregas.map((e: any) => e.colaborador_id).filter(Boolean)));
+      const datas = entregas.map((e: any) => e.data_movimentacao);
+      const { data: devs } = await supabase.from("movimentacoes")
+        .select("*, epis(nome)")
+        .in("colaborador_id", colabIds as string[])
+        .in("data_movimentacao", datas)
+        .neq("tipo", "entrega");
+      const mapDev = new Map<string, any>();
+      (devs ?? []).forEach((d: any) => mapDev.set(`${d.colaborador_id}|${d.data_movimentacao}`, d));
+      return entregas.map((e: any) => ({
+        ...e,
+        devolucao: mapDev.get(`${e.colaborador_id}|${e.data_movimentacao}`) ?? null,
+      }));
+    },
   });
+
+  const DEV_LABEL: Record<string, string> = {
+    devolucao_normal: "Devolução normal",
+    avariado: "Avariado",
+    descarte: "Descarte",
+    troca: "Troca",
+    perda: "Perda",
+    roubo: "Roubo",
+  };
 
   const epiSel = epis.find((e) => e.id === epiId);
   const devEpiSel = epis.find((e) => e.id === devEpiId);
