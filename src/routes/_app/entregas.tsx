@@ -57,10 +57,36 @@ function EntregasPage() {
   });
   const { data: ultimas = [] } = useQuery({
     queryKey: ["ultimas-entregas"],
-    queryFn: async () => (await supabase.from("movimentacoes")
-      .select("*, epis(nome), colaboradores(nome,matricula)")
-      .eq("tipo", "entrega").order("data_movimentacao", { ascending: false }).limit(20)).data ?? [],
+    queryFn: async () => {
+      const { data: ents } = await supabase.from("movimentacoes")
+        .select("*, epis(nome), colaboradores(nome,matricula)")
+        .eq("tipo", "entrega").order("data_movimentacao", { ascending: false }).limit(20);
+      const entregas = ents ?? [];
+      if (entregas.length === 0) return [];
+      const colabIds = Array.from(new Set(entregas.map((e: any) => e.colaborador_id).filter(Boolean)));
+      const datas = entregas.map((e: any) => e.data_movimentacao);
+      const { data: devs } = await supabase.from("movimentacoes")
+        .select("*, epis(nome)")
+        .in("colaborador_id", colabIds as string[])
+        .in("data_movimentacao", datas)
+        .neq("tipo", "entrega");
+      const mapDev = new Map<string, any>();
+      (devs ?? []).forEach((d: any) => mapDev.set(`${d.colaborador_id}|${d.data_movimentacao}`, d));
+      return entregas.map((e: any) => ({
+        ...e,
+        devolucao: mapDev.get(`${e.colaborador_id}|${e.data_movimentacao}`) ?? null,
+      }));
+    },
   });
+
+  const DEV_LABEL: Record<string, string> = {
+    devolucao_normal: "Devolução normal",
+    avariado: "Avariado",
+    descarte: "Descarte",
+    troca: "Troca",
+    perda: "Perda",
+    roubo: "Roubo",
+  };
 
   const epiSel = epis.find((e) => e.id === epiId);
   const devEpiSel = epis.find((e) => e.id === devEpiId);
@@ -226,20 +252,43 @@ function EntregasPage() {
               <tr>
                 <th className="text-left px-4 py-3">Data</th>
                 <th className="text-left px-4 py-3">Colaborador</th>
-                <th className="text-left px-4 py-3">EPI</th>
+                <th className="text-left px-4 py-3">EPI entregue</th>
                 <th className="text-right px-4 py-3">Qtd</th>
+                <th className="text-left px-4 py-3">Devolução vinculada</th>
               </tr>
             </thead>
             <tbody>
-              {ultimas.map((m: any) => (
-                <tr key={m.id} className="border-t">
-                  <td className="px-4 py-3 whitespace-nowrap">{new Date(m.data_movimentacao).toLocaleString("pt-BR")}</td>
-                  <td className="px-4 py-3">{m.colaboradores?.nome} <span className="text-muted-foreground text-xs">({m.colaboradores?.matricula})</span></td>
-                  <td className="px-4 py-3">{m.epis?.nome}</td>
-                  <td className="px-4 py-3 text-right font-medium">{m.quantidade}</td>
-                </tr>
-              ))}
-              {ultimas.length === 0 && <tr><td colSpan={4} className="text-center py-10 text-muted-foreground">Nenhuma entrega registrada ainda.</td></tr>}
+              {ultimas.map((m: any) => {
+                const d = m.devolucao;
+                return (
+                  <tr key={m.id} className="border-t align-top">
+                    <td className="px-4 py-3 whitespace-nowrap">{new Date(m.data_movimentacao).toLocaleString("pt-BR")}</td>
+                    <td className="px-4 py-3">{m.colaboradores?.nome} <span className="text-muted-foreground text-xs">({m.colaboradores?.matricula})</span></td>
+                    <td className="px-4 py-3">{m.epis?.nome}</td>
+                    <td className="px-4 py-3 text-right font-medium">{m.quantidade}</td>
+                    <td className="px-4 py-3">
+                      {d ? (
+                        <div className="space-y-0.5">
+                          <div className="inline-flex items-center gap-2">
+                            <span className="text-xs font-medium px-2 py-0.5 rounded bg-primary/10 text-primary">
+                              {DEV_LABEL[d.tipo] ?? d.tipo}
+                            </span>
+                            {d.epis?.nome && (
+                              <span className="text-xs text-muted-foreground">
+                                {d.epis.nome} · {d.quantidade}
+                              </span>
+                            )}
+                          </div>
+                          {d.motivo && <div className="text-xs text-muted-foreground">{d.motivo}</div>}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground italic">Primeira entrega</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+              {ultimas.length === 0 && <tr><td colSpan={5} className="text-center py-10 text-muted-foreground">Nenhuma entrega registrada ainda.</td></tr>}
             </tbody>
           </table>
         </div>
