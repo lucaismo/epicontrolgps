@@ -129,13 +129,13 @@ function EntregasPage() {
     const movData = new Date(data).toISOString();
 
     // 1) registra devolução PRIMEIRO (se houver) — assim erro no anterior impede a entrega
-    if (devTipo !== "nenhuma") {
+    if (devTipo && devTipo !== "nenhuma") {
       const { error: devErr } = await supabase.from("movimentacoes").insert({
         tipo: devTipo as any,
         epi_id: exigeEpiAnterior ? devEpiId : epiId, // perda/roubo refere-se ao EPI sendo entregue/substituído
         colaborador_id: colaboradorId,
         quantidade: exigeEpiAnterior ? devQtd : 1,
-        motivo: devMotivo || opt.label,
+        motivo: devMotivo || opt!.label,
         observacao: `Registrado junto à entrega de ${epiSel?.nome ?? ""}`,
         usuario_responsavel: user?.id,
         data_movimentacao: movData,
