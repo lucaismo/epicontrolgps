@@ -252,20 +252,43 @@ function EntregasPage() {
               <tr>
                 <th className="text-left px-4 py-3">Data</th>
                 <th className="text-left px-4 py-3">Colaborador</th>
-                <th className="text-left px-4 py-3">EPI</th>
+                <th className="text-left px-4 py-3">EPI entregue</th>
                 <th className="text-right px-4 py-3">Qtd</th>
+                <th className="text-left px-4 py-3">Devolução vinculada</th>
               </tr>
             </thead>
             <tbody>
-              {ultimas.map((m: any) => (
-                <tr key={m.id} className="border-t">
-                  <td className="px-4 py-3 whitespace-nowrap">{new Date(m.data_movimentacao).toLocaleString("pt-BR")}</td>
-                  <td className="px-4 py-3">{m.colaboradores?.nome} <span className="text-muted-foreground text-xs">({m.colaboradores?.matricula})</span></td>
-                  <td className="px-4 py-3">{m.epis?.nome}</td>
-                  <td className="px-4 py-3 text-right font-medium">{m.quantidade}</td>
-                </tr>
-              ))}
-              {ultimas.length === 0 && <tr><td colSpan={4} className="text-center py-10 text-muted-foreground">Nenhuma entrega registrada ainda.</td></tr>}
+              {ultimas.map((m: any) => {
+                const d = m.devolucao;
+                return (
+                  <tr key={m.id} className="border-t align-top">
+                    <td className="px-4 py-3 whitespace-nowrap">{new Date(m.data_movimentacao).toLocaleString("pt-BR")}</td>
+                    <td className="px-4 py-3">{m.colaboradores?.nome} <span className="text-muted-foreground text-xs">({m.colaboradores?.matricula})</span></td>
+                    <td className="px-4 py-3">{m.epis?.nome}</td>
+                    <td className="px-4 py-3 text-right font-medium">{m.quantidade}</td>
+                    <td className="px-4 py-3">
+                      {d ? (
+                        <div className="space-y-0.5">
+                          <div className="inline-flex items-center gap-2">
+                            <span className="text-xs font-medium px-2 py-0.5 rounded bg-primary/10 text-primary">
+                              {DEV_LABEL[d.tipo] ?? d.tipo}
+                            </span>
+                            {d.epis?.nome && (
+                              <span className="text-xs text-muted-foreground">
+                                {d.epis.nome} · {d.quantidade}
+                              </span>
+                            )}
+                          </div>
+                          {d.motivo && <div className="text-xs text-muted-foreground">{d.motivo}</div>}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground italic">Primeira entrega</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+              {ultimas.length === 0 && <tr><td colSpan={5} className="text-center py-10 text-muted-foreground">Nenhuma entrega registrada ainda.</td></tr>}
             </tbody>
           </table>
         </div>
