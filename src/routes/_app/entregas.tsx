@@ -201,7 +201,11 @@ function EntregasPage() {
               Selecione o que aconteceu com o EPI que estava em uso. Em perda ou roubo basta informar o motivo.
             </p>
 
-            <RadioGroup value={devTipo} onValueChange={(v) => setDevTipo(v as DevTipo)} className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
+            <RadioGroup
+              value={devTipo}
+              onValueChange={(v) => setDevTipo(v as DevTipo)}
+              className={`grid sm:grid-cols-2 lg:grid-cols-3 gap-2 ${erros.devTipo ? "ring-1 ring-destructive/50 rounded-md p-1" : ""}`}
+            >
               {DEV_OPTS.map((o) => (
                 <label
                   key={o.value}
@@ -218,40 +222,67 @@ function EntregasPage() {
                 </label>
               ))}
             </RadioGroup>
+            {erros.devTipo && (
+              <p className="text-xs text-destructive mt-2">Selecione obrigatoriamente o destino do EPI anterior antes de registrar a entrega.</p>
+            )}
 
             {exigeEpiAnterior && (
               <div className="grid md:grid-cols-3 gap-4 mt-4">
                 <div className="md:col-span-2 space-y-1.5"><Label>EPI anterior *</Label>
                   <Select value={devEpiId} onValueChange={setDevEpiId}>
-                    <SelectTrigger><SelectValue placeholder="Selecione o EPI devolvido" /></SelectTrigger>
+                    <SelectTrigger aria-invalid={erros.devEpi || erros.devEpiIgual}><SelectValue placeholder="Selecione o EPI devolvido" /></SelectTrigger>
                     <SelectContent>{epis.map((e) => <SelectItem key={e.id} value={e.id}>{e.nome} {e.tamanho ? `(${e.tamanho})` : ""}</SelectItem>)}</SelectContent>
                   </Select>
-                  {devEpiSel && <p className="text-xs text-muted-foreground">{devEpiSel.nome}</p>}
+                  {erros.devEpi && <p className="text-xs text-destructive">Informe qual EPI está sendo devolvido.</p>}
+                  {erros.devEpiIgual && <p className="text-xs text-destructive">Para o mesmo EPI selecione o tipo "Troca".</p>}
+                  {!erros.devEpi && devEpiSel && <p className="text-xs text-muted-foreground">{devEpiSel.nome}</p>}
                 </div>
                 <div className="space-y-1.5"><Label>Qtd devolvida *</Label>
-                  <Input type="number" min={1} value={devQtd} onChange={(e) => setDevQtd(Number(e.target.value))} />
+                  <Input type="number" min={1} value={devQtd} onChange={(e) => setDevQtd(Number(e.target.value))} aria-invalid={erros.devQtd} />
+                  {erros.devQtd && <p className="text-xs text-destructive">Quantidade deve ser maior que zero.</p>}
                 </div>
-                <div className="md:col-span-3 space-y-1.5"><Label>Motivo / observação</Label>
-                  <Textarea rows={2} value={devMotivo} onChange={(e) => setDevMotivo(e.target.value)} placeholder="Ex.: troca de tamanho, vencimento, dano na lente…" />
+                <div className="md:col-span-3 space-y-1.5">
+                  <Label>
+                    Motivo / observação {devTipo === "avariado" && <span className="text-destructive">*</span>}
+                  </Label>
+                  <Textarea
+                    rows={2}
+                    value={devMotivo}
+                    onChange={(e) => setDevMotivo(e.target.value)}
+                    placeholder="Ex.: troca de tamanho, vencimento, dano na lente…"
+                    aria-invalid={erros.devMotivoAvariado}
+                  />
+                  {erros.devMotivoAvariado && <p className="text-xs text-destructive">Descreva o dano do EPI avariado.</p>}
                 </div>
               </div>
             )}
 
             {exigeApenasMotivo && (
-              <div className="mt-4 rounded-md border border-warning/40 bg-warning/5 p-3 space-y-2">
-                <div className="flex items-center gap-2 text-warning text-sm font-medium">
-                  <AlertTriangle className="h-4 w-4" /> {opt.label} — informe o que aconteceu
+              <div className={`mt-4 rounded-md border p-3 space-y-2 ${erros.devMotivoSimples ? "border-destructive/60 bg-destructive/5" : "border-warning/40 bg-warning/5"}`}>
+                <div className={`flex items-center gap-2 text-sm font-medium ${erros.devMotivoSimples ? "text-destructive" : "text-warning"}`}>
+                  <AlertTriangle className="h-4 w-4" /> {opt!.label} — informe o que aconteceu *
                 </div>
-                <Textarea rows={3} value={devMotivo} onChange={(e) => setDevMotivo(e.target.value)} placeholder={`Descreva a circunstância da ${opt.label.toLowerCase()}`} />
+                <Textarea
+                  rows={3}
+                  value={devMotivo}
+                  onChange={(e) => setDevMotivo(e.target.value)}
+                  placeholder={`Descreva a circunstância da ${opt!.label.toLowerCase()}`}
+                  aria-invalid={erros.devMotivoSimples}
+                />
+                {erros.devMotivoSimples && <p className="text-xs text-destructive">Campo obrigatório para registrar {opt!.label.toLowerCase()}.</p>}
               </div>
             )}
           </div>
 
-          <div className="flex justify-end pt-2">
-            <Button size="lg" onClick={entregar} disabled={saving}>
+          <div className="flex flex-col items-end gap-2 pt-2">
+            {!formValido && (
+              <p className="text-xs text-muted-foreground">Preencha todos os campos obrigatórios para liberar o registro.</p>
+            )}
+            <Button size="lg" onClick={entregar} disabled={saving || !formValido}>
               <PackageCheck className="h-4 w-4 mr-2" /> {saving ? "Registrando…" : "Registrar entrega"}
             </Button>
           </div>
+
         </Card>
       ) : (
         <Card className="p-5"><p className="text-sm text-muted-foreground">Seu perfil não permite registrar entregas.</p></Card>
