@@ -17,7 +17,9 @@ export const Route = createFileRoute("/_app/entregas")({ component: EntregasPage
 
 type DevTipo = "nenhuma" | "devolucao_normal" | "avariado" | "descarte" | "troca" | "perda" | "roubo";
 
-const DEV_OPTS: { value: DevTipo; label: string; desc: string; simples?: boolean }[] = [
+type DevTipo = "" | "nenhuma" | "devolucao_normal" | "avariado" | "descarte" | "troca" | "perda" | "roubo";
+
+const DEV_OPTS: { value: Exclude<DevTipo, "">; label: string; desc: string; simples?: boolean }[] = [
   { value: "nenhuma", label: "Primeira entrega", desc: "Não há EPI anterior para devolver" },
   { value: "devolucao_normal", label: "Devolução normal", desc: "EPI anterior volta para o estoque" },
   { value: "avariado", label: "Avariado", desc: "EPI anterior danificado — não retorna ao estoque" },
@@ -26,6 +28,7 @@ const DEV_OPTS: { value: DevTipo; label: string; desc: string; simples?: boolean
   { value: "perda", label: "Perda", desc: "Apenas informar — não exige EPI anterior", simples: true },
   { value: "roubo", label: "Roubo", desc: "Apenas informar — não exige EPI anterior", simples: true },
 ];
+
 
 function EntregasPage() {
   const { role, user } = useAuth();
