@@ -15,8 +15,6 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/entregas")({ component: EntregasPage });
 
-type DevTipo = "nenhuma" | "devolucao_normal" | "avariado" | "descarte" | "troca" | "perda" | "roubo";
-
 type DevTipo = "" | "nenhuma" | "devolucao_normal" | "avariado" | "descarte" | "troca" | "perda" | "roubo";
 
 const DEV_OPTS: { value: Exclude<DevTipo, "">; label: string; desc: string; simples?: boolean }[] = [
