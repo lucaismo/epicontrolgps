@@ -50,7 +50,7 @@ function EntregasPage() {
 
   const { data: colabs = [] } = useQuery({
     queryKey: ["colabs-ativos"],
-    queryFn: async () => (await supabase.from("colaboradores").select("id,nome,matricula,setor").eq("status", "ativo").order("nome")).data ?? [],
+    queryFn: async () => (await supabase.from("colaboradores").select("id,nome,matricula,funcao").eq("status", "ativo").order("nome")).data ?? [],
   });
   const { data: epis = [] } = useQuery({
     queryKey: ["epis-ativos"],
@@ -172,7 +172,7 @@ function EntregasPage() {
               <div className="space-y-1.5"><Label>Colaborador *</Label>
                 <Select value={colaboradorId} onValueChange={setColaboradorId}>
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>{colabs.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome} — {c.matricula} ({c.setor})</SelectItem>)}</SelectContent>
+                  <SelectContent>{colabs.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.nome} — {c.matricula}{c.funcao ? ` (${c.funcao})` : ""}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5"><Label>EPI a entregar *</Label>

@@ -1,16 +1,3 @@
-export const SETORES = [
-  "Produção",
-  "Manutenção",
-  "Logística",
-  "Almoxarifado",
-  "Administrativo",
-  "Qualidade",
-  "Segurança do Trabalho",
-  "Engenharia",
-  "Recursos Humanos",
-  "TI",
-] as const;
-
 export const CATEGORIAS_EPI = [
   "Proteção da Cabeça",
   "Proteção dos Olhos e Face",
@@ -24,4 +11,8 @@ export const CATEGORIAS_EPI = [
   "Outros",
 ] as const;
 
-export const TURNOS = ["Administrativo", "1º Turno", "2º Turno", "3º Turno", "Comercial"] as const;
+export const TURNOS = ["Turno 1", "Turno 2", "Turno 3", "Administrativo"] as const;
+export type Turno = (typeof TURNOS)[number];
+
+export const STATUS_COLAB = ["ativo", "afastado", "desligado"] as const;
+export type StatusColab = (typeof STATUS_COLAB)[number];
