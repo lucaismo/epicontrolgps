@@ -50,7 +50,7 @@ function HistoricoColab() {
         <Card className="p-6">
           <h1 className="text-2xl font-bold">{colab.nome}</h1>
           <div className="text-sm text-muted-foreground mt-1">
-            Matrícula {colab.matricula} · {colab.setor} · {colab.funcao}
+            Matrícula {colab.matricula} · {colab.funcao}{colab.turno ? ` · ${colab.turno}` : ""}
           </div>
           {colab.observacoes && <p className="mt-3 text-sm">{colab.observacoes}</p>}
         </Card>

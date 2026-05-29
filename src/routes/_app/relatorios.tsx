@@ -27,7 +27,7 @@ function downloadCSV(filename: string, rows: any[]) {
 
 function Relatorios() {
   const { data: epis = [] } = useQuery({ queryKey: ["rel-epis"], queryFn: async () => (await supabase.from("epis").select("*").order("nome")).data ?? [] });
-  const { data: movs = [] } = useQuery({ queryKey: ["rel-movs"], queryFn: async () => (await supabase.from("movimentacoes").select("*, epis(nome), colaboradores(nome,matricula,setor)").order("data_movimentacao", { ascending: false }).limit(1000)).data ?? [] });
+  const { data: movs = [] } = useQuery({ queryKey: ["rel-movs"], queryFn: async () => (await supabase.from("movimentacoes").select("*, epis(nome), colaboradores(nome,matricula,funcao)").order("data_movimentacao", { ascending: false }).limit(1000)).data ?? [] });
 
   async function exportEstoque() {
     downloadCSV("estoque_atual.csv", epis.map((e: any) => ({
@@ -40,7 +40,7 @@ function Relatorios() {
     downloadCSV("movimentacoes.csv", movs.map((m: any) => ({
       Data: new Date(m.data_movimentacao).toLocaleString("pt-BR"),
       Tipo: m.tipo, EPI: m.epis?.nome, Colaborador: m.colaboradores?.nome,
-      Matricula: m.colaboradores?.matricula, Setor: m.colaboradores?.setor,
+      Matricula: m.colaboradores?.matricula, Funcao: m.colaboradores?.funcao,
       Quantidade: m.quantidade, Motivo: m.motivo, Observacao: m.observacao,
     })));
   }

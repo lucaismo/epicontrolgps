@@ -27,7 +27,7 @@ function Dashboard() {
 
       const [episRes, movsRes, colabRes] = await Promise.all([
         supabase.from("epis").select("id,nome,estoque_atual,estoque_minimo,custo_unitario,categoria").eq("status", "ativo"),
-        supabase.from("movimentacoes").select("tipo,quantidade,epi_id,colaborador_id,data_movimentacao,epis(nome,custo_unitario),colaboradores(setor)").gte("data_movimentacao", inicioMes.toISOString()),
+        supabase.from("movimentacoes").select("tipo,quantidade,epi_id,colaborador_id,data_movimentacao,epis(nome,custo_unitario),colaboradores(funcao)").gte("data_movimentacao", inicioMes.toISOString()),
         supabase.from("colaboradores").select("id", { count: "exact", head: true }).eq("status", "ativo"),
       ]);
 
@@ -49,12 +49,12 @@ function Dashboard() {
       });
       const topEpis = [...porEpi.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([nome, qtd]) => ({ nome, qtd }));
 
-      const porSetor = new Map<string, number>();
+      const porFuncao = new Map<string, number>();
       entregasMes.forEach((m: any) => {
-        const setor = m.colaboradores?.setor ?? "Sem setor";
-        porSetor.set(setor, (porSetor.get(setor) ?? 0) + m.quantidade);
+        const funcao = m.colaboradores?.funcao ?? "Sem função";
+        porFuncao.set(funcao, (porFuncao.get(funcao) ?? 0) + m.quantidade);
       });
-      const setores = [...porSetor.entries()].map(([name, value]) => ({ name, value }));
+      const setores = [...porFuncao.entries()].map(([name, value]) => ({ name, value }));
 
       return {
         totalEpis, estoqueTotal, abaixoMin: abaixoMin.length, zerados: zerados.length,
@@ -98,7 +98,7 @@ function Dashboard() {
         </Card>
 
         <Card className="p-5">
-          <h3 className="font-semibold mb-4">Consumo por setor</h3>
+          <h3 className="font-semibold mb-4">Consumo por função</h3>
           {stats?.setores.length ? (
             <ResponsiveContainer width="100%" height={260}>
               <PieChart>
