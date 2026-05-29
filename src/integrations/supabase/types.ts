@@ -19,12 +19,10 @@ export type Database = {
           created_at: string
           data_admissao: string | null
           funcao: string
-          gestor: string | null
           id: string
           matricula: string
           nome: string
           observacoes: string | null
-          setor: string
           status: Database["public"]["Enums"]["colaborador_status"]
           turno: string | null
           updated_at: string
@@ -33,12 +31,10 @@ export type Database = {
           created_at?: string
           data_admissao?: string | null
           funcao: string
-          gestor?: string | null
           id?: string
           matricula: string
           nome: string
           observacoes?: string | null
-          setor: string
           status?: Database["public"]["Enums"]["colaborador_status"]
           turno?: string | null
           updated_at?: string
@@ -47,12 +43,10 @@ export type Database = {
           created_at?: string
           data_admissao?: string | null
           funcao?: string
-          gestor?: string | null
           id?: string
           matricula?: string
           nome?: string
           observacoes?: string | null
-          setor?: string
           status?: Database["public"]["Enums"]["colaborador_status"]
           turno?: string | null
           updated_at?: string
