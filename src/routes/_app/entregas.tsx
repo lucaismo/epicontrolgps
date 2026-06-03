@@ -12,6 +12,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { PackageCheck, AlertTriangle } from "lucide-react";
 import { useAuth, canMovimentar } from "@/lib/auth";
 import { toast } from "sonner";
+import { sanitizeText } from "@/lib/sanitize";
 
 export const Route = createFileRoute("/_app/entregas")({ component: EntregasPage });
 
@@ -135,8 +136,8 @@ function EntregasPage() {
         epi_id: exigeEpiAnterior ? devEpiId : epiId, // perda/roubo refere-se ao EPI sendo entregue/substituído
         colaborador_id: colaboradorId,
         quantidade: exigeEpiAnterior ? devQtd : 1,
-        motivo: devMotivo || opt!.label,
-        observacao: `Registrado junto à entrega de ${epiSel?.nome ?? ""}`,
+        motivo: sanitizeText(devMotivo, 500) || opt!.label,
+        observacao: `Registrado junto à entrega de ${sanitizeText(epiSel?.nome ?? "", 120) ?? ""}`,
         usuario_responsavel: user?.id,
         data_movimentacao: movData,
       });
@@ -146,7 +147,7 @@ function EntregasPage() {
     // 2) registra a entrega
     const { error } = await supabase.from("movimentacoes").insert({
       tipo: "entrega", epi_id: epiId, colaborador_id: colaboradorId,
-      quantidade, observacao: obs || null,
+      quantidade, observacao: sanitizeText(obs, 500),
       usuario_responsavel: user?.id, data_movimentacao: movData,
     });
     setSaving(false);

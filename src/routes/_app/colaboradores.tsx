@@ -15,6 +15,7 @@ import { Link } from "@tanstack/react-router";
 import { TURNOS, STATUS_COLAB, type Turno, type StatusColab } from "@/lib/constants";
 import { useAuth, canManageRegistros } from "@/lib/auth";
 import { toast } from "sonner";
+import { sanitizeText } from "@/lib/sanitize";
 
 export const Route = createFileRoute("/_app/colaboradores")({
   component: ColaboradoresPage,
@@ -179,11 +180,13 @@ function ColabForm({ editing, onClose }: { editing: Colab | null; onClose: () =>
     }
     setSaving(true);
     const payload = {
-      nome: form.nome!, matricula: form.matricula!, funcao: form.funcao!,
+      nome: sanitizeText(form.nome, 120)!,
+      matricula: sanitizeText(form.matricula, 60)!,
+      funcao: sanitizeText(form.funcao, 120)!,
       turno: form.turno || null,
       status: (form.status as StatusColab) ?? "ativo",
       data_admissao: form.data_admissao || null,
-      observacoes: form.observacoes || null,
+      observacoes: sanitizeText(form.observacoes, 1000),
     };
     const { error } = editing
       ? await supabase.from("colaboradores").update(payload).eq("id", editing.id)
