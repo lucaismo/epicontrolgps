@@ -5,6 +5,30 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const RoleSchema = z.enum(["admin", "tecnico", "almoxarife", "lider"]);
 
+// Mapeia erros técnicos para mensagens amigáveis ao usuário final.
+// Loga o erro técnico no servidor e devolve uma mensagem segura.
+function friendlyError(e: unknown, fallback = "Não foi possível concluir a operação"): Error {
+  const raw = e instanceof Error ? e.message : String(e ?? "");
+  console.error("[admin-users]", raw, e);
+  const lower = raw.toLowerCase();
+  if (lower.includes("already been registered") || lower.includes("already registered") || lower.includes("duplicate key")) {
+    return new Error("Este email já está cadastrado");
+  }
+  if (lower.includes("password") && lower.includes("short")) {
+    return new Error("Senha muito curta (mínimo 8 caracteres)");
+  }
+  if (lower.includes("invalid email")) return new Error("Email inválido");
+  if (lower.includes("rate limit")) return new Error("Muitas tentativas, aguarde alguns instantes");
+  if (lower.includes("not allowed") || lower.includes("permission")) {
+    return new Error("Operação não permitida para o seu perfil");
+  }
+  return new Error(fallback);
+}
+
+function sanitizeNome(s: string): string {
+  return s.replace(/<[^>]*>/g, "").replace(/[\x00-\x1F\x7F]/g, "").trim().slice(0, 120);
+}
+
 async function assertCallerIsAdmin(userId: string) {
   const { data, error } = await supabaseAdmin
     .from("user_roles")
