@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Shield, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { hasAnyAdmin } from "@/lib/admin-users.functions";
+import { passwordStrength } from "@/lib/sanitize";
 
 export const Route = createFileRoute("/login")({ component: LoginPage });
 
@@ -36,6 +37,7 @@ function LoginPage() {
         await navigate({ to: "/dashboard", replace: true });
       } else if (mode === "signup") {
         if (!bootstrap) throw new Error("Cadastro restrito — solicite ao administrador");
+        if (password.length < 8) throw new Error("A senha deve ter no mínimo 8 caracteres");
         const { error } = await supabase.auth.signUp({
           email, password,
           options: { data: { nome }, emailRedirectTo: `${window.location.origin}/dashboard` },
@@ -95,7 +97,21 @@ function LoginPage() {
             {mode !== "reset" && (
               <div className="space-y-1.5">
                 <Label htmlFor="password">Senha</Label>
-                <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
+                <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={mode === "signup" ? 8 : 1} />
+                {mode === "signup" && password.length > 0 && (() => {
+                  const s = passwordStrength(password);
+                  const colors = ["bg-destructive", "bg-destructive", "bg-warning", "bg-primary", "bg-success"];
+                  return (
+                    <div className="space-y-1 pt-1">
+                      <div className="flex gap-1">
+                        {[0, 1, 2, 3].map((i) => (
+                          <div key={i} className={`h-1 flex-1 rounded ${i < s.score ? colors[s.score] : "bg-muted"}`} />
+                        ))}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">Força: <span className="font-medium">{s.label}</span> · mínimo 8 caracteres</p>
+                    </div>
+                  );
+                })()}
               </div>
             )}
 
