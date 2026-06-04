@@ -268,7 +268,36 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      finalizar_inventario: {
+        Args: { p_inventario_id: string; p_usuario: string }
+        Returns: undefined
+      }
+      registrar_entrada_estoque: {
+        Args: {
+          p_epi_id: string
+          p_motivo: string
+          p_observacao: string
+          p_quantidade: number
+          p_usuario: string
+        }
+        Returns: undefined
+      }
+      registrar_entrega_atomica: {
+        Args: {
+          p_colaborador_id: string
+          p_data_movimentacao: string
+          p_dev_epi_id: string
+          p_dev_motivo: string
+          p_dev_observacao: string
+          p_dev_quantidade: number
+          p_dev_tipo: string
+          p_epi_id: string
+          p_observacao: string
+          p_quantidade: number
+          p_usuario: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "tecnico" | "almoxarife" | "lider"
@@ -284,6 +313,8 @@ export type Database = {
         | "perda"
         | "entrada_estoque"
         | "roubo"
+        | "ajuste_entrada"
+        | "ajuste_saida"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -424,6 +455,8 @@ export const Constants = {
         "perda",
         "entrada_estoque",
         "roubo",
+        "ajuste_entrada",
+        "ajuste_saida",
       ],
     },
   },
