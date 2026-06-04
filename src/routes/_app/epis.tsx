@@ -135,13 +135,15 @@ function EpisPage() {
                   <td className="px-4 py-3 text-right">
                     {(canEdit || canEditStock) && (
                       <div className="inline-flex gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => { setEditing(e); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
-                        {role === "admin" && <Button variant="ghost" size="icon" onClick={() => handleDelete(e.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>}
+                        {canEditStock && <Button variant="ghost" size="icon" title="Entrada de estoque" onClick={() => setEntradaFor(e)}><PackagePlus className="h-4 w-4" /></Button>}
+                        <Button variant="ghost" size="icon" title="Editar" onClick={() => { setEditing(e); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
+                        {role === "admin" && <Button variant="ghost" size="icon" title="Excluir" onClick={() => handleDelete(e.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>}
                       </div>
                     )}
                   </td>
                 </tr>
               ))}
+
               {filtered.length === 0 && <tr><td colSpan={7} className="text-center py-12 text-muted-foreground text-sm">Nenhum EPI encontrado.</td></tr>}
             </tbody>
           </table>
