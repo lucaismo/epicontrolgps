@@ -99,10 +99,12 @@ function EpisPage() {
             </div>
             {(canEdit || canEditStock) && (
               <div className="flex justify-end gap-1 mt-3 pt-3 border-t">
+                {canEditStock && <Button variant="ghost" size="sm" onClick={() => setEntradaFor(e)}><PackagePlus className="h-4 w-4 mr-1" /> Entrada</Button>}
                 <Button variant="ghost" size="sm" onClick={() => { setEditing(e); setOpen(true); }}><Pencil className="h-4 w-4 mr-1" /> Editar</Button>
                 {role === "admin" && <Button variant="ghost" size="sm" onClick={() => handleDelete(e.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>}
               </div>
             )}
+
           </Card>
         ))}
       </div>
