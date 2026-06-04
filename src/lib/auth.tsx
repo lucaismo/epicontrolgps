@@ -49,8 +49,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .order("role", { ascending: true })
       .limit(1)
       .maybeSingle();
-    setRole((data?.role as AppRole) ?? "lider");
+    // M14: usuário sem role atribuída NÃO recebe acesso automático.
+    setRole((data?.role as AppRole) ?? null);
   }
+
 
   async function signOut() {
     await supabase.auth.signOut();
