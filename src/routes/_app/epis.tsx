@@ -149,9 +149,67 @@ function EpisPage() {
           </table>
         </div>
       </Card>
+
+      <EntradaEstoqueDialog
+        epi={entradaFor}
+        userId={user?.id ?? ""}
+        onClose={() => { setEntradaFor(null); qc.invalidateQueries({ queryKey: ["epis"] }); }}
+      />
     </div>
   );
 }
+
+function EntradaEstoqueDialog({ epi, userId, onClose }: { epi: Epi | null; userId: string; onClose: () => void }) {
+  const [qtd, setQtd] = useState(1);
+  const [motivo, setMotivo] = useState("");
+  const [obs, setObs] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function salvar() {
+    if (!epi) return;
+    if (qtd < 1) { toast.error("Quantidade deve ser maior que zero"); return; }
+    setSaving(true);
+    const { error } = await supabase.rpc("registrar_entrada_estoque", {
+      p_epi_id: epi.id,
+      p_quantidade: qtd,
+      p_motivo: motivo || "Entrada de estoque",
+      p_observacao: obs || "",
+      p_usuario: userId,
+    });
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success(`+${qtd} ${epi.nome} no estoque`);
+    setQtd(1); setMotivo(""); setObs("");
+    onClose();
+  }
+
+  return (
+    <Dialog open={!!epi} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Entrada de estoque · {epi?.nome}</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div className="text-xs text-muted-foreground">
+            Estoque atual: <b>{epi?.estoque_atual ?? 0}</b> · ficará <b>{(epi?.estoque_atual ?? 0) + qtd}</b>
+          </div>
+          <div className="space-y-1.5"><Label>Quantidade *</Label>
+            <Input type="number" min={1} value={qtd} onChange={(e) => setQtd(Number(e.target.value))} />
+          </div>
+          <div className="space-y-1.5"><Label>Motivo / Nota Fiscal</Label>
+            <Input value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Ex: NF 12345 — Fornecedor X" />
+          </div>
+          <div className="space-y-1.5"><Label>Observação</Label>
+            <Textarea rows={2} value={obs} onChange={(e) => setObs(e.target.value)} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>Cancelar</Button>
+          <Button onClick={salvar} disabled={saving}>{saving ? "Registrando…" : "Registrar entrada"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 
 function EpiForm({ editing, onClose }: { editing: Epi | null; onClose: () => void }) {
   const [form, setForm] = useState<Partial<Epi>>(editing ?? { status: "ativo", estoque_atual: 0, estoque_minimo: 0, custo_unitario: 0 });
