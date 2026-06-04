@@ -129,26 +129,23 @@ function EntregasPage() {
     setSaving(true);
     const movData = new Date(data).toISOString();
 
-    // 1) registra devolução PRIMEIRO (se houver) — assim erro no anterior impede a entrega
-    if (devTipo && devTipo !== "nenhuma") {
-      const { error: devErr } = await supabase.from("movimentacoes").insert({
-        tipo: devTipo as any,
-        epi_id: exigeEpiAnterior ? devEpiId : epiId, // perda/roubo refere-se ao EPI sendo entregue/substituído
-        colaborador_id: colaboradorId,
-        quantidade: exigeEpiAnterior ? devQtd : 1,
-        motivo: sanitizeText(devMotivo, 500) || opt!.label,
-        observacao: `Registrado junto à entrega de ${sanitizeText(epiSel?.nome ?? "", 120) ?? ""}`,
-        usuario_responsavel: user?.id,
-        data_movimentacao: movData,
-      });
-      if (devErr) { setSaving(false); toast.error(`Falha ao registrar devolução: ${devErr.message}`); return; }
-    }
-
-    // 2) registra a entrega
-    const { error } = await supabase.from("movimentacoes").insert({
-      tipo: "entrega", epi_id: epiId, colaborador_id: colaboradorId,
-      quantidade, observacao: sanitizeText(obs, 500),
-      usuario_responsavel: user?.id, data_movimentacao: movData,
+    // C3: entrega + devolução numa transação única no banco (RPC).
+    // Se a entrega falhar, a devolução também é desfeita.
+    const devTipoFinal = devTipo && devTipo !== "nenhuma" ? devTipo : null;
+    const { error } = await supabase.rpc("registrar_entrega_atomica", {
+      p_colaborador_id: colaboradorId,
+      p_epi_id: epiId,
+      p_quantidade: quantidade,
+      p_observacao: sanitizeText(obs, 500),
+      p_data_movimentacao: movData,
+      p_usuario: user?.id ?? null,
+      p_dev_tipo: devTipoFinal,
+      p_dev_epi_id: devTipoFinal ? (exigeEpiAnterior ? devEpiId : epiId) : null,
+      p_dev_quantidade: devTipoFinal ? (exigeEpiAnterior ? devQtd : 1) : null,
+      p_dev_motivo: devTipoFinal ? (sanitizeText(devMotivo, 500) || opt!.label) : null,
+      p_dev_observacao: devTipoFinal
+        ? `Registrado junto à entrega de ${sanitizeText(epiSel?.nome ?? "", 120) ?? ""}`
+        : null,
     });
     setSaving(false);
     if (error) { toast.error(error.message); return; }
@@ -156,6 +153,7 @@ function EntregasPage() {
     resetForm();
     qc.invalidateQueries();
   }
+
 
   return (
     <div className="p-4 md:p-8 space-y-5">
