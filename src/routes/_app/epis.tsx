@@ -212,25 +212,44 @@ function EntradaEstoqueDialog({ epi, userId, onClose }: { epi: Epi | null; userI
 
 
 function EpiForm({ editing, onClose }: { editing: Epi | null; onClose: () => void }) {
+  const { user } = useAuth();
   const [form, setForm] = useState<Partial<Epi>>(editing ?? { status: "ativo", estoque_atual: 0, estoque_minimo: 0, custo_unitario: 0 });
   const [saving, setSaving] = useState(false);
 
   async function save() {
     if (!form.nome || !form.categoria) { toast.error("Nome e categoria são obrigatórios"); return; }
     setSaving(true);
-    const payload = {
+    // A1: ao editar NÃO permite alterar estoque_atual — use "Entrada de estoque" ou inventário.
+    const basePayload = {
       nome: form.nome!, categoria: form.categoria!, ca: form.ca || null, modelo: form.modelo || null,
-      tamanho: form.tamanho || null, estoque_atual: Number(form.estoque_atual ?? 0),
+      tamanho: form.tamanho || null,
       estoque_minimo: Number(form.estoque_minimo ?? 0), custo_unitario: Number(form.custo_unitario ?? 0),
       localizacao: form.localizacao || null, status: (form.status as any) ?? "ativo",
     };
-    const { error } = editing
-      ? await supabase.from("epis").update(payload).eq("id", editing.id)
-      : await supabase.from("epis").insert(payload);
+
+    let error: any = null;
+    if (editing) {
+      const r = await supabase.from("epis").update(basePayload).eq("id", editing.id);
+      error = r.error;
+    } else {
+      // A4: cria o EPI com estoque zero e registra entrada rastreável se houver estoque inicial
+      const r = await supabase.from("epis").insert({ ...basePayload, estoque_atual: 0 }).select("id").single();
+      error = r.error;
+      const qtdInicial = Number(form.estoque_atual ?? 0);
+      if (!error && r.data?.id && qtdInicial > 0) {
+        const rpc = await supabase.rpc("registrar_entrada_estoque", {
+          p_epi_id: r.data.id, p_quantidade: qtdInicial,
+          p_motivo: "Estoque inicial no cadastro",
+          p_observacao: "", p_usuario: user?.id ?? "",
+        });
+        if (rpc.error) error = rpc.error;
+      }
+    }
     setSaving(false);
     if (error) toast.error(error.message);
     else { toast.success(editing ? "Atualizado" : "Cadastrado"); onClose(); }
   }
+
 
   return (
     <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
