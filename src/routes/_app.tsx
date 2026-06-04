@@ -21,8 +21,8 @@ function AppShell() {
 }
 
 function AppGuard() {
-  const { loading, user } = useAuth();
-  if (loading) {
+  const { loading, user, role, roleLoaded } = useAuth();
+  if (loading || (user && !roleLoaded)) {
     return (
       <div className="min-h-screen grid place-items-center">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -35,9 +35,30 @@ function AppGuard() {
     });
     return null;
   }
+  // M14: usuário autenticado sem perfil atribuído fica bloqueado aguardando o admin.
+  if (!role) {
+    return (
+      <div className="min-h-screen grid place-items-center p-6">
+        <div className="max-w-md text-center space-y-4">
+          <h1 className="text-xl font-semibold">Aguardando liberação</h1>
+          <p className="text-sm text-muted-foreground">
+            Sua conta foi criada, mas ainda não tem um perfil de acesso atribuído.
+            Solicite ao administrador a definição do seu perfil para entrar no sistema.
+          </p>
+          <button
+            onClick={() => supabase.auth.signOut().then(() => window.location.replace("/login"))}
+            className="text-sm underline text-primary"
+          >
+            Sair
+          </button>
+        </div>
+      </div>
+    );
+  }
   return (
     <AppLayout>
       <Outlet />
     </AppLayout>
   );
 }
+

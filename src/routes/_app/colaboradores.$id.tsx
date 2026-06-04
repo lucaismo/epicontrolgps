@@ -16,8 +16,12 @@ const TIPO_LABEL: Record<string, string> = {
   descarte: "Descarte",
   troca: "Troca",
   perda: "Perda",
+  roubo: "Roubo",
   entrada_estoque: "Entrada estoque",
+  ajuste_entrada: "Ajuste (+)",
+  ajuste_saida: "Ajuste (−)",
 };
+
 
 function HistoricoColab() {
   const { id } = Route.useParams();

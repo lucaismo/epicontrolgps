@@ -8,7 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Search, Pencil, Trash2 } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, PackagePlus } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+
 import { CATEGORIAS_EPI } from "@/lib/constants";
 import { useAuth, canManageRegistros, canMovimentar } from "@/lib/auth";
 import { toast } from "sonner";
@@ -23,7 +25,7 @@ type Epi = {
 };
 
 function EpisPage() {
-  const { role } = useAuth();
+  const { role, user } = useAuth();
   const canEdit = canManageRegistros(role);
   const canEditStock = canMovimentar(role);
   const qc = useQueryClient();
@@ -31,6 +33,8 @@ function EpisPage() {
   const [filterCat, setFilterCat] = useState("all");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Epi | null>(null);
+  const [entradaFor, setEntradaFor] = useState<Epi | null>(null);
+
 
   const { data: list = [] } = useQuery({
     queryKey: ["epis"],
@@ -95,10 +99,12 @@ function EpisPage() {
             </div>
             {(canEdit || canEditStock) && (
               <div className="flex justify-end gap-1 mt-3 pt-3 border-t">
+                {canEditStock && <Button variant="ghost" size="sm" onClick={() => setEntradaFor(e)}><PackagePlus className="h-4 w-4 mr-1" /> Entrada</Button>}
                 <Button variant="ghost" size="sm" onClick={() => { setEditing(e); setOpen(true); }}><Pencil className="h-4 w-4 mr-1" /> Editar</Button>
                 {role === "admin" && <Button variant="ghost" size="sm" onClick={() => handleDelete(e.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>}
               </div>
             )}
+
           </Card>
         ))}
       </div>
@@ -129,42 +135,121 @@ function EpisPage() {
                   <td className="px-4 py-3 text-right">
                     {(canEdit || canEditStock) && (
                       <div className="inline-flex gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => { setEditing(e); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
-                        {role === "admin" && <Button variant="ghost" size="icon" onClick={() => handleDelete(e.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>}
+                        {canEditStock && <Button variant="ghost" size="icon" title="Entrada de estoque" onClick={() => setEntradaFor(e)}><PackagePlus className="h-4 w-4" /></Button>}
+                        <Button variant="ghost" size="icon" title="Editar" onClick={() => { setEditing(e); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
+                        {role === "admin" && <Button variant="ghost" size="icon" title="Excluir" onClick={() => handleDelete(e.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>}
                       </div>
                     )}
                   </td>
                 </tr>
               ))}
+
               {filtered.length === 0 && <tr><td colSpan={7} className="text-center py-12 text-muted-foreground text-sm">Nenhum EPI encontrado.</td></tr>}
             </tbody>
           </table>
         </div>
       </Card>
+
+      <EntradaEstoqueDialog
+        epi={entradaFor}
+        userId={user?.id ?? ""}
+        onClose={() => { setEntradaFor(null); qc.invalidateQueries({ queryKey: ["epis"] }); }}
+      />
     </div>
   );
 }
 
+function EntradaEstoqueDialog({ epi, userId, onClose }: { epi: Epi | null; userId: string; onClose: () => void }) {
+  const [qtd, setQtd] = useState(1);
+  const [motivo, setMotivo] = useState("");
+  const [obs, setObs] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function salvar() {
+    if (!epi) return;
+    if (qtd < 1) { toast.error("Quantidade deve ser maior que zero"); return; }
+    setSaving(true);
+    const { error } = await supabase.rpc("registrar_entrada_estoque", {
+      p_epi_id: epi.id,
+      p_quantidade: qtd,
+      p_motivo: motivo || "Entrada de estoque",
+      p_observacao: obs || "",
+      p_usuario: userId,
+    });
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success(`+${qtd} ${epi.nome} no estoque`);
+    setQtd(1); setMotivo(""); setObs("");
+    onClose();
+  }
+
+  return (
+    <Dialog open={!!epi} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Entrada de estoque · {epi?.nome}</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div className="text-xs text-muted-foreground">
+            Estoque atual: <b>{epi?.estoque_atual ?? 0}</b> · ficará <b>{(epi?.estoque_atual ?? 0) + qtd}</b>
+          </div>
+          <div className="space-y-1.5"><Label>Quantidade *</Label>
+            <Input type="number" min={1} value={qtd} onChange={(e) => setQtd(Number(e.target.value))} />
+          </div>
+          <div className="space-y-1.5"><Label>Motivo / Nota Fiscal</Label>
+            <Input value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Ex: NF 12345 — Fornecedor X" />
+          </div>
+          <div className="space-y-1.5"><Label>Observação</Label>
+            <Textarea rows={2} value={obs} onChange={(e) => setObs(e.target.value)} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>Cancelar</Button>
+          <Button onClick={salvar} disabled={saving}>{saving ? "Registrando…" : "Registrar entrada"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
 function EpiForm({ editing, onClose }: { editing: Epi | null; onClose: () => void }) {
+  const { user } = useAuth();
   const [form, setForm] = useState<Partial<Epi>>(editing ?? { status: "ativo", estoque_atual: 0, estoque_minimo: 0, custo_unitario: 0 });
   const [saving, setSaving] = useState(false);
 
   async function save() {
     if (!form.nome || !form.categoria) { toast.error("Nome e categoria são obrigatórios"); return; }
     setSaving(true);
-    const payload = {
+    // A1: ao editar NÃO permite alterar estoque_atual — use "Entrada de estoque" ou inventário.
+    const basePayload = {
       nome: form.nome!, categoria: form.categoria!, ca: form.ca || null, modelo: form.modelo || null,
-      tamanho: form.tamanho || null, estoque_atual: Number(form.estoque_atual ?? 0),
+      tamanho: form.tamanho || null,
       estoque_minimo: Number(form.estoque_minimo ?? 0), custo_unitario: Number(form.custo_unitario ?? 0),
       localizacao: form.localizacao || null, status: (form.status as any) ?? "ativo",
     };
-    const { error } = editing
-      ? await supabase.from("epis").update(payload).eq("id", editing.id)
-      : await supabase.from("epis").insert(payload);
+
+    let error: any = null;
+    if (editing) {
+      const r = await supabase.from("epis").update(basePayload).eq("id", editing.id);
+      error = r.error;
+    } else {
+      // A4: cria o EPI com estoque zero e registra entrada rastreável se houver estoque inicial
+      const r = await supabase.from("epis").insert({ ...basePayload, estoque_atual: 0 }).select("id").single();
+      error = r.error;
+      const qtdInicial = Number(form.estoque_atual ?? 0);
+      if (!error && r.data?.id && qtdInicial > 0) {
+        const rpc = await supabase.rpc("registrar_entrada_estoque", {
+          p_epi_id: r.data.id, p_quantidade: qtdInicial,
+          p_motivo: "Estoque inicial no cadastro",
+          p_observacao: "", p_usuario: user?.id ?? "",
+        });
+        if (rpc.error) error = rpc.error;
+      }
+    }
     setSaving(false);
     if (error) toast.error(error.message);
     else { toast.success(editing ? "Atualizado" : "Cadastrado"); onClose(); }
   }
+
 
   return (
     <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -180,7 +265,19 @@ function EpiForm({ editing, onClose }: { editing: Epi | null; onClose: () => voi
         <div className="space-y-1.5"><Label>CA</Label><Input value={form.ca ?? ""} onChange={(e) => setForm({ ...form, ca: e.target.value })} /></div>
         <div className="space-y-1.5"><Label>Modelo</Label><Input value={form.modelo ?? ""} onChange={(e) => setForm({ ...form, modelo: e.target.value })} /></div>
         <div className="space-y-1.5"><Label>Tamanho</Label><Input value={form.tamanho ?? ""} onChange={(e) => setForm({ ...form, tamanho: e.target.value })} /></div>
-        <div className="space-y-1.5"><Label>Estoque atual</Label><Input type="number" min={0} value={form.estoque_atual ?? 0} onChange={(e) => setForm({ ...form, estoque_atual: Number(e.target.value) })} /></div>
+        <div className="space-y-1.5">
+          <Label>{editing ? "Estoque atual (somente leitura)" : "Estoque inicial"}</Label>
+          <Input
+            type="number" min={0}
+            value={form.estoque_atual ?? 0}
+            disabled={!!editing}
+            onChange={(e) => setForm({ ...form, estoque_atual: Number(e.target.value) })}
+          />
+          {editing
+            ? <p className="text-[11px] text-muted-foreground">Use “Entrada de estoque” ou inventário para alterar.</p>
+            : <p className="text-[11px] text-muted-foreground">Registrado como entrada rastreável.</p>}
+        </div>
+
         <div className="space-y-1.5"><Label>Estoque mínimo</Label><Input type="number" min={0} value={form.estoque_minimo ?? 0} onChange={(e) => setForm({ ...form, estoque_minimo: Number(e.target.value) })} /></div>
         <div className="space-y-1.5"><Label>Custo unitário (R$)</Label><Input type="number" step="0.01" min={0} value={form.custo_unitario ?? 0} onChange={(e) => setForm({ ...form, custo_unitario: Number(e.target.value) })} /></div>
         <div className="space-y-1.5"><Label>Localização física</Label><Input value={form.localizacao ?? ""} onChange={(e) => setForm({ ...form, localizacao: e.target.value })} placeholder="Ex: Prateleira A-3" /></div>
