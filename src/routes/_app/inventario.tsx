@@ -101,6 +101,8 @@ function InventarioPage() {
 
 function InventarioDetalhe({ id, onBack }: { id: string; onBack: () => void }) {
   const qc = useQueryClient();
+  const { user } = useAuth();
+
   const { data: inv } = useQuery({
     queryKey: ["inv", id],
     queryFn: async () => (await supabase.from("inventarios").select("*").eq("id", id).single()).data,
