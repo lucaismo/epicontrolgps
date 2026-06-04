@@ -9,8 +9,10 @@ interface AuthState {
   session: Session | null;
   role: AppRole | null;
   loading: boolean;
+  roleLoaded: boolean;
   signOut: () => Promise<void>;
 }
+
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
 
