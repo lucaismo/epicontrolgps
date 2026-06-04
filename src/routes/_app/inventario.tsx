@@ -127,12 +127,17 @@ function InventarioDetalhe({ id, onBack }: { id: string; onBack: () => void }) {
   }
 
   async function finalizar() {
-    if (!confirm("Finalizar inventário? Não será mais editável.")) return;
+    if (!confirm("Finalizar inventário? As diferenças serão aplicadas ao estoque como ajustes rastreáveis e o inventário não poderá mais ser editado.")) return;
     await salvar();
-    await supabase.from("inventarios").update({ status: "finalizado", data_fim: new Date().toISOString() }).eq("id", id);
-    toast.success("Inventário finalizado");
+    const { error } = await supabase.rpc("finalizar_inventario", {
+      p_inventario_id: id,
+      p_usuario: user?.id ?? "",
+    });
+    if (error) { toast.error(`Falha ao finalizar: ${error.message}`); return; }
+    toast.success("Inventário finalizado e estoque ajustado");
     onBack();
   }
+
 
   const finalizado = inv?.status === "finalizado";
 
