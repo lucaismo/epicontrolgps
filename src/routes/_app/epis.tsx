@@ -265,7 +265,19 @@ function EpiForm({ editing, onClose }: { editing: Epi | null; onClose: () => voi
         <div className="space-y-1.5"><Label>CA</Label><Input value={form.ca ?? ""} onChange={(e) => setForm({ ...form, ca: e.target.value })} /></div>
         <div className="space-y-1.5"><Label>Modelo</Label><Input value={form.modelo ?? ""} onChange={(e) => setForm({ ...form, modelo: e.target.value })} /></div>
         <div className="space-y-1.5"><Label>Tamanho</Label><Input value={form.tamanho ?? ""} onChange={(e) => setForm({ ...form, tamanho: e.target.value })} /></div>
-        <div className="space-y-1.5"><Label>Estoque atual</Label><Input type="number" min={0} value={form.estoque_atual ?? 0} onChange={(e) => setForm({ ...form, estoque_atual: Number(e.target.value) })} /></div>
+        <div className="space-y-1.5">
+          <Label>{editing ? "Estoque atual (somente leitura)" : "Estoque inicial"}</Label>
+          <Input
+            type="number" min={0}
+            value={form.estoque_atual ?? 0}
+            disabled={!!editing}
+            onChange={(e) => setForm({ ...form, estoque_atual: Number(e.target.value) })}
+          />
+          {editing
+            ? <p className="text-[11px] text-muted-foreground">Use “Entrada de estoque” ou inventário para alterar.</p>
+            : <p className="text-[11px] text-muted-foreground">Registrado como entrada rastreável.</p>}
+        </div>
+
         <div className="space-y-1.5"><Label>Estoque mínimo</Label><Input type="number" min={0} value={form.estoque_minimo ?? 0} onChange={(e) => setForm({ ...form, estoque_minimo: Number(e.target.value) })} /></div>
         <div className="space-y-1.5"><Label>Custo unitário (R$)</Label><Input type="number" step="0.01" min={0} value={form.custo_unitario ?? 0} onChange={(e) => setForm({ ...form, custo_unitario: Number(e.target.value) })} /></div>
         <div className="space-y-1.5"><Label>Localização física</Label><Input value={form.localizacao ?? ""} onChange={(e) => setForm({ ...form, localizacao: e.target.value })} placeholder="Ex: Prateleira A-3" /></div>
