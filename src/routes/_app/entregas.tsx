@@ -136,17 +136,18 @@ function EntregasPage() {
       p_colaborador_id: colaboradorId,
       p_epi_id: epiId,
       p_quantidade: quantidade,
-      p_observacao: sanitizeText(obs, 500),
+      p_observacao: sanitizeText(obs, 500) ?? "",
       p_data_movimentacao: movData,
-      p_usuario: user?.id ?? null,
-      p_dev_tipo: devTipoFinal,
-      p_dev_epi_id: devTipoFinal ? (exigeEpiAnterior ? devEpiId : epiId) : null,
-      p_dev_quantidade: devTipoFinal ? (exigeEpiAnterior ? devQtd : 1) : null,
-      p_dev_motivo: devTipoFinal ? (sanitizeText(devMotivo, 500) || opt!.label) : null,
+      p_usuario: user?.id ?? "",
+      p_dev_tipo: devTipoFinal ?? "",
+      p_dev_epi_id: devTipoFinal ? (exigeEpiAnterior ? devEpiId : epiId) : epiId,
+      p_dev_quantidade: devTipoFinal ? (exigeEpiAnterior ? devQtd : 1) : 0,
+      p_dev_motivo: devTipoFinal ? (sanitizeText(devMotivo, 500) || opt!.label) : "",
       p_dev_observacao: devTipoFinal
         ? `Registrado junto à entrega de ${sanitizeText(epiSel?.nome ?? "", 120) ?? ""}`
-        : null,
+        : "",
     });
+
     setSaving(false);
     if (error) { toast.error(error.message); return; }
     toast.success("Entrega registrada!");
