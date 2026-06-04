@@ -25,7 +25,7 @@ type Epi = {
 };
 
 function EpisPage() {
-  const { role } = useAuth();
+  const { role, user } = useAuth();
   const canEdit = canManageRegistros(role);
   const canEditStock = canMovimentar(role);
   const qc = useQueryClient();
@@ -33,6 +33,8 @@ function EpisPage() {
   const [filterCat, setFilterCat] = useState("all");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Epi | null>(null);
+  const [entradaFor, setEntradaFor] = useState<Epi | null>(null);
+
 
   const { data: list = [] } = useQuery({
     queryKey: ["epis"],
