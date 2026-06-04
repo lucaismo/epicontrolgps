@@ -8,7 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Search, Pencil, Trash2 } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, PackagePlus } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+
 import { CATEGORIAS_EPI } from "@/lib/constants";
 import { useAuth, canManageRegistros, canMovimentar } from "@/lib/auth";
 import { toast } from "sonner";
