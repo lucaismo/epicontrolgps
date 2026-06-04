@@ -21,15 +21,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<AppRole | null>(null);
   const [loading, setLoading] = useState(true);
+  const [roleLoaded, setRoleLoaded] = useState(false);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
       setUser(newSession?.user ?? null);
       if (newSession?.user) {
+        setRoleLoaded(false);
         setTimeout(() => { fetchRole(newSession.user.id); }, 0);
       } else {
         setRole(null);
+        setRoleLoaded(true);
       }
     });
 
@@ -37,6 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(s);
       setUser(s?.user ?? null);
       if (s?.user) fetchRole(s.user.id);
+      else setRoleLoaded(true);
       setLoading(false);
     });
 
@@ -53,6 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .maybeSingle();
     // M14: usuário sem role atribuída NÃO recebe acesso automático.
     setRole((data?.role as AppRole) ?? null);
+    setRoleLoaded(true);
   }
 
 
@@ -62,7 +67,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, session, role, loading, signOut }}>
+    <AuthContext.Provider value={{ user, session, role, loading, roleLoaded, signOut }}>
+
       {children}
     </AuthContext.Provider>
   );
