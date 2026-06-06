@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Search, Pencil, Trash2, History, Upload, Download } from "lucide-react";
+import { Plus, Search, Pencil, UserX, UserCheck, History, Upload, Download } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { TURNOS, STATUS_COLAB, type Turno, type StatusColab } from "@/lib/constants";
 import { useAuth, canManageRegistros } from "@/lib/auth";
@@ -52,15 +52,22 @@ function ColaboradoresPage() {
 
   const filtered = list.filter((c) => {
     if (filterTurno !== "all" && c.turno !== filterTurno) return false;
-    if (filterStatus !== "all" && c.status !== filterStatus) return false;
+    if (filterStatus === "ativos" && c.status !== "ativo") return false;
+    else if (filterStatus === "inativos" && c.status === "ativo") return false;
+    else if (filterStatus !== "all" && filterStatus !== "ativos" && filterStatus !== "inativos" && c.status !== filterStatus) return false;
     if (search && !`${c.nome} ${c.matricula} ${c.funcao}`.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
 
-  async function handleDelete(id: string) {
-    if (!confirm("Excluir este colaborador?")) return;
-    const { error } = await supabase.from("colaboradores").delete().eq("id", id);
-    if (error) toast.error(error.message); else { toast.success("Excluído"); qc.invalidateQueries({ queryKey: ["colaboradores"] }); }
+  async function handleInativar(c: Colab) {
+    if (!confirm(`Inativar o colaborador "${c.nome}"? O histórico de movimentações será preservado.`)) return;
+    const { error } = await supabase.from("colaboradores").update({ status: "desligado" }).eq("id", c.id);
+    if (error) toast.error(error.message); else { toast.success("Colaborador inativado"); qc.invalidateQueries({ queryKey: ["colaboradores"] }); }
+  }
+
+  async function handleReativar(c: Colab) {
+    const { error } = await supabase.from("colaboradores").update({ status: "ativo" }).eq("id", c.id);
+    if (error) toast.error(error.message); else { toast.success("Colaborador reativado"); qc.invalidateQueries({ queryKey: ["colaboradores"] }); }
   }
 
   return (
@@ -104,7 +111,8 @@ function ColaboradoresPage() {
           <SelectTrigger className="md:w-40"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos status</SelectItem>
-            <SelectItem value="ativo">Ativo</SelectItem>
+            <SelectItem value="ativos">Ativos</SelectItem>
+            <SelectItem value="inativos">Inativos</SelectItem>
             <SelectItem value="afastado">Afastado</SelectItem>
             <SelectItem value="desligado">Desligado</SelectItem>
           </SelectContent>
@@ -141,7 +149,11 @@ function ColaboradoresPage() {
                         <>
                           <Button variant="ghost" size="icon" onClick={() => { setEditing(c); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
                           {role === "admin" && (
-                            <Button variant="ghost" size="icon" onClick={() => handleDelete(c.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                            c.status === "ativo" ? (
+                              <Button variant="ghost" size="icon" title="Inativar" onClick={() => handleInativar(c)}><UserX className="h-4 w-4 text-destructive" /></Button>
+                            ) : (
+                              <Button variant="ghost" size="icon" title="Reativar" onClick={() => handleReativar(c)}><UserCheck className="h-4 w-4 text-success" /></Button>
+                            )
                           )}
                         </>
                       )}
