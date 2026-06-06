@@ -111,7 +111,8 @@ function ColaboradoresPage() {
           <SelectTrigger className="md:w-40"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos status</SelectItem>
-            <SelectItem value="ativo">Ativo</SelectItem>
+            <SelectItem value="ativos">Ativos</SelectItem>
+            <SelectItem value="inativos">Inativos</SelectItem>
             <SelectItem value="afastado">Afastado</SelectItem>
             <SelectItem value="desligado">Desligado</SelectItem>
           </SelectContent>
