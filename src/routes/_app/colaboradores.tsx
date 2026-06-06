@@ -52,15 +52,22 @@ function ColaboradoresPage() {
 
   const filtered = list.filter((c) => {
     if (filterTurno !== "all" && c.turno !== filterTurno) return false;
-    if (filterStatus !== "all" && c.status !== filterStatus) return false;
+    if (filterStatus === "ativos" && c.status !== "ativo") return false;
+    else if (filterStatus === "inativos" && c.status === "ativo") return false;
+    else if (filterStatus !== "all" && filterStatus !== "ativos" && filterStatus !== "inativos" && c.status !== filterStatus) return false;
     if (search && !`${c.nome} ${c.matricula} ${c.funcao}`.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
 
-  async function handleDelete(id: string) {
-    if (!confirm("Excluir este colaborador?")) return;
-    const { error } = await supabase.from("colaboradores").delete().eq("id", id);
-    if (error) toast.error(error.message); else { toast.success("Excluído"); qc.invalidateQueries({ queryKey: ["colaboradores"] }); }
+  async function handleInativar(c: Colab) {
+    if (!confirm(`Inativar o colaborador "${c.nome}"? O histórico de movimentações será preservado.`)) return;
+    const { error } = await supabase.from("colaboradores").update({ status: "desligado" }).eq("id", c.id);
+    if (error) toast.error(error.message); else { toast.success("Colaborador inativado"); qc.invalidateQueries({ queryKey: ["colaboradores"] }); }
+  }
+
+  async function handleReativar(c: Colab) {
+    const { error } = await supabase.from("colaboradores").update({ status: "ativo" }).eq("id", c.id);
+    if (error) toast.error(error.message); else { toast.success("Colaborador reativado"); qc.invalidateQueries({ queryKey: ["colaboradores"] }); }
   }
 
   return (
