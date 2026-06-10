@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,11 +24,17 @@ function AppShell() {
 function AppGuard() {
   const { loading, user, role, roleLoaded } = useAuth();
 
-  // Redireciona via efeito — nunca durante o render. Side-effects em render
-  // disparavam signOut() em estados transitórios (user=null momentâneo),
-  // produzindo o loop login → dashboard → login.
+  // Só redireciona em transição real logado→deslogado. Sem este guard,
+  // o user=null transitório durante a hidratação do supabase (entre
+  // INITIAL_SESSION e SIGNED_IN) disparava window.location.replace("/login")
+  // logo após o login bem-sucedido, gerando o loop login→dashboard→login.
+  const wasAuthenticatedRef = useRef(false);
   useEffect(() => {
-    if (!loading && roleLoaded && !user) {
+    if (user) {
+      wasAuthenticatedRef.current = true;
+      return;
+    }
+    if (!loading && roleLoaded && !user && wasAuthenticatedRef.current) {
       window.location.replace("/login");
     }
   }, [loading, roleLoaded, user]);
