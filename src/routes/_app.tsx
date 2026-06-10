@@ -1,4 +1,5 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,7 +23,17 @@ function AppShell() {
 
 function AppGuard() {
   const { loading, user, role, roleLoaded } = useAuth();
-  if (loading || (user && !roleLoaded)) {
+
+  // Redireciona via efeito — nunca durante o render. Side-effects em render
+  // disparavam signOut() em estados transitórios (user=null momentâneo),
+  // produzindo o loop login → dashboard → login.
+  useEffect(() => {
+    if (!loading && roleLoaded && !user) {
+      window.location.replace("/login");
+    }
+  }, [loading, roleLoaded, user]);
+
+  if (loading || !roleLoaded || (user && !roleLoaded)) {
     return (
       <div className="min-h-screen grid place-items-center">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -30,10 +41,11 @@ function AppGuard() {
     );
   }
   if (!user) {
-    supabase.auth.signOut().finally(() => {
-      window.location.replace("/login");
-    });
-    return null;
+    return (
+      <div className="min-h-screen grid place-items-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
   }
   // M14: usuário autenticado sem perfil atribuído fica bloqueado aguardando o admin.
   if (!role) {

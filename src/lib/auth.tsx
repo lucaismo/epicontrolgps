@@ -24,7 +24,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [roleLoaded, setRoleLoaded] = useState(false);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
+      // Reage apenas a transições reais de identidade. INITIAL_SESSION / TOKEN_REFRESHED
+      // podem chegar com newSession=null durante a hidratação do storage e, se aplicados,
+      // sobrescrevem o usuário já carregado por getSession() — causando logout indevido.
+      if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
       setSession(newSession);
       setUser(newSession?.user ?? null);
       if (newSession?.user) {
