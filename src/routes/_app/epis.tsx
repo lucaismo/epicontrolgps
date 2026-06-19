@@ -67,7 +67,7 @@ function EpisPage() {
         {(canEdit || canEditStock) && (
           <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
             <DialogTrigger asChild><Button onClick={() => setEditing(null)}><Plus className="h-4 w-4 mr-2" /> Novo EPI</Button></DialogTrigger>
-            <EpiForm editing={editing} onClose={() => { setOpen(false); setEditing(null); qc.invalidateQueries({ queryKey: ["epis"] }); }} />
+            <EpiForm key={editing?.id ?? "new"} editing={editing} onClose={() => { setOpen(false); setEditing(null); qc.invalidateQueries({ queryKey: ["epis"] }); }} />
           </Dialog>
         )}
       </div>
