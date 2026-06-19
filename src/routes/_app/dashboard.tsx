@@ -7,15 +7,12 @@ import {
   Users, ArrowDownRight, Boxes,
 } from "lucide-react";
 import {
-  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip,
-  PieChart, Pie, Cell, CartesianGrid,
+  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
 } from "recharts";
 
 export const Route = createFileRoute("/_app/dashboard")({
   component: Dashboard,
 });
-
-const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"];
 
 function Dashboard() {
   const { data: stats } = useQuery({
@@ -27,7 +24,7 @@ function Dashboard() {
 
       const [episRes, movsRes, colabRes] = await Promise.all([
         supabase.from("epis").select("id,nome,estoque_atual,estoque_minimo,custo_unitario,categoria").eq("status", "ativo"),
-        supabase.from("movimentacoes").select("tipo,quantidade,epi_id,colaborador_id,data_movimentacao,epis(nome,custo_unitario),colaboradores(funcao)").gte("data_movimentacao", inicioMes.toISOString()),
+        supabase.from("movimentacoes").select("tipo,quantidade,epi_id,colaborador_id,data_movimentacao,epis(nome,custo_unitario),colaboradores(nome,matricula)").gte("data_movimentacao", inicioMes.toISOString()),
         supabase.from("colaboradores").select("id", { count: "exact", head: true }).eq("status", "ativo"),
       ]);
 
@@ -49,16 +46,16 @@ function Dashboard() {
       });
       const topEpis = [...porEpi.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([nome, qtd]) => ({ nome, qtd }));
 
-      const porFuncao = new Map<string, number>();
+      const porColab = new Map<string, number>();
       entregasMes.forEach((m: any) => {
-        const funcao = m.colaboradores?.funcao ?? "Sem função";
-        porFuncao.set(funcao, (porFuncao.get(funcao) ?? 0) + m.quantidade);
+        const nome = m.colaboradores?.nome ?? "?";
+        porColab.set(nome, (porColab.get(nome) ?? 0) + m.quantidade);
       });
-      const setores = [...porFuncao.entries()].map(([name, value]) => ({ name, value }));
+      const topColabs = [...porColab.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([nome, qtd]) => ({ nome, qtd }));
 
       return {
         totalEpis, estoqueTotal, abaixoMin: abaixoMin.length, zerados: zerados.length,
-        totalEntregas, custoMes, topEpis, setores,
+        totalEntregas, custoMes, topEpis, topColabs,
         colaboradores: colabRes.count ?? 0,
         criticos: abaixoMin.slice(0, 5),
       };
@@ -98,16 +95,19 @@ function Dashboard() {
         </Card>
 
         <Card className="p-5">
-          <h3 className="font-semibold mb-4">Consumo por função</h3>
-          {stats?.setores.length ? (
-            <ResponsiveContainer width="100%" height={260}>
-              <PieChart>
-                <Pie data={stats.setores} dataKey="value" nameKey="name" outerRadius={90}>
-                  {stats.setores.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+          <h3 className="font-semibold mb-4">Ranking de colaboradores</h3>
+          {stats?.topColabs.length ? (
+            <ul className="space-y-2">
+              {stats.topColabs.map((c, i) => (
+                <li key={c.nome} className="flex items-center justify-between rounded-md border p-2.5 text-sm">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="h-6 w-6 grid place-items-center rounded-full bg-primary/10 text-primary text-xs font-semibold">{i + 1}</span>
+                    <span className="truncate">{c.nome}</span>
+                  </div>
+                  <span className="font-semibold">{c.qtd}</span>
+                </li>
+              ))}
+            </ul>
           ) : (
             <p className="text-sm text-muted-foreground py-12 text-center">Sem entregas no mês.</p>
           )}

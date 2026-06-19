@@ -15,11 +15,10 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/_app/devolucoes")({ component: DevolucoesPage });
 
 const TIPOS = [
-  { value: "devolucao_normal", label: "Devolução normal (volta ao estoque)" },
+  { value: "perda", label: "Perda" },
+  { value: "roubo", label: "Roubo" },
   { value: "avariado", label: "Avariado" },
   { value: "descarte", label: "Descarte" },
-  { value: "troca", label: "Troca" },
-  { value: "perda", label: "Perda" },
 ];
 
 function DevolucoesPage() {
@@ -27,7 +26,7 @@ function DevolucoesPage() {
   const pode = canMovimentar(role);
   const qc = useQueryClient();
 
-  const [tipo, setTipo] = useState("devolucao_normal");
+  const [tipo, setTipo] = useState("perda");
   const [colaboradorId, setColaboradorId] = useState("");
   const [epiId, setEpiId] = useState("");
   const [quantidade, setQuantidade] = useState(1);

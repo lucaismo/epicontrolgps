@@ -15,11 +15,15 @@ import { listUsers, createUser, updateUserRole, deleteUser } from "@/lib/admin-u
 
 export const Route = createFileRoute("/_app/usuarios")({ component: UsuariosPage });
 
-const ROLES = [
+const ROLES_NEW = [
   { value: "admin", label: "Administrador" },
   { value: "tecnico", label: "Técnico de Segurança" },
-  { value: "almoxarife", label: "Almoxarife" },
   { value: "lider", label: "Líder / Visualização" },
+];
+// Compatibilidade: usuários antigos podem ter o perfil "almoxarife".
+const ROLES_ALL = [
+  ...ROLES_NEW,
+  { value: "almoxarife", label: "Almoxarife (legado)" },
 ];
 
 function UsuariosPage() {
@@ -120,7 +124,7 @@ function UsuariosPage() {
               <div className="space-y-1.5"><Label>Perfil *</Label>
                 <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{ROLES.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}</SelectContent>
+                  <SelectContent>{ROLES_NEW.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             </div>
@@ -154,10 +158,15 @@ function UsuariosPage() {
                     <td className="px-4 py-3 font-medium">{u.nome}</td>
                     <td className="px-4 py-3 text-muted-foreground">{u.email}</td>
                     <td className="px-4 py-3">
-                      <Select value={current} onValueChange={(v) => handleRole(u.id, v)}>
-                        <SelectTrigger className="w-44 h-8"><SelectValue /></SelectTrigger>
-                        <SelectContent>{ROLES.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}</SelectContent>
-                      </Select>
+                      {(() => {
+                        const opts = current === "almoxarife" ? ROLES_ALL : ROLES_NEW;
+                        return (
+                          <Select value={current} onValueChange={(v) => handleRole(u.id, v)}>
+                            <SelectTrigger className="w-44 h-8"><SelectValue /></SelectTrigger>
+                            <SelectContent>{opts.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}</SelectContent>
+                          </Select>
+                        );
+                      })()}
                     </td>
                     <td className="px-4 py-3 text-right">
                       {!isSelf && (

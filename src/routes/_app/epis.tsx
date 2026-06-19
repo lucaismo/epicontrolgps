@@ -67,7 +67,7 @@ function EpisPage() {
         {(canEdit || canEditStock) && (
           <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
             <DialogTrigger asChild><Button onClick={() => setEditing(null)}><Plus className="h-4 w-4 mr-2" /> Novo EPI</Button></DialogTrigger>
-            <EpiForm editing={editing} onClose={() => { setOpen(false); setEditing(null); qc.invalidateQueries({ queryKey: ["epis"] }); }} />
+            <EpiForm key={editing?.id ?? "new"} editing={editing} onClose={() => { setOpen(false); setEditing(null); qc.invalidateQueries({ queryKey: ["epis"] }); }} />
           </Dialog>
         )}
       </div>
@@ -213,7 +213,7 @@ function EntradaEstoqueDialog({ epi, userId, onClose }: { epi: Epi | null; userI
 
 function EpiForm({ editing, onClose }: { editing: Epi | null; onClose: () => void }) {
   const { user } = useAuth();
-  const [form, setForm] = useState<Partial<Epi>>(editing ?? { status: "ativo", estoque_atual: 0, estoque_minimo: 0, custo_unitario: 0 });
+  const [form, setForm] = useState<Partial<Epi>>(editing ?? { status: "ativo" });
   const [saving, setSaving] = useState(false);
 
   async function save() {
@@ -269,17 +269,18 @@ function EpiForm({ editing, onClose }: { editing: Epi | null; onClose: () => voi
           <Label>{editing ? "Estoque atual (somente leitura)" : "Estoque inicial"}</Label>
           <Input
             type="number" min={0}
-            value={form.estoque_atual ?? 0}
+            value={form.estoque_atual ?? ""}
             disabled={!!editing}
-            onChange={(e) => setForm({ ...form, estoque_atual: Number(e.target.value) })}
+            placeholder="0"
+            onChange={(e) => setForm({ ...form, estoque_atual: e.target.value === "" ? undefined : Number(e.target.value) })}
           />
           {editing
             ? <p className="text-[11px] text-muted-foreground">Use “Entrada de estoque” ou inventário para alterar.</p>
             : <p className="text-[11px] text-muted-foreground">Registrado como entrada rastreável.</p>}
         </div>
 
-        <div className="space-y-1.5"><Label>Estoque mínimo</Label><Input type="number" min={0} value={form.estoque_minimo ?? 0} onChange={(e) => setForm({ ...form, estoque_minimo: Number(e.target.value) })} /></div>
-        <div className="space-y-1.5"><Label>Custo unitário (R$)</Label><Input type="number" step="0.01" min={0} value={form.custo_unitario ?? 0} onChange={(e) => setForm({ ...form, custo_unitario: Number(e.target.value) })} /></div>
+        <div className="space-y-1.5"><Label>Estoque mínimo</Label><Input type="number" min={0} placeholder="0" value={form.estoque_minimo ?? ""} onChange={(e) => setForm({ ...form, estoque_minimo: e.target.value === "" ? undefined : Number(e.target.value) })} /></div>
+        <div className="space-y-1.5"><Label>Custo unitário (R$)</Label><Input type="number" step="0.01" min={0} placeholder="0,00" value={form.custo_unitario ?? ""} onChange={(e) => setForm({ ...form, custo_unitario: e.target.value === "" ? undefined : Number(e.target.value) })} /></div>
         <div className="space-y-1.5"><Label>Localização física</Label><Input value={form.localizacao ?? ""} onChange={(e) => setForm({ ...form, localizacao: e.target.value })} placeholder="Ex: Prateleira A-3" /></div>
         <div className="space-y-1.5 md:col-span-2"><Label>Status</Label>
           <Select value={form.status ?? "ativo"} onValueChange={(v) => setForm({ ...form, status: v as any })}>
