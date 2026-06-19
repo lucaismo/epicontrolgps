@@ -213,7 +213,7 @@ function EntradaEstoqueDialog({ epi, userId, onClose }: { epi: Epi | null; userI
 
 function EpiForm({ editing, onClose }: { editing: Epi | null; onClose: () => void }) {
   const { user } = useAuth();
-  const [form, setForm] = useState<Partial<Epi>>(editing ?? { status: "ativo", estoque_atual: 0, estoque_minimo: 0, custo_unitario: 0 });
+  const [form, setForm] = useState<Partial<Epi>>(editing ?? { status: "ativo" });
   const [saving, setSaving] = useState(false);
 
   async function save() {
