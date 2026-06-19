@@ -7,15 +7,12 @@ import {
   Users, ArrowDownRight, Boxes,
 } from "lucide-react";
 import {
-  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip,
-  PieChart, Pie, Cell, CartesianGrid,
+  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
 } from "recharts";
 
 export const Route = createFileRoute("/_app/dashboard")({
   component: Dashboard,
 });
-
-const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"];
 
 function Dashboard() {
   const { data: stats } = useQuery({
