@@ -98,16 +98,19 @@ function Dashboard() {
         </Card>
 
         <Card className="p-5">
-          <h3 className="font-semibold mb-4">Consumo por função</h3>
-          {stats?.setores.length ? (
-            <ResponsiveContainer width="100%" height={260}>
-              <PieChart>
-                <Pie data={stats.setores} dataKey="value" nameKey="name" outerRadius={90}>
-                  {stats.setores.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+          <h3 className="font-semibold mb-4">Ranking de colaboradores</h3>
+          {stats?.topColabs.length ? (
+            <ul className="space-y-2">
+              {stats.topColabs.map((c, i) => (
+                <li key={c.nome} className="flex items-center justify-between rounded-md border p-2.5 text-sm">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="h-6 w-6 grid place-items-center rounded-full bg-primary/10 text-primary text-xs font-semibold">{i + 1}</span>
+                    <span className="truncate">{c.nome}</span>
+                  </div>
+                  <span className="font-semibold">{c.qtd}</span>
+                </li>
+              ))}
+            </ul>
           ) : (
             <p className="text-sm text-muted-foreground py-12 text-center">Sem entregas no mês.</p>
           )}
