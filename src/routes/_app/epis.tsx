@@ -269,17 +269,18 @@ function EpiForm({ editing, onClose }: { editing: Epi | null; onClose: () => voi
           <Label>{editing ? "Estoque atual (somente leitura)" : "Estoque inicial"}</Label>
           <Input
             type="number" min={0}
-            value={form.estoque_atual ?? 0}
+            value={form.estoque_atual ?? ""}
             disabled={!!editing}
-            onChange={(e) => setForm({ ...form, estoque_atual: Number(e.target.value) })}
+            placeholder="0"
+            onChange={(e) => setForm({ ...form, estoque_atual: e.target.value === "" ? undefined : Number(e.target.value) })}
           />
           {editing
             ? <p className="text-[11px] text-muted-foreground">Use “Entrada de estoque” ou inventário para alterar.</p>
             : <p className="text-[11px] text-muted-foreground">Registrado como entrada rastreável.</p>}
         </div>
 
-        <div className="space-y-1.5"><Label>Estoque mínimo</Label><Input type="number" min={0} value={form.estoque_minimo ?? 0} onChange={(e) => setForm({ ...form, estoque_minimo: Number(e.target.value) })} /></div>
-        <div className="space-y-1.5"><Label>Custo unitário (R$)</Label><Input type="number" step="0.01" min={0} value={form.custo_unitario ?? 0} onChange={(e) => setForm({ ...form, custo_unitario: Number(e.target.value) })} /></div>
+        <div className="space-y-1.5"><Label>Estoque mínimo</Label><Input type="number" min={0} placeholder="0" value={form.estoque_minimo ?? ""} onChange={(e) => setForm({ ...form, estoque_minimo: e.target.value === "" ? undefined : Number(e.target.value) })} /></div>
+        <div className="space-y-1.5"><Label>Custo unitário (R$)</Label><Input type="number" step="0.01" min={0} placeholder="0,00" value={form.custo_unitario ?? ""} onChange={(e) => setForm({ ...form, custo_unitario: e.target.value === "" ? undefined : Number(e.target.value) })} /></div>
         <div className="space-y-1.5"><Label>Localização física</Label><Input value={form.localizacao ?? ""} onChange={(e) => setForm({ ...form, localizacao: e.target.value })} placeholder="Ex: Prateleira A-3" /></div>
         <div className="space-y-1.5 md:col-span-2"><Label>Status</Label>
           <Select value={form.status ?? "ativo"} onValueChange={(v) => setForm({ ...form, status: v as any })}>
