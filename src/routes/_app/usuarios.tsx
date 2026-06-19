@@ -15,11 +15,15 @@ import { listUsers, createUser, updateUserRole, deleteUser } from "@/lib/admin-u
 
 export const Route = createFileRoute("/_app/usuarios")({ component: UsuariosPage });
 
-const ROLES = [
+const ROLES_NEW = [
   { value: "admin", label: "Administrador" },
   { value: "tecnico", label: "Técnico de Segurança" },
-  { value: "almoxarife", label: "Almoxarife" },
   { value: "lider", label: "Líder / Visualização" },
+];
+// Compatibilidade: usuários antigos podem ter o perfil "almoxarife".
+const ROLES_ALL = [
+  ...ROLES_NEW,
+  { value: "almoxarife", label: "Almoxarife (legado)" },
 ];
 
 function UsuariosPage() {
