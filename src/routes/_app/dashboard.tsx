@@ -27,7 +27,7 @@ function Dashboard() {
 
       const [episRes, movsRes, colabRes] = await Promise.all([
         supabase.from("epis").select("id,nome,estoque_atual,estoque_minimo,custo_unitario,categoria").eq("status", "ativo"),
-        supabase.from("movimentacoes").select("tipo,quantidade,epi_id,colaborador_id,data_movimentacao,epis(nome,custo_unitario),colaboradores(funcao)").gte("data_movimentacao", inicioMes.toISOString()),
+        supabase.from("movimentacoes").select("tipo,quantidade,epi_id,colaborador_id,data_movimentacao,epis(nome,custo_unitario),colaboradores(nome,matricula)").gte("data_movimentacao", inicioMes.toISOString()),
         supabase.from("colaboradores").select("id", { count: "exact", head: true }).eq("status", "ativo"),
       ]);
 
@@ -49,16 +49,16 @@ function Dashboard() {
       });
       const topEpis = [...porEpi.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([nome, qtd]) => ({ nome, qtd }));
 
-      const porFuncao = new Map<string, number>();
+      const porColab = new Map<string, number>();
       entregasMes.forEach((m: any) => {
-        const funcao = m.colaboradores?.funcao ?? "Sem função";
-        porFuncao.set(funcao, (porFuncao.get(funcao) ?? 0) + m.quantidade);
+        const nome = m.colaboradores?.nome ?? "?";
+        porColab.set(nome, (porColab.get(nome) ?? 0) + m.quantidade);
       });
-      const setores = [...porFuncao.entries()].map(([name, value]) => ({ name, value }));
+      const topColabs = [...porColab.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([nome, qtd]) => ({ nome, qtd }));
 
       return {
         totalEpis, estoqueTotal, abaixoMin: abaixoMin.length, zerados: zerados.length,
-        totalEntregas, custoMes, topEpis, setores,
+        totalEntregas, custoMes, topEpis, topColabs,
         colaboradores: colabRes.count ?? 0,
         criticos: abaixoMin.slice(0, 5),
       };
