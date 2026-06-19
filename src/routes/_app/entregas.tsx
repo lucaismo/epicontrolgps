@@ -8,45 +8,32 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { PackageCheck, AlertTriangle } from "lucide-react";
+import { PackageCheck } from "lucide-react";
 import { useAuth, canMovimentar } from "@/lib/auth";
 import { toast } from "sonner";
 import { sanitizeText } from "@/lib/sanitize";
 
 export const Route = createFileRoute("/_app/entregas")({ component: EntregasPage });
 
-type DevTipo = "" | "nenhuma" | "devolucao_normal" | "avariado" | "descarte" | "troca" | "perda" | "roubo";
-
-const DEV_OPTS: { value: Exclude<DevTipo, "">; label: string; desc: string; simples?: boolean }[] = [
-  { value: "nenhuma", label: "Primeira entrega", desc: "Não há EPI anterior para devolver" },
-  { value: "devolucao_normal", label: "Devolução normal", desc: "EPI anterior volta para o estoque" },
-  { value: "avariado", label: "Avariado", desc: "EPI anterior danificado — não retorna ao estoque" },
-  { value: "descarte", label: "Descarte", desc: "EPI vencido / fim de vida útil" },
-  { value: "troca", label: "Troca", desc: "Substituição por tamanho ou modelo" },
-  { value: "perda", label: "Perda", desc: "Apenas informar — não exige EPI anterior", simples: true },
-  { value: "roubo", label: "Roubo", desc: "Apenas informar — não exige EPI anterior", simples: true },
-];
-
+const DEV_LABEL: Record<string, string> = {
+  devolucao_normal: "Devolução normal",
+  avariado: "Avariado",
+  descarte: "Descarte",
+  troca: "Troca automática",
+  perda: "Perda",
+  roubo: "Roubo",
+};
 
 function EntregasPage() {
   const { role, user } = useAuth();
   const podeEntregar = canMovimentar(role);
   const qc = useQueryClient();
 
-  // Entrega
   const [colaboradorId, setColaboradorId] = useState("");
   const [epiId, setEpiId] = useState("");
-  const [quantidade, setQuantidade] = useState(1);
+  const [quantidade, setQuantidade] = useState<number | "">(1);
   const [obs, setObs] = useState("");
   const [data, setData] = useState(new Date().toISOString().slice(0, 10));
-
-  // Devolução integrada
-  const [devTipo, setDevTipo] = useState<DevTipo>("");
-  const [devEpiId, setDevEpiId] = useState("");
-  const [devQtd, setDevQtd] = useState(1);
-  const [devMotivo, setDevMotivo] = useState("");
-
   const [saving, setSaving] = useState(false);
 
   const { data: colabs = [] } = useQuery({
@@ -81,93 +68,91 @@ function EntregasPage() {
     },
   });
 
-  const DEV_LABEL: Record<string, string> = {
-    devolucao_normal: "Devolução normal",
-    avariado: "Avariado",
-    descarte: "Descarte",
-    troca: "Troca",
-    perda: "Perda",
-    roubo: "Roubo",
-  };
-
   const epiSel = epis.find((e) => e.id === epiId);
-  const devEpiSel = epis.find((e) => e.id === devEpiId);
-  const opt = DEV_OPTS.find((o) => o.value === devTipo);
-  const exigeEpiAnterior = !!opt && opt.value !== "nenhuma" && !opt.simples;
-  const exigeApenasMotivo = !!opt?.simples;
-
-  // Validação reativa — usada para desabilitar botão e exibir mensagens inline
+  const qtdNum = typeof quantidade === "number" ? quantidade : 0;
   const erros = {
     colaborador: !colaboradorId,
     epi: !epiId,
-    quantidade: quantidade < 1,
-    estoque: !!epiSel && epiSel.estoque_atual < quantidade,
-    devTipo: !devTipo,
-    devEpi: exigeEpiAnterior && !devEpiId,
-    devEpiIgual: exigeEpiAnterior && !!devEpiId && devEpiId === epiId && devTipo !== "troca",
-    devQtd: exigeEpiAnterior && devQtd < 1,
-    devMotivoSimples: exigeApenasMotivo && !devMotivo.trim(),
-    devMotivoAvariado: devTipo === "avariado" && !devMotivo.trim(),
+    quantidade: qtdNum < 1,
+    estoque: !!epiSel && epiSel.estoque_atual < qtdNum,
   };
   const formValido = !Object.values(erros).some(Boolean);
 
   function resetForm() {
     setColaboradorId(""); setEpiId(""); setQuantidade(1); setObs("");
-    setDevTipo(""); setDevEpiId(""); setDevQtd(1); setDevMotivo("");
   }
 
   async function entregar() {
-    if (erros.colaborador || erros.epi || erros.quantidade) { toast.error("Preencha colaborador, EPI e quantidade"); return; }
-    if (erros.estoque) { toast.error("Estoque insuficiente"); return; }
-    if (erros.devTipo) { toast.error("Selecione o destino do EPI anterior"); return; }
-    if (erros.devEpi || erros.devQtd) { toast.error("Informe o EPI anterior e a quantidade da devolução"); return; }
-    if (erros.devEpiIgual) { toast.error("O EPI devolvido não pode ser o mesmo que está sendo entregue (exceto em trocas)"); return; }
-    if (erros.devMotivoSimples) { toast.error(`Informe o que aconteceu (${opt!.label.toLowerCase()})`); return; }
-    if (erros.devMotivoAvariado) { toast.error("Descreva o dano para registrar o EPI avariado"); return; }
-
-
+    if (!formValido) {
+      if (erros.estoque) toast.error("Estoque insuficiente");
+      else toast.error("Preencha colaborador, EPI e quantidade");
+      return;
+    }
     setSaving(true);
     const movData = new Date(data).toISOString();
 
-    // C3: entrega + devolução numa transação única no banco (RPC).
-    // Se a entrega falhar, a devolução também é desfeita.
-    const devTipoFinal = devTipo && devTipo !== "nenhuma" ? devTipo : null;
+    // Identificar automaticamente o último EPI ativo do mesmo tipo (categoria) para este colaborador.
+    // Se existir, registra "troca" automática na mesma transação.
+    let devTipo = "";
+    let devEpiId = epiId;
+    let devQtd = 0;
+    let devMotivo = "";
+    let devObs = "";
+
+    try {
+      const { data: prev } = await supabase
+        .from("movimentacoes")
+        .select("id, epi_id, quantidade, data_movimentacao, epis!inner(id,nome,categoria)")
+        .eq("colaborador_id", colaboradorId)
+        .eq("tipo", "entrega")
+        .eq("epis.categoria", epiSel!.categoria)
+        .order("data_movimentacao", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (prev && prev.epi_id) {
+        devTipo = "troca";
+        devEpiId = prev.epi_id;
+        devQtd = prev.quantidade;
+        devMotivo = "Troca automática por nova entrega";
+        devObs = `EPI anterior (${(prev as any).epis?.nome ?? ""}) substituído pela nova entrega de ${epiSel?.nome ?? ""}`;
+      }
+    } catch {
+      // Se a consulta falhar, segue sem devolução — entrega não é bloqueada.
+    }
+
     const { error } = await supabase.rpc("registrar_entrega_atomica", {
       p_colaborador_id: colaboradorId,
       p_epi_id: epiId,
-      p_quantidade: quantidade,
+      p_quantidade: qtdNum,
       p_observacao: sanitizeText(obs, 500) ?? "",
       p_data_movimentacao: movData,
       p_usuario: user?.id ?? "",
-      p_dev_tipo: devTipoFinal ?? "",
-      p_dev_epi_id: devTipoFinal ? (exigeEpiAnterior ? devEpiId : epiId) : epiId,
-      p_dev_quantidade: devTipoFinal ? (exigeEpiAnterior ? devQtd : 1) : 0,
-      p_dev_motivo: devTipoFinal ? (sanitizeText(devMotivo, 500) || opt!.label) : "",
-      p_dev_observacao: devTipoFinal
-        ? `Registrado junto à entrega de ${sanitizeText(epiSel?.nome ?? "", 120) ?? ""}`
-        : "",
+      p_dev_tipo: devTipo,
+      p_dev_epi_id: devEpiId,
+      p_dev_quantidade: devQtd,
+      p_dev_motivo: devMotivo,
+      p_dev_observacao: devObs,
     });
 
     setSaving(false);
     if (error) { toast.error(error.message); return; }
-    toast.success("Entrega registrada!");
+    toast.success(devTipo === "troca" ? "Entrega registrada com troca automática" : "Entrega registrada!");
     resetForm();
     qc.invalidateQueries();
   }
-
 
   return (
     <div className="p-4 md:p-8 space-y-5">
       <div>
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Entrega de EPI</h1>
-        <p className="text-sm text-muted-foreground">Toda entrega exige informar o destino do EPI anterior</p>
+        <p className="text-sm text-muted-foreground">A devolução do EPI anterior do mesmo tipo é registrada automaticamente</p>
       </div>
 
       {podeEntregar ? (
         <Card className="p-5 md:p-6 space-y-6">
-          {/* SEÇÃO ENTREGA */}
           <div>
-            <h2 className="font-semibold mb-3 text-sm uppercase tracking-wide text-muted-foreground">1 · Dados da entrega</h2>
+            <h2 className="font-semibold mb-3 text-sm uppercase tracking-wide text-muted-foreground">Dados da entrega</h2>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-1.5"><Label>Colaborador *</Label>
                 <Select value={colaboradorId} onValueChange={setColaboradorId}>
@@ -183,7 +168,11 @@ function EntregasPage() {
                 {epiSel && <p className="text-xs text-muted-foreground">Disponível: <b>{epiSel.estoque_atual}</b></p>}
               </div>
               <div className="space-y-1.5"><Label>Quantidade *</Label>
-                <Input type="number" min={1} value={quantidade} onChange={(e) => setQuantidade(Number(e.target.value))} />
+                <Input
+                  type="number" min={1}
+                  value={quantidade}
+                  onChange={(e) => setQuantidade(e.target.value === "" ? "" : Number(e.target.value))}
+                />
               </div>
               <div className="space-y-1.5"><Label>Data</Label>
                 <Input type="date" value={data} onChange={(e) => setData(e.target.value)} />
@@ -194,86 +183,6 @@ function EntregasPage() {
             </div>
           </div>
 
-          {/* SEÇÃO DEVOLUÇÃO INTEGRADA */}
-          <div className="border-t pt-5">
-            <h2 className="font-semibold mb-1 text-sm uppercase tracking-wide text-muted-foreground">2 · EPI anterior do colaborador</h2>
-            <p className="text-xs text-muted-foreground mb-3">
-              Selecione o que aconteceu com o EPI que estava em uso. Em perda ou roubo basta informar o motivo.
-            </p>
-
-            <RadioGroup
-              value={devTipo}
-              onValueChange={(v) => setDevTipo(v as DevTipo)}
-              className={`grid sm:grid-cols-2 lg:grid-cols-3 gap-2 ${erros.devTipo ? "ring-1 ring-destructive/50 rounded-md p-1" : ""}`}
-            >
-              {DEV_OPTS.map((o) => (
-                <label
-                  key={o.value}
-                  htmlFor={`dev-${o.value}`}
-                  className={`flex gap-2 items-start rounded-md border p-3 cursor-pointer transition-colors ${
-                    devTipo === o.value ? "border-primary bg-primary/5" : "border-border hover:bg-muted/40"
-                  }`}
-                >
-                  <RadioGroupItem id={`dev-${o.value}`} value={o.value} className="mt-0.5" />
-                  <div className="text-sm">
-                    <div className="font-medium leading-tight">{o.label}</div>
-                    <div className="text-xs text-muted-foreground">{o.desc}</div>
-                  </div>
-                </label>
-              ))}
-            </RadioGroup>
-            {erros.devTipo && (
-              <p className="text-xs text-destructive mt-2">Selecione obrigatoriamente o destino do EPI anterior antes de registrar a entrega.</p>
-            )}
-
-            {exigeEpiAnterior && (
-              <div className="grid md:grid-cols-3 gap-4 mt-4">
-                <div className="md:col-span-2 space-y-1.5"><Label>EPI anterior *</Label>
-                  <Select value={devEpiId} onValueChange={setDevEpiId}>
-                    <SelectTrigger aria-invalid={erros.devEpi || erros.devEpiIgual}><SelectValue placeholder="Selecione o EPI devolvido" /></SelectTrigger>
-                    <SelectContent>{epis.map((e) => <SelectItem key={e.id} value={e.id}>{e.nome} {e.tamanho ? `(${e.tamanho})` : ""}</SelectItem>)}</SelectContent>
-                  </Select>
-                  {erros.devEpi && <p className="text-xs text-destructive">Informe qual EPI está sendo devolvido.</p>}
-                  {erros.devEpiIgual && <p className="text-xs text-destructive">Para o mesmo EPI selecione o tipo "Troca".</p>}
-                  {!erros.devEpi && devEpiSel && <p className="text-xs text-muted-foreground">{devEpiSel.nome}</p>}
-                </div>
-                <div className="space-y-1.5"><Label>Qtd devolvida *</Label>
-                  <Input type="number" min={1} value={devQtd} onChange={(e) => setDevQtd(Number(e.target.value))} aria-invalid={erros.devQtd} />
-                  {erros.devQtd && <p className="text-xs text-destructive">Quantidade deve ser maior que zero.</p>}
-                </div>
-                <div className="md:col-span-3 space-y-1.5">
-                  <Label>
-                    Motivo / observação {devTipo === "avariado" && <span className="text-destructive">*</span>}
-                  </Label>
-                  <Textarea
-                    rows={2}
-                    value={devMotivo}
-                    onChange={(e) => setDevMotivo(e.target.value)}
-                    placeholder="Ex.: troca de tamanho, vencimento, dano na lente…"
-                    aria-invalid={erros.devMotivoAvariado}
-                  />
-                  {erros.devMotivoAvariado && <p className="text-xs text-destructive">Descreva o dano do EPI avariado.</p>}
-                </div>
-              </div>
-            )}
-
-            {exigeApenasMotivo && (
-              <div className={`mt-4 rounded-md border p-3 space-y-2 ${erros.devMotivoSimples ? "border-destructive/60 bg-destructive/5" : "border-warning/40 bg-warning/5"}`}>
-                <div className={`flex items-center gap-2 text-sm font-medium ${erros.devMotivoSimples ? "text-destructive" : "text-warning"}`}>
-                  <AlertTriangle className="h-4 w-4" /> {opt!.label} — informe o que aconteceu *
-                </div>
-                <Textarea
-                  rows={3}
-                  value={devMotivo}
-                  onChange={(e) => setDevMotivo(e.target.value)}
-                  placeholder={`Descreva a circunstância da ${opt!.label.toLowerCase()}`}
-                  aria-invalid={erros.devMotivoSimples}
-                />
-                {erros.devMotivoSimples && <p className="text-xs text-destructive">Campo obrigatório para registrar {opt!.label.toLowerCase()}.</p>}
-              </div>
-            )}
-          </div>
-
           <div className="flex flex-col items-end gap-2 pt-2">
             {!formValido && (
               <p className="text-xs text-muted-foreground">Preencha todos os campos obrigatórios para liberar o registro.</p>
@@ -282,7 +191,6 @@ function EntregasPage() {
               <PackageCheck className="h-4 w-4 mr-2" /> {saving ? "Registrando…" : "Registrar entrega"}
             </Button>
           </div>
-
         </Card>
       ) : (
         <Card className="p-5"><p className="text-sm text-muted-foreground">Seu perfil não permite registrar entregas.</p></Card>
