@@ -158,10 +158,15 @@ function UsuariosPage() {
                     <td className="px-4 py-3 font-medium">{u.nome}</td>
                     <td className="px-4 py-3 text-muted-foreground">{u.email}</td>
                     <td className="px-4 py-3">
-                      <Select value={current} onValueChange={(v) => handleRole(u.id, v)}>
-                        <SelectTrigger className="w-44 h-8"><SelectValue /></SelectTrigger>
-                        <SelectContent>{ROLES.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}</SelectContent>
-                      </Select>
+                      {(() => {
+                        const opts = current === "almoxarife" ? ROLES_ALL : ROLES_NEW;
+                        return (
+                          <Select value={current} onValueChange={(v) => handleRole(u.id, v)}>
+                            <SelectTrigger className="w-44 h-8"><SelectValue /></SelectTrigger>
+                            <SelectContent>{opts.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}</SelectContent>
+                          </Select>
+                        );
+                      })()}
                     </td>
                     <td className="px-4 py-3 text-right">
                       {!isSelf && (
