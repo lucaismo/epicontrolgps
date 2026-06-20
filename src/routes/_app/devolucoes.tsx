@@ -17,9 +17,16 @@ export const Route = createFileRoute("/_app/devolucoes")({ component: Devolucoes
 const TIPOS = [
   { value: "perda", label: "Perda" },
   { value: "roubo", label: "Roubo" },
-  { value: "avariado", label: "Avariado" },
+  { value: "avariado", label: "Avaria" },
   { value: "descarte", label: "Descarte" },
 ];
+
+const TIPO_LABEL: Record<string, string> = {
+  perda: "Perda",
+  roubo: "Roubo",
+  avariado: "Avaria",
+  descarte: "Descarte",
+};
 
 function DevolucoesPage() {
   const { role, user } = useAuth();
@@ -47,7 +54,7 @@ function DevolucoesPage() {
     queryKey: ["ultimas-devolucoes"],
     queryFn: async () => (await supabase.from("movimentacoes")
       .select("*, epis(nome), colaboradores(nome)")
-      .neq("tipo", "entrega").neq("tipo", "entrada_estoque")
+      .in("tipo", ["perda", "roubo", "avariado", "descarte"])
       .order("data_movimentacao", { ascending: false }).limit(20)).data ?? [],
   });
 
@@ -68,7 +75,7 @@ function DevolucoesPage() {
     <div className="p-4 md:p-8 space-y-5">
       <div>
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Devolução de EPI</h1>
-        <p className="text-sm text-muted-foreground">Registre devoluções, avarias, descartes, trocas e perdas</p>
+        <p className="text-sm text-muted-foreground">Registre perdas, roubos, avarias e descartes</p>
       </div>
 
       {pode ? (
@@ -129,7 +136,7 @@ function DevolucoesPage() {
               {ultimas.map((m: any) => (
                 <tr key={m.id} className="border-t">
                   <td className="px-4 py-3 whitespace-nowrap">{new Date(m.data_movimentacao).toLocaleString("pt-BR")}</td>
-                  <td className="px-4 py-3 capitalize">{m.tipo.replace("_", " ")}</td>
+                  <td className="px-4 py-3">{TIPO_LABEL[m.tipo] ?? m.tipo}</td>
                   <td className="px-4 py-3">{m.colaboradores?.nome}</td>
                   <td className="px-4 py-3">{m.epis?.nome}</td>
                   <td className="px-4 py-3 text-right font-medium">{m.quantidade}</td>
