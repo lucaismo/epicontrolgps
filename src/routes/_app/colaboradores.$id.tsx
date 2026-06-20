@@ -11,10 +11,8 @@ export const Route = createFileRoute("/_app/colaboradores/$id")({
 
 const TIPO_LABEL: Record<string, string> = {
   entrega: "Entrega",
-  devolucao_normal: "Devolução",
-  avariado: "Avariado",
+  avariado: "Avaria",
   descarte: "Descarte",
-  troca: "Troca",
   perda: "Perda",
   roubo: "Roubo",
   entrada_estoque: "Entrada estoque",
@@ -77,7 +75,7 @@ function HistoricoColab() {
               {movs.map((m: any) => (
                 <tr key={m.id} className="border-t">
                   <td className="px-4 py-3 whitespace-nowrap">{new Date(m.data_movimentacao).toLocaleString("pt-BR")}</td>
-                  <td className="px-4 py-3"><span className="text-xs font-medium">{TIPO_LABEL[m.tipo]}</span></td>
+                  <td className="px-4 py-3"><span className="text-xs font-medium">{TIPO_LABEL[m.tipo] ?? "Substituição automática"}</span></td>
                   <td className="px-4 py-3">{m.epis?.nome}</td>
                   <td className="px-4 py-3 text-right font-medium">{m.quantidade}</td>
                   <td className="px-4 py-3 hidden md:table-cell text-muted-foreground">{m.motivo} {m.observacao ? `· ${m.observacao}` : ""}</td>
