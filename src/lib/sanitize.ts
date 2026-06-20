@@ -14,6 +14,14 @@ export function sanitizeText(input: string | null | undefined, maxLen = 500): st
   return s.length ? s : null;
 }
 
+// Normaliza matrícula: remove não-dígitos e completa com zeros à esquerda até 6 dígitos.
+// Valores com mais de 6 dígitos são mantidos como vieram (apenas dígitos).
+export function formatMatricula(input: string | null | undefined): string {
+  const digits = String(input ?? "").replace(/\D/g, "");
+  if (!digits) return "";
+  return digits.length >= 6 ? digits : digits.padStart(6, "0");
+}
+
 // Avalia força de senha simples (0-4).
 export function passwordStrength(pwd: string): { score: 0 | 1 | 2 | 3 | 4; label: string } {
   let score = 0;
