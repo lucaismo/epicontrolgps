@@ -15,7 +15,7 @@ import { Link } from "@tanstack/react-router";
 import { TURNOS, STATUS_COLAB, type Turno, type StatusColab } from "@/lib/constants";
 import { useAuth, canManageRegistros } from "@/lib/auth";
 import { toast } from "sonner";
-import { sanitizeText } from "@/lib/sanitize";
+import { sanitizeText, formatMatricula } from "@/lib/sanitize";
 
 export const Route = createFileRoute("/_app/colaboradores")({
   component: ColaboradoresPage,
@@ -190,10 +190,15 @@ function ColabForm({ editing, onClose }: { editing: Colab | null; onClose: () =>
       toast.error("Preencha nome, matrícula e função");
       return;
     }
+    const matriculaFmt = formatMatricula(form.matricula);
+    if (!/^\d{6}$/.test(matriculaFmt)) {
+      toast.error("Matrícula deve conter até 6 dígitos numéricos");
+      return;
+    }
     setSaving(true);
     const payload = {
       nome: sanitizeText(form.nome, 120)!,
-      matricula: sanitizeText(form.matricula, 60)!,
+      matricula: matriculaFmt,
       funcao: sanitizeText(form.funcao, 120)!,
       turno: form.turno || null,
       status: (form.status as StatusColab) ?? "ativo",
@@ -271,8 +276,8 @@ function normalizeStatus(v: any): StatusColab | null {
 function downloadTemplate() {
   const ws = XLSX.utils.aoa_to_sheet([
     ["Matricula", "Nome", "Funcao", "Turno", "Status"],
-    ["12345", "João da Silva", "Operador de produção", "Turno 1", "ativo"],
-    ["12346", "Maria Souza", "Analista", "Administrativo", "ativo"],
+    ["000123", "João da Silva", "Operador de produção", "Turno 1", "ativo"],
+    ["000124", "Maria Souza", "Analista", "Administrativo", "ativo"],
   ]);
   ws["!cols"] = [{ wch: 12 }, { wch: 30 }, { wch: 28 }, { wch: 16 }, { wch: 12 }];
   const wb = XLSX.utils.book_new();
@@ -302,13 +307,15 @@ function ImportDialog({ onClose, existing }: { onClose: () => void; existing: Co
 
       rows.forEach((r, idx) => {
         const linha = idx + 2; // header é linha 1
-        const matricula = String(r.Matricula ?? r.matricula ?? "").trim();
+        const matriculaRaw = String(r.Matricula ?? r.matricula ?? "").trim();
+        const matricula = formatMatricula(matriculaRaw);
         const nome = String(r.Nome ?? r.nome ?? "").trim();
         const funcao = String(r.Funcao ?? r["Função"] ?? r.funcao ?? "").trim();
         const turnoRaw = r.Turno ?? r.turno ?? "";
         const statusRaw = r.Status ?? r.status ?? "";
 
-        if (!matricula) return erros.push({ linha, motivo: "Matrícula vazia" });
+        if (!matriculaRaw) return erros.push({ linha, motivo: "Matrícula vazia" });
+        if (!/^\d{6}$/.test(matricula)) return erros.push({ linha, matricula: matriculaRaw, motivo: "Matrícula deve ter até 6 dígitos numéricos" });
         if (!nome) return erros.push({ linha, matricula, motivo: "Nome vazio" });
         if (!funcao) return erros.push({ linha, matricula, motivo: "Função vazia" });
         if (matriculasExistentes.has(matricula)) return erros.push({ linha, matricula, motivo: "Matrícula já cadastrada" });
