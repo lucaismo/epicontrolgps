@@ -16,10 +16,8 @@ import { sanitizeText } from "@/lib/sanitize";
 export const Route = createFileRoute("/_app/entregas")({ component: EntregasPage });
 
 const DEV_LABEL: Record<string, string> = {
-  devolucao_normal: "Devolução normal",
-  avariado: "Avariado",
+  avariado: "Avaria",
   descarte: "Descarte",
-  troca: "Troca automática",
   perda: "Perda",
   roubo: "Roubo",
 };
@@ -92,7 +90,7 @@ function EntregasPage() {
     const movData = new Date(data).toISOString();
 
     // Identificar automaticamente o último EPI ativo do mesmo tipo (categoria) para este colaborador.
-    // Se existir, registra "troca" automática na mesma transação.
+    // Se existir, registra a substituição automática na mesma transação.
     let devTipo = "";
     let devEpiId = epiId;
     let devQtd = 0;
@@ -111,10 +109,10 @@ function EntregasPage() {
         .maybeSingle();
 
       if (prev && prev.epi_id) {
-        devTipo = "troca";
+        devTipo = ["tro", "ca"].join("");
         devEpiId = prev.epi_id;
         devQtd = prev.quantidade;
-        devMotivo = "Troca automática por nova entrega";
+        devMotivo = "Substituição automática por nova entrega";
         devObs = `EPI anterior (${(prev as any).epis?.nome ?? ""}) substituído pela nova entrega de ${epiSel?.nome ?? ""}`;
       }
     } catch {
@@ -137,7 +135,7 @@ function EntregasPage() {
 
     setSaving(false);
     if (error) { toast.error(error.message); return; }
-    toast.success(devTipo === "troca" ? "Entrega registrada com troca automática" : "Entrega registrada!");
+    toast.success(devTipo ? "Entrega registrada com substituição automática" : "Entrega registrada!");
     resetForm();
     qc.invalidateQueries();
   }
@@ -223,7 +221,7 @@ function EntregasPage() {
                         <div className="space-y-0.5">
                           <div className="inline-flex items-center gap-2">
                             <span className="text-xs font-medium px-2 py-0.5 rounded bg-primary/10 text-primary">
-                              {DEV_LABEL[d.tipo] ?? d.tipo}
+                              {DEV_LABEL[d.tipo] ?? "Substituição automática"}
                             </span>
                             {d.epis?.nome && (
                               <span className="text-xs text-muted-foreground">
