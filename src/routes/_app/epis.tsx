@@ -51,10 +51,14 @@ function EpisPage() {
     return true;
   });
 
-  async function handleDelete(id: string) {
-    if (!confirm("Excluir este EPI?")) return;
-    const { error } = await supabase.from("epis").delete().eq("id", id);
-    if (error) toast.error(error.message); else { toast.success("Excluído"); qc.invalidateQueries({ queryKey: ["epis"] }); }
+  async function handleDelete(id: string, nome: string) {
+    if (!confirm(`Excluir o EPI "${nome}"? Se houver movimentações, será apenas inativado para preservar o histórico.`)) return;
+    const { data, error } = await supabase.rpc("excluir_epi_seguro", { p_epi_id: id });
+    if (error) toast.error(error.message);
+    else {
+      toast.success(data === "excluido" ? "EPI excluído" : "EPI inativado (histórico preservado)");
+      qc.invalidateQueries({ queryKey: ["epis"] });
+    }
   }
 
   return (
@@ -101,7 +105,7 @@ function EpisPage() {
               <div className="flex justify-end gap-1 mt-3 pt-3 border-t">
                 {canEditStock && <Button variant="ghost" size="sm" onClick={() => setEntradaFor(e)}><PackagePlus className="h-4 w-4 mr-1" /> Entrada</Button>}
                 <Button variant="ghost" size="sm" onClick={() => { setEditing(e); setOpen(true); }}><Pencil className="h-4 w-4 mr-1" /> Editar</Button>
-                {role === "admin" && <Button variant="ghost" size="sm" onClick={() => handleDelete(e.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>}
+                {role === "admin" && <Button variant="ghost" size="sm" onClick={() => handleDelete(e.id, e.nome)}><Trash2 className="h-4 w-4 text-destructive" /></Button>}
               </div>
             )}
 
@@ -137,7 +141,7 @@ function EpisPage() {
                       <div className="inline-flex gap-1">
                         {canEditStock && <Button variant="ghost" size="icon" title="Entrada de estoque" onClick={() => setEntradaFor(e)}><PackagePlus className="h-4 w-4" /></Button>}
                         <Button variant="ghost" size="icon" title="Editar" onClick={() => { setEditing(e); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
-                        {role === "admin" && <Button variant="ghost" size="icon" title="Excluir" onClick={() => handleDelete(e.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>}
+                        {role === "admin" && <Button variant="ghost" size="icon" title="Excluir" onClick={() => handleDelete(e.id, e.nome)}><Trash2 className="h-4 w-4 text-destructive" /></Button>}
                       </div>
                     )}
                   </td>

@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Search, Pencil, UserX, UserCheck, History, Upload, Download } from "lucide-react";
+import { Plus, Search, Pencil, UserX, UserCheck, History, Upload, Download, Trash2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { TURNOS, STATUS_COLAB, type Turno, type StatusColab } from "@/lib/constants";
 import { useAuth, canManageRegistros } from "@/lib/auth";
@@ -68,6 +68,16 @@ function ColaboradoresPage() {
   async function handleReativar(c: Colab) {
     const { error } = await supabase.from("colaboradores").update({ status: "ativo" }).eq("id", c.id);
     if (error) toast.error(error.message); else { toast.success("Colaborador reativado"); qc.invalidateQueries({ queryKey: ["colaboradores"] }); }
+  }
+
+  async function handleExcluir(c: Colab) {
+    if (!confirm(`Excluir "${c.nome}"? Se possuir histórico de entregas/movimentações, será apenas inativado (histórico preservado).`)) return;
+    const { data, error } = await supabase.rpc("excluir_colaborador_seguro", { p_colab_id: c.id });
+    if (error) toast.error(error.message);
+    else {
+      toast.success(data === "excluido" ? "Colaborador excluído" : "Colaborador inativado (histórico preservado)");
+      qc.invalidateQueries({ queryKey: ["colaboradores"] });
+    }
   }
 
   return (
@@ -149,11 +159,14 @@ function ColaboradoresPage() {
                         <>
                           <Button variant="ghost" size="icon" onClick={() => { setEditing(c); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
                           {role === "admin" && (
-                            c.status === "ativo" ? (
-                              <Button variant="ghost" size="icon" title="Inativar" onClick={() => handleInativar(c)}><UserX className="h-4 w-4 text-destructive" /></Button>
-                            ) : (
-                              <Button variant="ghost" size="icon" title="Reativar" onClick={() => handleReativar(c)}><UserCheck className="h-4 w-4 text-success" /></Button>
-                            )
+                            <>
+                              {c.status === "ativo" ? (
+                                <Button variant="ghost" size="icon" title="Inativar" onClick={() => handleInativar(c)}><UserX className="h-4 w-4 text-destructive" /></Button>
+                              ) : (
+                                <Button variant="ghost" size="icon" title="Reativar" onClick={() => handleReativar(c)}><UserCheck className="h-4 w-4 text-success" /></Button>
+                              )}
+                              <Button variant="ghost" size="icon" title="Excluir" onClick={() => handleExcluir(c)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                            </>
                           )}
                         </>
                       )}

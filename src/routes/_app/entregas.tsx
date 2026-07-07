@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PackageCheck } from "lucide-react";
+import { PackageCheck, Trash2 } from "lucide-react";
 import { useAuth, canMovimentar } from "@/lib/auth";
 import { toast } from "sonner";
 import { sanitizeText } from "@/lib/sanitize";
@@ -80,6 +80,13 @@ function EntregasPage() {
     setColaboradorId(""); setEpiId(""); setQuantidade(1); setObs("");
   }
 
+  async function excluirEntrega(movId: string) {
+    if (!confirm("Excluir esta entrega? O estoque será restaurado automaticamente.")) return;
+    const { error } = await supabase.rpc("excluir_entrega", { p_mov_id: movId, p_usuario: user?.id ?? "" });
+    if (error) toast.error(error.message);
+    else { toast.success("Entrega excluída e estoque restaurado"); qc.invalidateQueries(); }
+  }
+
   async function entregar() {
     if (!formValido) {
       if (erros.estoque) toast.error("Estoque insuficiente");
@@ -87,7 +94,10 @@ function EntregasPage() {
       return;
     }
     setSaving(true);
-    const movData = new Date(data).toISOString();
+    // Fix fuso horário BR: usar a data escolhida no horário local (não UTC midnight)
+    const [yy, mm, dd] = data.split("-").map(Number);
+    const now = new Date();
+    const movData = new Date(yy, mm - 1, dd, now.getHours(), now.getMinutes(), now.getSeconds()).toISOString();
 
     // Identificar automaticamente o último EPI ativo do mesmo tipo (categoria) para este colaborador.
     // Se existir, registra a substituição automática na mesma transação.
@@ -205,6 +215,7 @@ function EntregasPage() {
                 <th className="text-left px-4 py-3">EPI entregue</th>
                 <th className="text-right px-4 py-3">Qtd</th>
                 <th className="text-left px-4 py-3">Devolução vinculada</th>
+                {role === "admin" && <th className="text-right px-4 py-3">Ações</th>}
               </tr>
             </thead>
             <tbody>
@@ -235,10 +246,17 @@ function EntregasPage() {
                         <span className="text-xs text-muted-foreground italic">Primeira entrega</span>
                       )}
                     </td>
+                    {role === "admin" && (
+                      <td className="px-4 py-3 text-right">
+                        <Button variant="ghost" size="icon" title="Excluir entrega" onClick={() => excluirEntrega(m.id)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </td>
+                    )}
                   </tr>
                 );
               })}
-              {ultimas.length === 0 && <tr><td colSpan={5} className="text-center py-10 text-muted-foreground">Nenhuma entrega registrada ainda.</td></tr>}
+              {ultimas.length === 0 && <tr><td colSpan={role === "admin" ? 6 : 5} className="text-center py-10 text-muted-foreground">Nenhuma entrega registrada ainda.</td></tr>}
             </tbody>
           </table>
         </div>

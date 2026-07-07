@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { ClipboardList, Play, Check, ChevronRight, AlertTriangle } from "lucide-react";
+import { ClipboardList, Play, Check, ChevronRight, AlertTriangle, Pencil, Trash2 } from "lucide-react";
 import { useAuth, canMovimentar } from "@/lib/auth";
 import { toast } from "sonner";
 
@@ -76,8 +76,8 @@ function InventarioPage() {
 
       <div className="grid gap-3">
         {inventarios.map((inv: any) => (
-          <Card key={inv.id} className="p-4 flex items-center justify-between gap-3 cursor-pointer hover:bg-muted/40 transition" onClick={() => setActive(inv.id)}>
-            <div className="flex items-center gap-3 min-w-0">
+          <Card key={inv.id} className="p-4 flex items-center justify-between gap-3 hover:bg-muted/40 transition">
+            <button className="flex items-center gap-3 min-w-0 flex-1 text-left" onClick={() => setActive(inv.id)}>
               <div className={`h-10 w-10 rounded-md grid place-items-center ${inv.status === "finalizado" ? "bg-success/15 text-success" : "bg-primary/10 text-primary"}`}>
                 {inv.status === "finalizado" ? <Check className="h-5 w-5" /> : <ClipboardList className="h-5 w-5" />}
               </div>
@@ -87,8 +87,27 @@ function InventarioPage() {
                   {new Date(inv.data_inicio).toLocaleString("pt-BR")} · <span className="capitalize">{inv.status.replace("_", " ")}</span>
                 </div>
               </div>
+            </button>
+            <div className="flex items-center gap-1">
+              {pode && inv.status !== "finalizado" && (
+                <>
+                  <Button variant="ghost" size="icon" title="Editar local" onClick={async () => {
+                    const novo = prompt("Novo local do inventário:", inv.local);
+                    if (!novo || novo.trim() === "" || novo === inv.local) return;
+                    const { error } = await supabase.from("inventarios").update({ local: novo.trim() }).eq("id", inv.id);
+                    if (error) toast.error(error.message);
+                    else { toast.success("Local atualizado"); qc.invalidateQueries({ queryKey: ["inventarios"] }); }
+                  }}><Pencil className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" title="Cancelar/Excluir" onClick={async () => {
+                    if (!confirm(`Cancelar/excluir o inventário "${inv.local}"? Apenas inventários em andamento podem ser removidos.`)) return;
+                    const { error } = await supabase.rpc("excluir_inventario", { p_inventario_id: inv.id });
+                    if (error) toast.error(error.message);
+                    else { toast.success("Inventário excluído"); qc.invalidateQueries({ queryKey: ["inventarios"] }); }
+                  }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                </>
+              )}
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </div>
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
           </Card>
         ))}
         {inventarios.length === 0 && (
