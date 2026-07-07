@@ -51,10 +51,14 @@ function EpisPage() {
     return true;
   });
 
-  async function handleDelete(id: string) {
-    if (!confirm("Excluir este EPI?")) return;
-    const { error } = await supabase.from("epis").delete().eq("id", id);
-    if (error) toast.error(error.message); else { toast.success("Excluído"); qc.invalidateQueries({ queryKey: ["epis"] }); }
+  async function handleDelete(id: string, nome: string) {
+    if (!confirm(`Excluir o EPI "${nome}"? Se houver movimentações, será apenas inativado para preservar o histórico.`)) return;
+    const { data, error } = await supabase.rpc("excluir_epi_seguro", { p_epi_id: id });
+    if (error) toast.error(error.message);
+    else {
+      toast.success(data === "excluido" ? "EPI excluído" : "EPI inativado (histórico preservado)");
+      qc.invalidateQueries({ queryKey: ["epis"] });
+    }
   }
 
   return (
