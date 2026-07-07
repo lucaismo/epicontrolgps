@@ -268,6 +268,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      excluir_colaborador_seguro: {
+        Args: { p_colab_id: string }
+        Returns: string
+      }
+      excluir_entrega: {
+        Args: { p_mov_id: string; p_usuario: string }
+        Returns: undefined
+      }
+      excluir_epi_seguro: { Args: { p_epi_id: string }; Returns: string }
+      excluir_inventario: {
+        Args: { p_inventario_id: string }
+        Returns: undefined
+      }
       finalizar_inventario: {
         Args: { p_inventario_id: string; p_usuario: string }
         Returns: undefined
