@@ -159,11 +159,14 @@ function ColaboradoresPage() {
                         <>
                           <Button variant="ghost" size="icon" onClick={() => { setEditing(c); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
                           {role === "admin" && (
-                            c.status === "ativo" ? (
-                              <Button variant="ghost" size="icon" title="Inativar" onClick={() => handleInativar(c)}><UserX className="h-4 w-4 text-destructive" /></Button>
-                            ) : (
-                              <Button variant="ghost" size="icon" title="Reativar" onClick={() => handleReativar(c)}><UserCheck className="h-4 w-4 text-success" /></Button>
-                            )
+                            <>
+                              {c.status === "ativo" ? (
+                                <Button variant="ghost" size="icon" title="Inativar" onClick={() => handleInativar(c)}><UserX className="h-4 w-4 text-destructive" /></Button>
+                              ) : (
+                                <Button variant="ghost" size="icon" title="Reativar" onClick={() => handleReativar(c)}><UserCheck className="h-4 w-4 text-success" /></Button>
+                              )}
+                              <Button variant="ghost" size="icon" title="Excluir" onClick={() => handleExcluir(c)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                            </>
                           )}
                         </>
                       )}
