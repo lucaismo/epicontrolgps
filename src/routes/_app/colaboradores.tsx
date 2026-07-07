@@ -70,6 +70,16 @@ function ColaboradoresPage() {
     if (error) toast.error(error.message); else { toast.success("Colaborador reativado"); qc.invalidateQueries({ queryKey: ["colaboradores"] }); }
   }
 
+  async function handleExcluir(c: Colab) {
+    if (!confirm(`Excluir "${c.nome}"? Se possuir histórico de entregas/movimentações, será apenas inativado (histórico preservado).`)) return;
+    const { data, error } = await supabase.rpc("excluir_colaborador_seguro", { p_colab_id: c.id });
+    if (error) toast.error(error.message);
+    else {
+      toast.success(data === "excluido" ? "Colaborador excluído" : "Colaborador inativado (histórico preservado)");
+      qc.invalidateQueries({ queryKey: ["colaboradores"] });
+    }
+  }
+
   return (
     <div className="p-4 md:p-8 space-y-5">
       <div className="flex items-center justify-between gap-3 flex-wrap">
