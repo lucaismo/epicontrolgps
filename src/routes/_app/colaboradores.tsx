@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Search, Pencil, UserX, UserCheck, History, Upload, Download } from "lucide-react";
+import { Plus, Search, Pencil, UserX, UserCheck, History, Upload, Download, Trash2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { TURNOS, STATUS_COLAB, type Turno, type StatusColab } from "@/lib/constants";
 import { useAuth, canManageRegistros } from "@/lib/auth";
