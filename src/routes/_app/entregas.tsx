@@ -80,6 +80,13 @@ function EntregasPage() {
     setColaboradorId(""); setEpiId(""); setQuantidade(1); setObs("");
   }
 
+  async function excluirEntrega(movId: string) {
+    if (!confirm("Excluir esta entrega? O estoque será restaurado automaticamente.")) return;
+    const { error } = await supabase.rpc("excluir_entrega", { p_mov_id: movId, p_usuario: user?.id ?? "" });
+    if (error) toast.error(error.message);
+    else { toast.success("Entrega excluída e estoque restaurado"); qc.invalidateQueries(); }
+  }
+
   async function entregar() {
     if (!formValido) {
       if (erros.estoque) toast.error("Estoque insuficiente");
