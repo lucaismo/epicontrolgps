@@ -208,6 +208,7 @@ function EntregasPage() {
                 <th className="text-left px-4 py-3">EPI entregue</th>
                 <th className="text-right px-4 py-3">Qtd</th>
                 <th className="text-left px-4 py-3">Devolução vinculada</th>
+                {role === "admin" && <th className="text-right px-4 py-3">Ações</th>}
               </tr>
             </thead>
             <tbody>
@@ -238,10 +239,17 @@ function EntregasPage() {
                         <span className="text-xs text-muted-foreground italic">Primeira entrega</span>
                       )}
                     </td>
+                    {role === "admin" && (
+                      <td className="px-4 py-3 text-right">
+                        <Button variant="ghost" size="icon" title="Excluir entrega" onClick={() => excluirEntrega(m.id)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </td>
+                    )}
                   </tr>
                 );
               })}
-              {ultimas.length === 0 && <tr><td colSpan={5} className="text-center py-10 text-muted-foreground">Nenhuma entrega registrada ainda.</td></tr>}
+              {ultimas.length === 0 && <tr><td colSpan={role === "admin" ? 6 : 5} className="text-center py-10 text-muted-foreground">Nenhuma entrega registrada ainda.</td></tr>}
             </tbody>
           </table>
         </div>
