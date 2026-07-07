@@ -87,7 +87,10 @@ function EntregasPage() {
       return;
     }
     setSaving(true);
-    const movData = new Date(data).toISOString();
+    // Fix fuso horário BR: usar a data escolhida no horário local (não UTC midnight)
+    const [yy, mm, dd] = data.split("-").map(Number);
+    const now = new Date();
+    const movData = new Date(yy, mm - 1, dd, now.getHours(), now.getMinutes(), now.getSeconds()).toISOString();
 
     // Identificar automaticamente o último EPI ativo do mesmo tipo (categoria) para este colaborador.
     // Se existir, registra a substituição automática na mesma transação.
