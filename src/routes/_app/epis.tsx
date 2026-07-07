@@ -141,7 +141,7 @@ function EpisPage() {
                       <div className="inline-flex gap-1">
                         {canEditStock && <Button variant="ghost" size="icon" title="Entrada de estoque" onClick={() => setEntradaFor(e)}><PackagePlus className="h-4 w-4" /></Button>}
                         <Button variant="ghost" size="icon" title="Editar" onClick={() => { setEditing(e); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
-                        {role === "admin" && <Button variant="ghost" size="icon" title="Excluir" onClick={() => handleDelete(e.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>}
+                        {role === "admin" && <Button variant="ghost" size="icon" title="Excluir" onClick={() => handleDelete(e.id, e.nome)}><Trash2 className="h-4 w-4 text-destructive" /></Button>}
                       </div>
                     )}
                   </td>
