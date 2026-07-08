@@ -93,7 +93,17 @@ function pdfTable(doc: jsPDF, title: string, rows: Record<string, any>[], startY
 
 function Relatorios() {
   const { data: epis = [] } = useQuery({ queryKey: ["rel-epis"], queryFn: async () => (await supabase.from("epis").select("*").order("nome")).data ?? [] });
-  const { data: movs = [] } = useQuery({ queryKey: ["rel-movs"], queryFn: async () => (await supabase.from("movimentacoes").select("*, epis(nome,categoria,custo_unitario), colaboradores(nome,matricula,funcao)").order("data_movimentacao", { ascending: false }).limit(2000)).data ?? [] });
+  const { data: movs = [] } = useQuery({ queryKey: ["rel-movs"], queryFn: async () => {
+    const { data: ms } = await supabase.from("movimentacoes").select("*, epis(nome,categoria,custo_unitario), colaboradores(nome,matricula,funcao)").order("data_movimentacao", { ascending: false }).limit(2000);
+    const rows = ms ?? [];
+    const userIds = Array.from(new Set(rows.map((r: any) => r.usuario_responsavel).filter(Boolean)));
+    let profMap = new Map<string, any>();
+    if (userIds.length) {
+      const { data: profs } = await supabase.from("profiles").select("id,nome,email").in("id", userIds as string[]);
+      (profs ?? []).forEach((p: any) => profMap.set(p.id, p));
+    }
+    return rows.map((r: any) => ({ ...r, responsavel: r.usuario_responsavel ? profMap.get(r.usuario_responsavel) ?? null : null }));
+  } });
   const { data: colabs = [] } = useQuery({ queryKey: ["rel-colabs"], queryFn: async () => (await supabase.from("colaboradores").select("*").order("nome")).data ?? [] });
 
   function rowsEstoque() {
