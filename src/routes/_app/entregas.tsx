@@ -222,12 +222,14 @@ function EntregasPage() {
                 <th className="text-left px-4 py-3">EPI entregue</th>
                 <th className="text-right px-4 py-3">Qtd</th>
                 <th className="text-left px-4 py-3">Devolução vinculada</th>
+                <th className="text-left px-4 py-3">Responsável</th>
                 {role === "admin" && <th className="text-right px-4 py-3">Ações</th>}
               </tr>
             </thead>
             <tbody>
               {ultimas.map((m: any) => {
                 const d = m.devolucao;
+                const resp = m.responsavel;
                 return (
                   <tr key={m.id} className="border-t align-top">
                     <td className="px-4 py-3 whitespace-nowrap">{new Date(m.data_movimentacao).toLocaleString("pt-BR")}</td>
@@ -253,6 +255,13 @@ function EntregasPage() {
                         <span className="text-xs text-muted-foreground italic">Primeira entrega</span>
                       )}
                     </td>
+                    <td className="px-4 py-3">
+                      {resp ? (
+                        <span title={resp.email ?? ""}>{resp.nome}</span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground italic">—</span>
+                      )}
+                    </td>
                     {role === "admin" && (
                       <td className="px-4 py-3 text-right">
                         <Button variant="ghost" size="icon" title="Excluir entrega" onClick={() => excluirEntrega(m.id)}>
@@ -263,7 +272,7 @@ function EntregasPage() {
                   </tr>
                 );
               })}
-              {ultimas.length === 0 && <tr><td colSpan={role === "admin" ? 6 : 5} className="text-center py-10 text-muted-foreground">Nenhuma entrega registrada ainda.</td></tr>}
+              {ultimas.length === 0 && <tr><td colSpan={role === "admin" ? 7 : 6} className="text-center py-10 text-muted-foreground">Nenhuma entrega registrada ainda.</td></tr>}
             </tbody>
           </table>
         </div>
