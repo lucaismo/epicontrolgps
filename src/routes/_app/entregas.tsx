@@ -52,16 +52,23 @@ function EntregasPage() {
       if (entregas.length === 0) return [];
       const colabIds = Array.from(new Set(entregas.map((e: any) => e.colaborador_id).filter(Boolean)));
       const datas = entregas.map((e: any) => e.data_movimentacao);
-      const { data: devs } = await supabase.from("movimentacoes")
-        .select("*, epis(nome)")
-        .in("colaborador_id", colabIds as string[])
-        .in("data_movimentacao", datas)
-        .neq("tipo", "entrega");
+      const userIds = Array.from(new Set(entregas.map((e: any) => e.usuario_responsavel).filter(Boolean)));
+      const [devsRes, profsRes] = await Promise.all([
+        supabase.from("movimentacoes").select("*, epis(nome)")
+          .in("colaborador_id", colabIds as string[])
+          .in("data_movimentacao", datas).neq("tipo", "entrega"),
+        userIds.length
+          ? supabase.from("profiles").select("id,nome,email").in("id", userIds as string[])
+          : Promise.resolve({ data: [] as any[] }),
+      ]);
       const mapDev = new Map<string, any>();
-      (devs ?? []).forEach((d: any) => mapDev.set(`${d.colaborador_id}|${d.data_movimentacao}`, d));
+      (devsRes.data ?? []).forEach((d: any) => mapDev.set(`${d.colaborador_id}|${d.data_movimentacao}`, d));
+      const mapProf = new Map<string, any>();
+      (profsRes.data ?? []).forEach((p: any) => mapProf.set(p.id, p));
       return entregas.map((e: any) => ({
         ...e,
         devolucao: mapDev.get(`${e.colaborador_id}|${e.data_movimentacao}`) ?? null,
+        responsavel: e.usuario_responsavel ? mapProf.get(e.usuario_responsavel) ?? null : null,
       }));
     },
   });
@@ -215,12 +222,14 @@ function EntregasPage() {
                 <th className="text-left px-4 py-3">EPI entregue</th>
                 <th className="text-right px-4 py-3">Qtd</th>
                 <th className="text-left px-4 py-3">Devolução vinculada</th>
+                <th className="text-left px-4 py-3">Responsável</th>
                 {role === "admin" && <th className="text-right px-4 py-3">Ações</th>}
               </tr>
             </thead>
             <tbody>
               {ultimas.map((m: any) => {
                 const d = m.devolucao;
+                const resp = m.responsavel;
                 return (
                   <tr key={m.id} className="border-t align-top">
                     <td className="px-4 py-3 whitespace-nowrap">{new Date(m.data_movimentacao).toLocaleString("pt-BR")}</td>
@@ -246,6 +255,13 @@ function EntregasPage() {
                         <span className="text-xs text-muted-foreground italic">Primeira entrega</span>
                       )}
                     </td>
+                    <td className="px-4 py-3">
+                      {resp ? (
+                        <span title={resp.email ?? ""}>{resp.nome}</span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground italic">—</span>
+                      )}
+                    </td>
                     {role === "admin" && (
                       <td className="px-4 py-3 text-right">
                         <Button variant="ghost" size="icon" title="Excluir entrega" onClick={() => excluirEntrega(m.id)}>
@@ -256,7 +272,7 @@ function EntregasPage() {
                   </tr>
                 );
               })}
-              {ultimas.length === 0 && <tr><td colSpan={role === "admin" ? 6 : 5} className="text-center py-10 text-muted-foreground">Nenhuma entrega registrada ainda.</td></tr>}
+              {ultimas.length === 0 && <tr><td colSpan={role === "admin" ? 7 : 6} className="text-center py-10 text-muted-foreground">Nenhuma entrega registrada ainda.</td></tr>}
             </tbody>
           </table>
         </div>
