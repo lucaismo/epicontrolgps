@@ -127,6 +127,7 @@ function Relatorios() {
       EPI: m.epis?.nome ?? "", Categoria: m.epis?.categoria ?? "",
       Colaborador: m.colaboradores?.nome ?? "", Matrícula: m.colaboradores?.matricula ?? "",
       Função: m.colaboradores?.funcao ?? "", Quantidade: m.quantidade,
+      Responsável: m.responsavel?.nome ?? "",
       Motivo: m.motivo ?? "", Observação: m.observacao ?? "",
     }));
   }
