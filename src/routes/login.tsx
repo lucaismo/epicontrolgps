@@ -13,12 +13,14 @@ import { passwordStrength } from "@/lib/sanitize";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
-  validateSearch: (s: Record<string, unknown>) => ({
-    next: typeof s.next === "string" && s.next.startsWith("/") && !s.next.startsWith("//") ? s.next : "",
-  }),
+  validateSearch: (s: Record<string, unknown>): { next?: string } => {
+    const raw = typeof s.next === "string" ? s.next : "";
+    const next = raw.startsWith("/") && !raw.startsWith("//") ? raw : undefined;
+    return next ? { next } : {};
+  },
 });
 
-function safeNext(next: string, fallback: string) {
+function safeNext(next: string | undefined, fallback: string) {
   return next && next.startsWith("/") && !next.startsWith("//") ? next : fallback;
 }
 
