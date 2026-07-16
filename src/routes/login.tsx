@@ -11,10 +11,22 @@ import { toast } from "sonner";
 import { hasAnyAdmin } from "@/lib/admin-users.functions";
 import { passwordStrength } from "@/lib/sanitize";
 
-export const Route = createFileRoute("/login")({ component: LoginPage });
+export const Route = createFileRoute("/login")({
+  component: LoginPage,
+  validateSearch: (s: Record<string, unknown>): { next?: string } => {
+    const raw = typeof s.next === "string" ? s.next : "";
+    const next = raw.startsWith("/") && !raw.startsWith("//") ? raw : undefined;
+    return next ? { next } : {};
+  },
+});
+
+function safeNext(next: string | undefined, fallback: string) {
+  return next && next.startsWith("/") && !next.startsWith("//") ? next : fallback;
+}
 
 function LoginPage() {
   const navigate = useNavigate();
+  const { next } = Route.useSearch();
   const checkAdmin = useServerFn(hasAnyAdmin);
   const [mode, setMode] = useState<"login" | "signup" | "reset">("login");
   const [bootstrap, setBootstrap] = useState(false);
@@ -31,16 +43,23 @@ function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
+      const dest = safeNext(next, "/dashboard");
       if (mode === "login") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        await navigate({ to: "/dashboard", replace: true });
+        // If dest is a relative path in the app (e.g. /.lovable/oauth/consent?authorization_id=...),
+        // use a full navigation so the consent route runs its loader against the fresh session.
+        if (dest.startsWith("/.lovable/")) {
+          window.location.href = dest;
+        } else {
+          await navigate({ to: dest, replace: true });
+        }
       } else if (mode === "signup") {
         if (!bootstrap) throw new Error("Cadastro restrito — solicite ao administrador");
         if (password.length < 8) throw new Error("A senha deve ter no mínimo 8 caracteres");
         const { error } = await supabase.auth.signUp({
           email, password,
-          options: { data: { nome }, emailRedirectTo: `${window.location.origin}/dashboard` },
+          options: { data: { nome }, emailRedirectTo: `${window.location.origin}${dest}` },
         });
         if (error) throw error;
         toast.success("Conta de administrador criada! Faça login.");
