@@ -1,0 +1,140 @@
+{
+  "version": 1,
+  "sdk_version": "0.23.0",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://zgomqglyueqbsfqwhzxm.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "epi-control-mcp",
+      "version": "0.1.0",
+      "title": "EPI Control MCP"
+    },
+    "tools": [
+      {
+        "name": "list_epis",
+        "title": "Listar EPIs",
+        "description": "Lista os EPIs ativos com estoque atual, mínimo, categoria e tamanho. Filtro opcional por nome/categoria.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "query": {
+              "description": "Filtro por nome ou categoria (contém).",
+              "type": "string"
+            },
+            "limit": {
+              "description": "Máximo de itens (padrão 50).",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_colaboradores",
+        "title": "Listar colaboradores",
+        "description": "Lista colaboradores com matrícula, função e turno. Filtra por nome/matrícula e status (ativo/desligado).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "query": {
+              "description": "Filtro por nome ou matrícula (contém).",
+              "type": "string"
+            },
+            "status": {
+              "description": "Padrão: ativo.",
+              "type": "string",
+              "enum": [
+                "ativo",
+                "desligado"
+              ]
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_movimentacoes",
+        "title": "Últimas movimentações",
+        "description": "Lista movimentações de estoque (entregas, devoluções, ajustes, entradas) mais recentes, com filtros opcionais por tipo e período.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "tipo": {
+              "description": "Filtro por tipo de movimentação.",
+              "type": "string",
+              "enum": [
+                "entrega",
+                "devolucao_normal",
+                "avariado",
+                "descarte",
+                "troca",
+                "perda",
+                "roubo",
+                "entrada_estoque",
+                "ajuste_entrada",
+                "ajuste_saida"
+              ]
+            },
+            "since": {
+              "description": "Data ISO mínima (data_movimentacao >= since).",
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "stock_summary",
+        "title": "Resumo de estoque",
+        "description": "Retorna totais consolidados: quantidade de EPIs cadastrados, estoque total, EPIs abaixo do mínimo e zerados, com a lista dos críticos.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
