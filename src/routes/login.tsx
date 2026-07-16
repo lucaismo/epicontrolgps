@@ -11,7 +11,16 @@ import { toast } from "sonner";
 import { hasAnyAdmin } from "@/lib/admin-users.functions";
 import { passwordStrength } from "@/lib/sanitize";
 
-export const Route = createFileRoute("/login")({ component: LoginPage });
+export const Route = createFileRoute("/login")({
+  component: LoginPage,
+  validateSearch: (s: Record<string, unknown>) => ({
+    next: typeof s.next === "string" && s.next.startsWith("/") && !s.next.startsWith("//") ? s.next : "",
+  }),
+});
+
+function safeNext(next: string, fallback: string) {
+  return next && next.startsWith("/") && !next.startsWith("//") ? next : fallback;
+}
 
 function LoginPage() {
   const navigate = useNavigate();
