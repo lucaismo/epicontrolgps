@@ -35,45 +35,47 @@ function EntregasPage() {
   const [obs, setObs] = useState("");
   const [data, setData] = useState(new Date().toISOString().slice(0, 10));
   const [saving, setSaving] = useState(false);
+  const [page, setPage] = useState(0);
 
   const { data: colabs = [] } = useQuery({
     queryKey: ["colabs-ativos"],
-    queryFn: async () => (await supabase.from("colaboradores").select("id,nome,matricula,funcao").eq("status", "ativo").order("nome")).data ?? [],
+    queryFn: async () => (await supabase.from("colaboradores").select("id,nome,matricula,funcao,turno").eq("status", "ativo").order("nome")).data ?? [],
   });
   const { data: epis = [] } = useQuery({
     queryKey: ["epis-ativos"],
     queryFn: async () => (await supabase.from("epis").select("id,nome,estoque_atual,categoria,tamanho").eq("status", "ativo").order("nome")).data ?? [],
   });
-  const { data: ultimas = [] } = useQuery({
-    queryKey: ["ultimas-entregas"],
+  const { data: entregasPage } = useQuery({
+    queryKey: ["ultimas-entregas", page],
     queryFn: async () => {
-      const { data: ents } = await supabase.from("movimentacoes")
-        .select("*, epis(nome), colaboradores(nome,matricula)")
-        .eq("tipo", "entrega").order("data_movimentacao", { ascending: false }).limit(20);
+      const from = page * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+      const { data: ents, count } = await supabase.from("movimentacoes")
+        .select("*, epis(nome), colaboradores(nome,matricula,turno)", { count: "exact" })
+        .eq("tipo", "entrega")
+        .order("data_movimentacao", { ascending: false })
+        .range(from, to);
       const entregas = ents ?? [];
-      if (entregas.length === 0) return [];
-      const colabIds = Array.from(new Set(entregas.map((e: any) => e.colaborador_id).filter(Boolean)));
-      const datas = entregas.map((e: any) => e.data_movimentacao);
+      if (entregas.length === 0) return { rows: [], total: count ?? 0 };
       const userIds = Array.from(new Set(entregas.map((e: any) => e.usuario_responsavel).filter(Boolean)));
-      const [devsRes, profsRes] = await Promise.all([
-        supabase.from("movimentacoes").select("*, epis(nome)")
-          .in("colaborador_id", colabIds as string[])
-          .in("data_movimentacao", datas).neq("tipo", "entrega"),
-        userIds.length
-          ? supabase.from("profiles").select("id,nome,email").in("id", userIds as string[])
-          : Promise.resolve({ data: [] as any[] }),
-      ]);
-      const mapDev = new Map<string, any>();
-      (devsRes.data ?? []).forEach((d: any) => mapDev.set(`${d.colaborador_id}|${d.data_movimentacao}`, d));
+      const profsRes = userIds.length
+        ? await supabase.from("profiles").select("id,nome,email").in("id", userIds as string[])
+        : { data: [] as any[] };
       const mapProf = new Map<string, any>();
       (profsRes.data ?? []).forEach((p: any) => mapProf.set(p.id, p));
-      return entregas.map((e: any) => ({
-        ...e,
-        devolucao: mapDev.get(`${e.colaborador_id}|${e.data_movimentacao}`) ?? null,
-        responsavel: e.usuario_responsavel ? mapProf.get(e.usuario_responsavel) ?? null : null,
-      }));
+      return {
+        rows: entregas.map((e: any) => ({
+          ...e,
+          responsavel: e.usuario_responsavel ? mapProf.get(e.usuario_responsavel) ?? null : null,
+        })),
+        total: count ?? entregas.length,
+      };
     },
   });
+  const ultimas = entregasPage?.rows ?? [];
+  const total = entregasPage?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
 
   const epiSel = epis.find((e) => e.id === epiId);
   const qtdNum = typeof quantidade === "number" ? quantidade : 0;
