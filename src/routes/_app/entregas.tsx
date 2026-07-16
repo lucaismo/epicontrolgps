@@ -17,12 +17,6 @@ export const Route = createFileRoute("/_app/entregas")({ component: EntregasPage
 
 const PAGE_SIZE = 25;
 
-const DEV_LABEL: Record<string, string> = {
-  avariado: "Avaria",
-  descarte: "Descarte",
-  perda: "Perda",
-  roubo: "Roubo",
-};
 
 function EntregasPage() {
   const { role, user } = useAuth();
