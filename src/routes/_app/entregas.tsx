@@ -219,14 +219,13 @@ function EntregasPage() {
                 <th className="text-left px-4 py-3">Colaborador</th>
                 <th className="text-left px-4 py-3">EPI entregue</th>
                 <th className="text-right px-4 py-3">Qtd</th>
-                <th className="text-left px-4 py-3">Devolução vinculada</th>
+                <th className="text-left px-4 py-3">Turno</th>
                 <th className="text-left px-4 py-3">Responsável</th>
                 {role === "admin" && <th className="text-right px-4 py-3">Ações</th>}
               </tr>
             </thead>
             <tbody>
               {ultimas.map((m: any) => {
-                const d = m.devolucao;
                 const resp = m.responsavel;
                 return (
                   <tr key={m.id} className="border-t align-top">
@@ -235,22 +234,10 @@ function EntregasPage() {
                     <td className="px-4 py-3">{m.epis?.nome}</td>
                     <td className="px-4 py-3 text-right font-medium">{m.quantidade}</td>
                     <td className="px-4 py-3">
-                      {d ? (
-                        <div className="space-y-0.5">
-                          <div className="inline-flex items-center gap-2">
-                            <span className="text-xs font-medium px-2 py-0.5 rounded bg-primary/10 text-primary">
-                              {DEV_LABEL[d.tipo] ?? "Substituição automática"}
-                            </span>
-                            {d.epis?.nome && (
-                              <span className="text-xs text-muted-foreground">
-                                {d.epis.nome} · {d.quantidade}
-                              </span>
-                            )}
-                          </div>
-                          {d.motivo && <div className="text-xs text-muted-foreground">{d.motivo}</div>}
-                        </div>
+                      {m.colaboradores?.turno ? (
+                        <span className="text-xs font-medium px-2 py-0.5 rounded bg-primary/10 text-primary">{m.colaboradores.turno}</span>
                       ) : (
-                        <span className="text-xs text-muted-foreground italic">Primeira entrega</span>
+                        <span className="text-xs text-muted-foreground italic">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -274,7 +261,23 @@ function EntregasPage() {
             </tbody>
           </table>
         </div>
+        {total > PAGE_SIZE && (
+          <div className="flex items-center justify-between px-4 py-3 border-t text-sm">
+            <span className="text-muted-foreground">
+              Página {page + 1} de {totalPages} · {total} entregas
+            </span>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page === 0}>
+                <ChevronLeft className="h-4 w-4 mr-1" /> Anterior
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}>
+                Próxima <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          </div>
+        )}
       </Card>
+
     </div>
   );
 }
