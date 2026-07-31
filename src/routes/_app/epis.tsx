@@ -19,7 +19,7 @@ import { StockBadge } from "./dashboard";
 export const Route = createFileRoute("/_app/epis")({ component: EpisPage });
 
 type Epi = {
-  id: string; nome: string; categoria: string; ca: string | null; modelo: string | null;
+  id: string; nome: string; categoria: string; codigo_produto: string | null; ca: string | null; modelo: string | null;
   tamanho: string | null; estoque_atual: number; estoque_minimo: number;
   custo_unitario: number; localizacao: string | null; status: "ativo" | "inativo";
 };
@@ -47,7 +47,7 @@ function EpisPage() {
 
   const filtered = list.filter((e) => {
     if (filterCat !== "all" && e.categoria !== filterCat) return false;
-    if (search && !`${e.nome} ${e.ca} ${e.modelo}`.toLowerCase().includes(search.toLowerCase())) return false;
+    if (search && !`${e.nome} ${e.ca} ${e.modelo} ${e.codigo_produto ?? ""}`.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
 
@@ -79,7 +79,7 @@ function EpisPage() {
       <Card className="p-3 flex flex-col md:flex-row gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Buscar por nome, CA ou modelo…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+          <Input placeholder="Buscar por nome, código, CA ou modelo…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
         <Select value={filterCat} onValueChange={setFilterCat}>
           <SelectTrigger className="md:w-64"><SelectValue placeholder="Categoria" /></SelectTrigger>
@@ -96,7 +96,7 @@ function EpisPage() {
             <div className="flex justify-between items-start gap-3">
               <div className="min-w-0">
                 <div className="font-semibold truncate">{e.nome}</div>
-                <div className="text-xs text-muted-foreground mt-0.5">{e.categoria} · CA {e.ca || "—"} · {e.tamanho || "—"}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">Cód. {e.codigo_produto || "—"} · {e.categoria} · CA {e.ca || "—"} · {e.tamanho || "—"}</div>
                 <div className="text-xs text-muted-foreground">📍 {e.localizacao || "—"}</div>
               </div>
               <StockBadge atual={e.estoque_atual} minimo={e.estoque_minimo} />
@@ -118,6 +118,7 @@ function EpisPage() {
           <table className="w-full text-sm">
             <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
               <tr>
+                <th className="text-left px-4 py-3">Código</th>
                 <th className="text-left px-4 py-3">EPI</th>
                 <th className="text-left px-4 py-3">Categoria</th>
                 <th className="text-left px-4 py-3">CA</th>
@@ -130,6 +131,7 @@ function EpisPage() {
             <tbody>
               {filtered.map((e) => (
                 <tr key={e.id} className="border-t hover:bg-muted/30">
+                  <td className="px-4 py-3 font-mono text-xs">{e.codigo_produto || "—"}</td>
                   <td className="px-4 py-3"><div className="font-medium">{e.nome}</div><div className="text-xs text-muted-foreground">{e.modelo}</div></td>
                   <td className="px-4 py-3">{e.categoria}</td>
                   <td className="px-4 py-3 text-muted-foreground">{e.ca || "—"}</td>
@@ -148,7 +150,7 @@ function EpisPage() {
                 </tr>
               ))}
 
-              {filtered.length === 0 && <tr><td colSpan={7} className="text-center py-12 text-muted-foreground text-sm">Nenhum EPI encontrado.</td></tr>}
+              {filtered.length === 0 && <tr><td colSpan={8} className="text-center py-12 text-muted-foreground text-sm">Nenhum EPI encontrado.</td></tr>}
             </tbody>
           </table>
         </div>
@@ -217,7 +219,7 @@ function EntradaEstoqueDialog({ epi, userId, onClose }: { epi: Epi | null; userI
 
 function EpiForm({ editing, onClose }: { editing: Epi | null; onClose: () => void }) {
   const { user } = useAuth();
-  const [form, setForm] = useState<Partial<Epi>>(editing ?? { status: "ativo" });
+  const [form, setForm] = useState<Partial<Epi>>(editing ? { ...editing } : { status: "ativo" });
   const [saving, setSaving] = useState(false);
 
   async function save() {
@@ -226,7 +228,7 @@ function EpiForm({ editing, onClose }: { editing: Epi | null; onClose: () => voi
     // A1: ao editar NÃO permite alterar estoque_atual — use "Entrada de estoque" ou inventário.
     const basePayload = {
       nome: form.nome!, categoria: form.categoria!, ca: form.ca || null, modelo: form.modelo || null,
-      tamanho: form.tamanho || null,
+      tamanho: form.tamanho || null, codigo_produto: form.codigo_produto || null,
       estoque_minimo: Number(form.estoque_minimo ?? 0), custo_unitario: Number(form.custo_unitario ?? 0),
       localizacao: form.localizacao || null, status: (form.status as any) ?? "ativo",
     };
@@ -266,6 +268,7 @@ function EpiForm({ editing, onClose }: { editing: Epi | null; onClose: () => voi
             <SelectContent>{CATEGORIAS_EPI.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
           </Select>
         </div>
+        <div className="space-y-1.5"><Label>Código do produto</Label><Input value={form.codigo_produto ?? ""} onChange={(e) => setForm({ ...form, codigo_produto: e.target.value })} placeholder="Ex: PRD-00123" /></div>
         <div className="space-y-1.5"><Label>CA</Label><Input value={form.ca ?? ""} onChange={(e) => setForm({ ...form, ca: e.target.value })} /></div>
         <div className="space-y-1.5"><Label>Modelo</Label><Input value={form.modelo ?? ""} onChange={(e) => setForm({ ...form, modelo: e.target.value })} /></div>
         <div className="space-y-1.5"><Label>Tamanho</Label><Input value={form.tamanho ?? ""} onChange={(e) => setForm({ ...form, tamanho: e.target.value })} /></div>

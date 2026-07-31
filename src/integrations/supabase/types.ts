@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      auditoria: {
+        Row: {
+          created_at: string
+          dados_anteriores: Json | null
+          dados_novos: Json | null
+          id: string
+          operacao: string
+          registro_id: string | null
+          tabela: string
+          usuario_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          dados_anteriores?: Json | null
+          dados_novos?: Json | null
+          id?: string
+          operacao: string
+          registro_id?: string | null
+          tabela: string
+          usuario_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          dados_anteriores?: Json | null
+          dados_novos?: Json | null
+          id?: string
+          operacao?: string
+          registro_id?: string | null
+          tabela?: string
+          usuario_id?: string | null
+        }
+        Relationships: []
+      }
       colaboradores: {
         Row: {
           created_at: string
@@ -57,6 +90,7 @@ export type Database = {
         Row: {
           ca: string | null
           categoria: string
+          codigo_produto: string | null
           created_at: string
           custo_unitario: number
           estoque_atual: number
@@ -72,6 +106,7 @@ export type Database = {
         Insert: {
           ca?: string | null
           categoria: string
+          codigo_produto?: string | null
           created_at?: string
           custo_unitario?: number
           estoque_atual?: number
@@ -87,6 +122,7 @@ export type Database = {
         Update: {
           ca?: string | null
           categoria?: string
+          codigo_produto?: string | null
           created_at?: string
           custo_unitario?: number
           estoque_atual?: number
@@ -268,6 +304,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      editar_entrega: {
+        Args: {
+          p_data_movimentacao: string
+          p_epi_id: string
+          p_mov_id: string
+          p_observacao: string
+          p_quantidade: number
+        }
+        Returns: undefined
+      }
       excluir_colaborador_seguro: {
         Args: { p_colab_id: string }
         Returns: string
@@ -310,6 +356,16 @@ export type Database = {
           p_usuario: string
         }
         Returns: undefined
+      }
+      registrar_entrega_multipla: {
+        Args: {
+          p_colaborador_id: string
+          p_data_movimentacao: string
+          p_itens: Json
+          p_observacao: string
+          p_usuario: string
+        }
+        Returns: number
       }
     }
     Enums: {
