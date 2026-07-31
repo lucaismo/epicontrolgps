@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileSpreadsheet, FileText } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/lib/auth";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -27,9 +28,15 @@ function autoWidths(rows: Record<string, any>[]) {
   });
 }
 
+let EMISSOR = "—";
+
 function buildSheet(title: string, rows: Record<string, any>[]) {
   const ws = XLSX.utils.json_to_sheet([]);
-  XLSX.utils.sheet_add_aoa(ws, [[title], [`Emitido em: ${new Date().toLocaleString("pt-BR")}`], []], { origin: "A1" });
+  XLSX.utils.sheet_add_aoa(ws, [
+    [title],
+    [`Emitido em: ${new Date().toLocaleString("pt-BR")} · Responsável: ${EMISSOR}`],
+    [],
+  ], { origin: "A1" });
   if (rows.length) {
     XLSX.utils.sheet_add_json(ws, rows, { origin: "A4" });
     ws["!cols"] = autoWidths(rows);
@@ -50,6 +57,7 @@ function pdfHeader(doc: jsPDF, title: string) {
   doc.setFontSize(9);
   doc.setTextColor(120);
   doc.text(`Emitido em: ${new Date().toLocaleString("pt-BR")}`, pageWidth - 40, 40, { align: "right" });
+  doc.text(`Responsável: ${EMISSOR}`, pageWidth - 40, 54, { align: "right" });
   doc.setTextColor(0);
   doc.setDrawColor(200);
   doc.line(40, 68, pageWidth - 40, 68);
@@ -92,9 +100,17 @@ function pdfTable(doc: jsPDF, title: string, rows: Record<string, any>[], startY
 }
 
 function Relatorios() {
+  const { user } = useAuth();
+  const { data: perfil } = useQuery({
+    queryKey: ["rel-perfil", user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => (await supabase.from("profiles").select("nome,email").eq("id", user!.id).maybeSingle()).data,
+  });
+  EMISSOR = perfil?.nome ?? user?.email ?? "—";
+
   const { data: epis = [] } = useQuery({ queryKey: ["rel-epis"], queryFn: async () => (await supabase.from("epis").select("*").order("nome")).data ?? [] });
   const { data: movs = [] } = useQuery({ queryKey: ["rel-movs"], queryFn: async () => {
-    const { data: ms } = await supabase.from("movimentacoes").select("*, epis(nome,categoria,custo_unitario), colaboradores(nome,matricula,funcao)").order("data_movimentacao", { ascending: false }).limit(2000);
+    const { data: ms } = await supabase.from("movimentacoes").select("*, epis(nome,categoria,codigo_produto,custo_unitario), colaboradores(nome,matricula,funcao)").order("data_movimentacao", { ascending: false }).limit(2000);
     const rows = ms ?? [];
     const userIds = Array.from(new Set(rows.map((r: any) => r.usuario_responsavel).filter(Boolean)));
     let profMap = new Map<string, any>();
@@ -108,7 +124,7 @@ function Relatorios() {
 
   function rowsEstoque() {
     return (epis as any[]).map((e) => ({
-      Nome: e.nome, Categoria: e.categoria, CA: e.ca ?? "", Modelo: e.modelo ?? "", Tamanho: e.tamanho ?? "",
+      "Código do produto": e.codigo_produto ?? "", Nome: e.nome, Categoria: e.categoria, CA: e.ca ?? "", Modelo: e.modelo ?? "", Tamanho: e.tamanho ?? "",
       "Estoque atual": e.estoque_atual, "Estoque mínimo": e.estoque_minimo,
       "Custo unitário (R$)": Number(e.custo_unitario ?? 0).toFixed(2),
       "Valor total (R$)": (Number(e.custo_unitario ?? 0) * e.estoque_atual).toFixed(2),
@@ -117,14 +133,14 @@ function Relatorios() {
   }
   function rowsCriticos() {
     return (epis as any[]).filter((e) => e.estoque_atual < e.estoque_minimo).map((e) => ({
-      Nome: e.nome, Categoria: e.categoria, "Estoque atual": e.estoque_atual,
+      "Código do produto": e.codigo_produto ?? "", Nome: e.nome, Categoria: e.categoria, "Estoque atual": e.estoque_atual,
       "Estoque mínimo": e.estoque_minimo, Falta: e.estoque_minimo - e.estoque_atual, Localização: e.localizacao ?? "",
     }));
   }
   function rowsMovs() {
     return (movs as any[]).map((m) => ({
       Data: fmtDate(m.data_movimentacao), Tipo: m.tipo,
-      EPI: m.epis?.nome ?? "", Categoria: m.epis?.categoria ?? "",
+      "Código do produto": m.epis?.codigo_produto ?? "", EPI: m.epis?.nome ?? "", Categoria: m.epis?.categoria ?? "",
       Colaborador: m.colaboradores?.nome ?? "", Matrícula: m.colaboradores?.matricula ?? "",
       Função: m.colaboradores?.funcao ?? "", Quantidade: m.quantidade,
       Responsável: m.responsavel?.nome ?? "",
