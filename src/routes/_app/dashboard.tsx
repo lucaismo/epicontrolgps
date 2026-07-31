@@ -19,7 +19,7 @@ export const Route = createFileRoute("/_app/dashboard")({
 
 type EpiRow = {
   id: string; nome: string; estoque_atual: number; estoque_minimo: number;
-  custo_unitario: number | null; categoria: string | null;
+  custo_unitario: number | null; categoria: string | null; codigo_produto?: string | null;
 };
 
 type FilterKind = "criticos" | "abaixo" | "zerados" | null;
@@ -42,7 +42,7 @@ function Dashboard() {
       inicioMes.setHours(0, 0, 0, 0);
 
       const [episRes, movsRes, colabRes] = await Promise.all([
-        supabase.from("epis").select("id,nome,estoque_atual,estoque_minimo,custo_unitario,categoria").eq("status", "ativo"),
+        supabase.from("epis").select("id,nome,codigo_produto,estoque_atual,estoque_minimo,custo_unitario,categoria").eq("status", "ativo"),
         supabase.from("movimentacoes").select("tipo,quantidade,epi_id,colaborador_id,data_movimentacao,epis(nome,custo_unitario),colaboradores(nome,matricula)").gte("data_movimentacao", inicioMes.toISOString()),
         supabase.from("colaboradores").select("id", { count: "exact", head: true }).eq("status", "ativo"),
       ]);
@@ -67,19 +67,12 @@ function Dashboard() {
       });
       const topEpis = [...porEpi.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([nome, qtd]) => ({ nome, qtd }));
 
-      const porColab = new Map<string, number>();
-      entregasMes.forEach((m: any) => {
-        const nome = m.colaboradores?.nome ?? "?";
-        porColab.set(nome, (porColab.get(nome) ?? 0) + m.quantidade);
-      });
-      const topColabs = [...porColab.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([nome, qtd]) => ({ nome, qtd }));
-
       return {
         epis,
         totalEpis, estoqueTotal,
         abaixoMinList: abaixoMin, zeradosList: zerados, criticosList: criticos,
         abaixoMin: abaixoMin.length, zerados: zerados.length, criticos: criticos.length,
-        totalEntregas, custoMes, topEpis, topColabs,
+        totalEntregas, custoMes, topEpis,
         colaboradores: colabRes.count ?? 0,
         criticosPreview: criticos.slice(0, 5),
       };
@@ -109,6 +102,37 @@ function Dashboard() {
       return [...agg.values()]
         .sort((a, b) => (b.entradas + b.saidas) - (a.entradas + a.saidas))
         .slice(0, 10);
+    },
+  });
+
+  // Relatório mensal de movimentação individual por colaborador
+  const { data: relColab = [] } = useQuery({
+    queryKey: ["dashboard-rel-colab", ano, mes],
+    queryFn: async () => {
+      const inicio = new Date(ano, mes, 1, 0, 0, 0).toISOString();
+      const fim = new Date(ano, mes + 1, 1, 0, 0, 0).toISOString();
+      const { data } = await supabase
+        .from("movimentacoes")
+        .select("tipo,quantidade,data_movimentacao,colaborador_id,colaboradores(nome,matricula,turno),epis(nome)")
+        .not("colaborador_id", "is", null)
+        .gte("data_movimentacao", inicio)
+        .lt("data_movimentacao", fim);
+      const agg = new Map<string, { nome: string; matricula: string; turno: string; entregas: number; itens: number; devolucoes: number; epis: Set<string> }>();
+      (data ?? []).forEach((m: any) => {
+        const id = m.colaborador_id as string;
+        const cur = agg.get(id) ?? {
+          nome: m.colaboradores?.nome ?? "—",
+          matricula: m.colaboradores?.matricula ?? "",
+          turno: m.colaboradores?.turno ?? "—",
+          entregas: 0, itens: 0, devolucoes: 0, epis: new Set<string>(),
+        };
+        if (m.tipo === "entrega") { cur.entregas += 1; cur.itens += m.quantidade; if (m.epis?.nome) cur.epis.add(m.epis.nome); }
+        else cur.devolucoes += 1;
+        agg.set(id, cur);
+      });
+      return [...agg.values()]
+        .map((r) => ({ ...r, episTxt: [...r.epis].join(", ") }))
+        .sort((a, b) => b.itens - a.itens);
     },
   });
 
@@ -195,8 +219,8 @@ function Dashboard() {
         )}
       </Card>
 
-      <div className="grid lg:grid-cols-3 gap-4">
-        <Card className="p-5 lg:col-span-2">
+      <div className="grid gap-4">
+        <Card className="p-5">
           <h3 className="font-semibold mb-4">EPIs mais entregues no mês</h3>
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={stats?.topEpis ?? []}>
@@ -209,22 +233,41 @@ function Dashboard() {
           </ResponsiveContainer>
         </Card>
 
-        <Card className="p-5">
-          <h3 className="font-semibold mb-4">Ranking de colaboradores</h3>
-          {stats?.topColabs.length ? (
-            <ul className="space-y-2">
-              {stats.topColabs.map((c, i) => (
-                <li key={c.nome} className="flex items-center justify-between rounded-md border p-2.5 text-sm">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="h-6 w-6 grid place-items-center rounded-full bg-primary/10 text-primary text-xs font-semibold">{i + 1}</span>
-                    <span className="truncate">{c.nome}</span>
-                  </div>
-                  <span className="font-semibold">{c.qtd}</span>
-                </li>
-              ))}
-            </ul>
+        <Card className="p-5 overflow-hidden">
+          <h3 className="font-semibold mb-4">
+            Movimentação por colaborador · {MESES[mes]}/{ano}
+          </h3>
+          {relColab.length ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
+                  <tr>
+                    <th className="text-left px-3 py-2">Colaborador</th>
+                    <th className="text-left px-3 py-2">Matrícula</th>
+                    <th className="text-left px-3 py-2">Turno</th>
+                    <th className="text-right px-3 py-2">Entregas</th>
+                    <th className="text-right px-3 py-2">Itens</th>
+                    <th className="text-right px-3 py-2">Devoluções/Trocas</th>
+                    <th className="text-left px-3 py-2">EPIs recebidos</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {relColab.map((c) => (
+                    <tr key={c.matricula + c.nome} className="border-t">
+                      <td className="px-3 py-2 font-medium">{c.nome}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{c.matricula}</td>
+                      <td className="px-3 py-2">{c.turno}</td>
+                      <td className="px-3 py-2 text-right">{c.entregas}</td>
+                      <td className="px-3 py-2 text-right font-semibold">{c.itens}</td>
+                      <td className="px-3 py-2 text-right">{c.devolucoes}</td>
+                      <td className="px-3 py-2 text-xs text-muted-foreground">{c.episTxt || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           ) : (
-            <p className="text-sm text-muted-foreground py-12 text-center">Sem entregas no mês.</p>
+            <p className="text-sm text-muted-foreground py-12 text-center">Sem movimentações no período selecionado.</p>
           )}
         </Card>
       </div>
@@ -257,17 +300,28 @@ function Dashboard() {
             {modalItems.length === 0 ? (
               <p className="text-sm text-muted-foreground py-8 text-center">Nenhum EPI nessa condição.</p>
             ) : (
-              <div className="space-y-2">
-                {modalItems.map((e) => (
-                  <div key={e.id} className="flex items-center justify-between rounded-md border p-3">
-                    <div className="min-w-0">
-                      <div className="font-medium truncate">{e.nome}</div>
-                      <div className="text-xs text-muted-foreground">{e.categoria ?? "—"}</div>
-                    </div>
-                    <StockBadge atual={e.estoque_atual} minimo={e.estoque_minimo} />
-                  </div>
-                ))}
-              </div>
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
+                  <tr>
+                    <th className="text-left px-3 py-2">EPI</th>
+                    <th className="text-left px-3 py-2">Código</th>
+                    <th className="text-left px-3 py-2">Categoria</th>
+                    <th className="text-right px-3 py-2">Estoque atual</th>
+                    <th className="text-right px-3 py-2">Estoque mínimo</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {modalItems.map((e) => (
+                    <tr key={e.id} className="border-t">
+                      <td className="px-3 py-2 font-medium">{e.nome}</td>
+                      <td className="px-3 py-2 font-mono text-xs">{e.codigo_produto || "—"}</td>
+                      <td className="px-3 py-2">{e.categoria ?? "—"}</td>
+                      <td className="px-3 py-2 text-right font-semibold">{e.estoque_atual}</td>
+                      <td className="px-3 py-2 text-right text-muted-foreground">{e.estoque_minimo}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             )}
           </div>
         </DialogContent>
