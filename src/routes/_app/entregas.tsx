@@ -237,7 +237,7 @@ function EntregasPage() {
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      {resp ? <span title={resp.email ?? ""}>{resp.nome}</span> : <span className="text-xs text-muted-foreground italic">—</span>}
+                      {resp ? <span>{resp.nome}</span> : <span className="text-xs text-muted-foreground italic">—</span>}
                     </td>
                     {role === "admin" && (
                       <td className="px-4 py-3 text-right whitespace-nowrap">
