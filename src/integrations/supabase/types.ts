@@ -331,6 +331,13 @@ export type Database = {
         Args: { p_inventario_id: string; p_usuario: string }
         Returns: undefined
       }
+      nomes_responsaveis: {
+        Args: { p_ids: string[] }
+        Returns: {
+          id: string
+          nome: string
+        }[]
+      }
       registrar_entrada_estoque: {
         Args: {
           p_epi_id: string
