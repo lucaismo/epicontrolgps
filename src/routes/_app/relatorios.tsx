@@ -104,7 +104,7 @@ function Relatorios() {
   const { data: perfil } = useQuery({
     queryKey: ["rel-perfil", user?.id],
     enabled: !!user?.id,
-    queryFn: async () => (await supabase.from("profiles").select("nome,email").eq("id", user!.id).maybeSingle()).data,
+    queryFn: async () => (await supabase.from("profiles").select("nome").eq("id", user!.id).maybeSingle()).data,
   });
   EMISSOR = perfil?.nome ?? user?.email ?? "—";
 
