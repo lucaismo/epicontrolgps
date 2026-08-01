@@ -56,7 +56,7 @@ function EntregasPage() {
       if (entregas.length === 0) return { rows: [], total: count ?? 0 };
       const userIds = Array.from(new Set(entregas.map((e: any) => e.usuario_responsavel).filter(Boolean)));
       const profsRes = userIds.length
-        ? await supabase.from("profiles").select("id,nome,email").in("id", userIds as string[])
+        ? await supabase.rpc("nomes_responsaveis", { p_ids: userIds as string[] })
         : { data: [] as any[] };
       const mapProf = new Map<string, any>();
       (profsRes.data ?? []).forEach((p: any) => mapProf.set(p.id, p));
