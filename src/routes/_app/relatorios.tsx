@@ -104,7 +104,7 @@ function Relatorios() {
   const { data: perfil } = useQuery({
     queryKey: ["rel-perfil", user?.id],
     enabled: !!user?.id,
-    queryFn: async () => (await supabase.from("profiles").select("nome,email").eq("id", user!.id).maybeSingle()).data,
+    queryFn: async () => (await supabase.from("profiles").select("nome").eq("id", user!.id).maybeSingle()).data,
   });
   EMISSOR = perfil?.nome ?? user?.email ?? "—";
 
@@ -115,7 +115,7 @@ function Relatorios() {
     const userIds = Array.from(new Set(rows.map((r: any) => r.usuario_responsavel).filter(Boolean)));
     let profMap = new Map<string, any>();
     if (userIds.length) {
-      const { data: profs } = await supabase.from("profiles").select("id,nome,email").in("id", userIds as string[]);
+      const { data: profs } = await supabase.rpc("nomes_responsaveis", { p_ids: userIds as string[] });
       (profs ?? []).forEach((p: any) => profMap.set(p.id, p));
     }
     return rows.map((r: any) => ({ ...r, responsavel: r.usuario_responsavel ? profMap.get(r.usuario_responsavel) ?? null : null }));
