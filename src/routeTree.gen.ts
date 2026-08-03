@@ -20,6 +20,7 @@ import { Route as AppInventarioRouteImport } from './routes/_app/inventario'
 import { Route as AppEpisRouteImport } from './routes/_app/epis'
 import { Route as AppEntregasRouteImport } from './routes/_app/entregas'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
+import { Route as AppComprasRouteImport } from './routes/_app/compras'
 import { Route as AppColaboradoresRouteImport } from './routes/_app/colaboradores'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
@@ -81,6 +82,11 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
+const AppComprasRoute = AppComprasRouteImport.update({
+  id: '/compras',
+  path: '/compras',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppColaboradoresRoute = AppColaboradoresRouteImport.update({
   id: '/colaboradores',
   path: '/colaboradores',
@@ -123,6 +129,7 @@ export interface FileRoutesByFullPath {
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/colaboradores': typeof AppColaboradoresRouteWithChildren
+  '/compras': typeof AppComprasRoute
   '/dashboard': typeof AppDashboardRoute
   '/entregas': typeof AppEntregasRoute
   '/epis': typeof AppEpisRoute
@@ -141,6 +148,7 @@ export interface FileRoutesByTo {
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/colaboradores': typeof AppColaboradoresRouteWithChildren
+  '/compras': typeof AppComprasRoute
   '/dashboard': typeof AppDashboardRoute
   '/entregas': typeof AppEntregasRoute
   '/epis': typeof AppEpisRoute
@@ -161,6 +169,7 @@ export interface FileRoutesById {
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/_app/colaboradores': typeof AppColaboradoresRouteWithChildren
+  '/_app/compras': typeof AppComprasRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/entregas': typeof AppEntregasRoute
   '/_app/epis': typeof AppEpisRoute
@@ -181,6 +190,7 @@ export interface FileRouteTypes {
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/colaboradores'
+    | '/compras'
     | '/dashboard'
     | '/entregas'
     | '/epis'
@@ -199,6 +209,7 @@ export interface FileRouteTypes {
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/colaboradores'
+    | '/compras'
     | '/dashboard'
     | '/entregas'
     | '/epis'
@@ -218,6 +229,7 @@ export interface FileRouteTypes {
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/_app/colaboradores'
+    | '/_app/compras'
     | '/_app/dashboard'
     | '/_app/entregas'
     | '/_app/epis'
@@ -320,6 +332,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/compras': {
+      id: '/_app/compras'
+      path: '/compras'
+      fullPath: '/compras'
+      preLoaderRoute: typeof AppComprasRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/colaboradores': {
       id: '/_app/colaboradores'
       path: '/colaboradores'
@@ -378,6 +397,7 @@ const AppColaboradoresRouteWithChildren =
 
 interface AppRouteChildren {
   AppColaboradoresRoute: typeof AppColaboradoresRouteWithChildren
+  AppComprasRoute: typeof AppComprasRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppEntregasRoute: typeof AppEntregasRoute
   AppEpisRoute: typeof AppEpisRoute
@@ -388,6 +408,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppColaboradoresRoute: AppColaboradoresRouteWithChildren,
+  AppComprasRoute: AppComprasRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppEntregasRoute: AppEntregasRoute,
   AppEpisRoute: AppEpisRoute,
