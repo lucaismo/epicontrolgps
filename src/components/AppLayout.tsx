@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  LayoutDashboard, Users, HardHat, PackageCheck, Undo2,
+  LayoutDashboard, Users, HardHat, PackageCheck, ShoppingCart,
   ClipboardList, FileBarChart, LogOut, Shield, Menu, ShieldCheck,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
@@ -13,10 +13,11 @@ const baseNav = [
   { to: "/colaboradores", label: "Colaboradores", icon: Users },
   { to: "/epis", label: "EPIs", icon: HardHat },
   { to: "/entregas", label: "Entregas", icon: PackageCheck },
-  { to: "/devolucoes", label: "Devoluções", icon: Undo2 },
+  { to: "/compras", label: "Compras", icon: ShoppingCart },
   { to: "/inventario", label: "Inventário", icon: ClipboardList },
   { to: "/relatorios", label: "Relatórios", icon: FileBarChart },
 ];
+
 const adminExtra = [{ to: "/usuarios", label: "Usuários", icon: ShieldCheck }];
 
 const bottomNav = baseNav.slice(0, 5);
