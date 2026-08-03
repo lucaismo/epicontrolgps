@@ -231,6 +231,8 @@ function EpiForm({ editing, onClose }: { editing: Epi | null; onClose: () => voi
       nome: form.nome!, categoria: form.categoria!, ca: form.ca || null, modelo: form.modelo || null,
       tamanho: form.tamanho || null, codigo_produto: form.codigo_produto || null,
       estoque_minimo: Number(form.estoque_minimo ?? 0), custo_unitario: Number(form.custo_unitario ?? 0),
+      dias_seguranca: Number(form.dias_seguranca ?? 20),
+
       localizacao: form.localizacao || null, status: (form.status as any) ?? "ativo",
     };
 
