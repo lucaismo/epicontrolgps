@@ -86,6 +86,33 @@ export type Database = {
         }
         Relationships: []
       }
+      compras_config: {
+        Row: {
+          created_at: string
+          dia_pedido: number
+          dia_recebimento: number
+          id: string
+          singleton: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dia_pedido?: number
+          dia_recebimento?: number
+          id?: string
+          singleton?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dia_pedido?: number
+          dia_recebimento?: number
+          id?: string
+          singleton?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       epis: {
         Row: {
           ca: string | null
@@ -93,6 +120,7 @@ export type Database = {
           codigo_produto: string | null
           created_at: string
           custo_unitario: number
+          dias_seguranca: number
           estoque_atual: number
           estoque_minimo: number
           id: string
@@ -109,6 +137,7 @@ export type Database = {
           codigo_produto?: string | null
           created_at?: string
           custo_unitario?: number
+          dias_seguranca?: number
           estoque_atual?: number
           estoque_minimo?: number
           id?: string
@@ -125,6 +154,7 @@ export type Database = {
           codigo_produto?: string | null
           created_at?: string
           custo_unitario?: number
+          dias_seguranca?: number
           estoque_atual?: number
           estoque_minimo?: number
           id?: string

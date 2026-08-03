@@ -20,9 +20,10 @@ export const Route = createFileRoute("/_app/epis")({ component: EpisPage });
 
 type Epi = {
   id: string; nome: string; categoria: string; codigo_produto: string | null; ca: string | null; modelo: string | null;
-  tamanho: string | null; estoque_atual: number; estoque_minimo: number;
+  tamanho: string | null; estoque_atual: number; estoque_minimo: number; dias_seguranca: number;
   custo_unitario: number; localizacao: string | null; status: "ativo" | "inativo";
 };
+
 
 function EpisPage() {
   const { role, user } = useAuth();
@@ -230,6 +231,8 @@ function EpiForm({ editing, onClose }: { editing: Epi | null; onClose: () => voi
       nome: form.nome!, categoria: form.categoria!, ca: form.ca || null, modelo: form.modelo || null,
       tamanho: form.tamanho || null, codigo_produto: form.codigo_produto || null,
       estoque_minimo: Number(form.estoque_minimo ?? 0), custo_unitario: Number(form.custo_unitario ?? 0),
+      dias_seguranca: Number(form.dias_seguranca ?? 20),
+
       localizacao: form.localizacao || null, status: (form.status as any) ?? "ativo",
     };
 
@@ -287,6 +290,8 @@ function EpiForm({ editing, onClose }: { editing: Epi | null; onClose: () => voi
         </div>
 
         <div className="space-y-1.5"><Label>Estoque mínimo</Label><Input type="number" min={0} placeholder="0" value={form.estoque_minimo ?? ""} onChange={(e) => setForm({ ...form, estoque_minimo: e.target.value === "" ? undefined : Number(e.target.value) })} /></div>
+        <div className="space-y-1.5"><Label>Dias de estoque de segurança</Label><Input type="number" min={0} placeholder="20" value={form.dias_seguranca ?? ""} onChange={(e) => setForm({ ...form, dias_seguranca: e.target.value === "" ? undefined : Number(e.target.value) })} /><p className="text-[11px] text-muted-foreground">Usado no Planejamento de Compras.</p></div>
+
         <div className="space-y-1.5"><Label>Custo unitário (R$)</Label><Input type="number" step="0.01" min={0} placeholder="0,00" value={form.custo_unitario ?? ""} onChange={(e) => setForm({ ...form, custo_unitario: e.target.value === "" ? undefined : Number(e.target.value) })} /></div>
         <div className="space-y-1.5"><Label>Localização física</Label><Input value={form.localizacao ?? ""} onChange={(e) => setForm({ ...form, localizacao: e.target.value })} placeholder="Ex: Prateleira A-3" /></div>
         <div className="space-y-1.5 md:col-span-2"><Label>Status</Label>

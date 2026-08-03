@@ -19,8 +19,8 @@ import { Route as AppRelatoriosRouteImport } from './routes/_app/relatorios'
 import { Route as AppInventarioRouteImport } from './routes/_app/inventario'
 import { Route as AppEpisRouteImport } from './routes/_app/epis'
 import { Route as AppEntregasRouteImport } from './routes/_app/entregas'
-import { Route as AppDevolucoesRouteImport } from './routes/_app/devolucoes'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
+import { Route as AppComprasRouteImport } from './routes/_app/compras'
 import { Route as AppColaboradoresRouteImport } from './routes/_app/colaboradores'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
@@ -77,14 +77,14 @@ const AppEntregasRoute = AppEntregasRouteImport.update({
   path: '/entregas',
   getParentRoute: () => AppRoute,
 } as any)
-const AppDevolucoesRoute = AppDevolucoesRouteImport.update({
-  id: '/devolucoes',
-  path: '/devolucoes',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppComprasRoute = AppComprasRouteImport.update({
+  id: '/compras',
+  path: '/compras',
   getParentRoute: () => AppRoute,
 } as any)
 const AppColaboradoresRoute = AppColaboradoresRouteImport.update({
@@ -129,8 +129,8 @@ export interface FileRoutesByFullPath {
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/colaboradores': typeof AppColaboradoresRouteWithChildren
+  '/compras': typeof AppComprasRoute
   '/dashboard': typeof AppDashboardRoute
-  '/devolucoes': typeof AppDevolucoesRoute
   '/entregas': typeof AppEntregasRoute
   '/epis': typeof AppEpisRoute
   '/inventario': typeof AppInventarioRoute
@@ -148,8 +148,8 @@ export interface FileRoutesByTo {
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/colaboradores': typeof AppColaboradoresRouteWithChildren
+  '/compras': typeof AppComprasRoute
   '/dashboard': typeof AppDashboardRoute
-  '/devolucoes': typeof AppDevolucoesRoute
   '/entregas': typeof AppEntregasRoute
   '/epis': typeof AppEpisRoute
   '/inventario': typeof AppInventarioRoute
@@ -169,8 +169,8 @@ export interface FileRoutesById {
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/_app/colaboradores': typeof AppColaboradoresRouteWithChildren
+  '/_app/compras': typeof AppComprasRoute
   '/_app/dashboard': typeof AppDashboardRoute
-  '/_app/devolucoes': typeof AppDevolucoesRoute
   '/_app/entregas': typeof AppEntregasRoute
   '/_app/epis': typeof AppEpisRoute
   '/_app/inventario': typeof AppInventarioRoute
@@ -190,8 +190,8 @@ export interface FileRouteTypes {
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/colaboradores'
+    | '/compras'
     | '/dashboard'
-    | '/devolucoes'
     | '/entregas'
     | '/epis'
     | '/inventario'
@@ -209,8 +209,8 @@ export interface FileRouteTypes {
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/colaboradores'
+    | '/compras'
     | '/dashboard'
-    | '/devolucoes'
     | '/entregas'
     | '/epis'
     | '/inventario'
@@ -229,8 +229,8 @@ export interface FileRouteTypes {
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/_app/colaboradores'
+    | '/_app/compras'
     | '/_app/dashboard'
-    | '/_app/devolucoes'
     | '/_app/entregas'
     | '/_app/epis'
     | '/_app/inventario'
@@ -325,18 +325,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppEntregasRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/devolucoes': {
-      id: '/_app/devolucoes'
-      path: '/devolucoes'
-      fullPath: '/devolucoes'
-      preLoaderRoute: typeof AppDevolucoesRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/dashboard': {
       id: '/_app/dashboard'
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/compras': {
+      id: '/_app/compras'
+      path: '/compras'
+      fullPath: '/compras'
+      preLoaderRoute: typeof AppComprasRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/colaboradores': {
@@ -397,8 +397,8 @@ const AppColaboradoresRouteWithChildren =
 
 interface AppRouteChildren {
   AppColaboradoresRoute: typeof AppColaboradoresRouteWithChildren
+  AppComprasRoute: typeof AppComprasRoute
   AppDashboardRoute: typeof AppDashboardRoute
-  AppDevolucoesRoute: typeof AppDevolucoesRoute
   AppEntregasRoute: typeof AppEntregasRoute
   AppEpisRoute: typeof AppEpisRoute
   AppInventarioRoute: typeof AppInventarioRoute
@@ -408,8 +408,8 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppColaboradoresRoute: AppColaboradoresRouteWithChildren,
+  AppComprasRoute: AppComprasRoute,
   AppDashboardRoute: AppDashboardRoute,
-  AppDevolucoesRoute: AppDevolucoesRoute,
   AppEntregasRoute: AppEntregasRoute,
   AppEpisRoute: AppEpisRoute,
   AppInventarioRoute: AppInventarioRoute,
