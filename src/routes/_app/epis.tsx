@@ -20,9 +20,10 @@ export const Route = createFileRoute("/_app/epis")({ component: EpisPage });
 
 type Epi = {
   id: string; nome: string; categoria: string; codigo_produto: string | null; ca: string | null; modelo: string | null;
-  tamanho: string | null; estoque_atual: number; estoque_minimo: number;
+  tamanho: string | null; estoque_atual: number; estoque_minimo: number; dias_seguranca: number;
   custo_unitario: number; localizacao: string | null; status: "ativo" | "inativo";
 };
+
 
 function EpisPage() {
   const { role, user } = useAuth();
