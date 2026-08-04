@@ -287,6 +287,56 @@ export type Database = {
           },
         ]
       }
+      pedidos_compra: {
+        Row: {
+          created_at: string
+          data_pedido: string
+          data_prevista: string | null
+          data_recebimento: string | null
+          epi_id: string
+          id: string
+          observacao: string | null
+          quantidade: number
+          status: string
+          updated_at: string
+          usuario_responsavel: string | null
+        }
+        Insert: {
+          created_at?: string
+          data_pedido?: string
+          data_prevista?: string | null
+          data_recebimento?: string | null
+          epi_id: string
+          id?: string
+          observacao?: string | null
+          quantidade: number
+          status?: string
+          updated_at?: string
+          usuario_responsavel?: string | null
+        }
+        Update: {
+          created_at?: string
+          data_pedido?: string
+          data_prevista?: string | null
+          data_recebimento?: string | null
+          epi_id?: string
+          id?: string
+          observacao?: string | null
+          quantidade?: number
+          status?: string
+          updated_at?: string
+          usuario_responsavel?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_compra_epi_id_fkey"
+            columns: ["epi_id"]
+            isOneToOne: false
+            referencedRelation: "epis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
