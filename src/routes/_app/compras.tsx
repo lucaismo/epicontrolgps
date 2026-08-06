@@ -80,6 +80,21 @@ function ComprasPage() {
   const [filterCat, setFilterCat] = useState("all");
   const [ajustes, setAjustes] = useState<Record<string, number>>({});
 
+  // período do planejamento (mês/ano corrente)
+  const hojeRef = useMemo(() => new Date(), []);
+  const ano = hojeRef.getFullYear();
+  const mes = hojeRef.getMonth() + 1;
+
+  const { data: salvos = [], isLoading: salvosLoading } = useQuery({
+    queryKey: ["compras-ajustes", ano, mes],
+    queryFn: async () =>
+      ((await supabase.from("compras_ajustes")
+        .select("epi_id,quantidade,sugestao_registrada")
+        .eq("ano", ano).eq("mes", mes)).data ?? []) as unknown as
+        { epi_id: string; quantidade: number; sugestao_registrada: number }[],
+  });
+  const salvosMap = useMemo(() => new Map(salvos.map((s) => [s.epi_id, s])), [salvos]);
+
   const { data: config } = useQuery({
     queryKey: ["compras-config"],
     queryFn: async () => (await supabase.from("compras_config").select("*").limit(1).maybeSingle()).data,
