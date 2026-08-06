@@ -433,12 +433,43 @@ function ComprasPage() {
                   </td>
                   <td className="px-3 py-3 text-right font-semibold">{l.sugerido}</td>
                   <td className="px-3 py-2 text-right">
-                    <Input
-                      type="number" min={0} className="h-8 w-24 text-right ml-auto"
-                      value={qtdDe(l)}
-                      onChange={(e) => setAjustes((p) => ({ ...p, [l.epi.id]: Math.max(0, Number(e.target.value) || 0) }))}
-                    />
+                    <div className="flex items-center justify-end gap-1">
+                      {(() => {
+                        const div = divergenciaDe(l);
+                        if (!div) return null;
+                        return (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="text-amber-600 dark:text-amber-500"><AlertTriangle className="h-4 w-4" /></span>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="text-xs">
+                                  A sugestão mudou de {div.registrada} para {div.atual} desde o seu ajuste.
+                                  <br />Sua quantidade foi mantida.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        );
+                      })()}
+                      {divergenciaDe(l) && (
+                        <Button size="icon" variant="ghost" className="h-7 w-7" title="Usar sugestão atual" onClick={() => restaurarSugestao(l)}>
+                          <RotateCcw className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                      <Input
+                        type="number" min={0} className="h-8 w-24 text-right"
+                        value={qtdDe(l)}
+                        onChange={(e) => {
+                          const v = Math.max(0, Number(e.target.value) || 0);
+                          setAjustes((p) => ({ ...p, [l.epi.id]: v }));
+                          persistir(l.epi.id, v, l.sugerido);
+                        }}
+                      />
+                    </div>
                   </td>
+
                   <td className="px-3 py-3 whitespace-nowrap">{prioridadeLabel(l.prioridade)}</td>
                   <td className="px-3 py-3 whitespace-nowrap">{coberturaLabel(l.prioridade)}</td>
                 </tr>
