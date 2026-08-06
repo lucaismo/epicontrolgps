@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,13 +8,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileSpreadsheet, FileText, PackagePlus, Save, Search, Check, Trash2 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { FileSpreadsheet, FileText, PackagePlus, Save, Search, Check, Trash2, AlertTriangle, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth, canManageRegistros } from "@/lib/auth";
 import { CATEGORIAS_EPI } from "@/lib/constants";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+
 
 export const Route = createFileRoute("/_app/compras")({
   component: ComprasPage,
@@ -77,6 +79,21 @@ function ComprasPage() {
   const [search, setSearch] = useState("");
   const [filterCat, setFilterCat] = useState("all");
   const [ajustes, setAjustes] = useState<Record<string, number>>({});
+
+  // período do planejamento (mês/ano corrente)
+  const hojeRef = useMemo(() => new Date(), []);
+  const ano = hojeRef.getFullYear();
+  const mes = hojeRef.getMonth() + 1;
+
+  const { data: salvos = [], isLoading: salvosLoading } = useQuery({
+    queryKey: ["compras-ajustes", ano, mes],
+    queryFn: async () =>
+      ((await supabase.from("compras_ajustes")
+        .select("epi_id,quantidade,sugestao_registrada")
+        .eq("ano", ano).eq("mes", mes)).data ?? []) as unknown as
+        { epi_id: string; quantidade: number; sugestao_registrada: number }[],
+  });
+  const salvosMap = useMemo(() => new Map(salvos.map((s) => [s.epi_id, s])), [salvos]);
 
   const { data: config } = useQuery({
     queryKey: ["compras-config"],
@@ -165,19 +182,49 @@ function ComprasPage() {
     return arr.sort((a, b) => ordem[a.prioridade] - ordem[b.prioridade] || a.cobertura - b.cobertura);
   }, [epis, consumo, emTransito, lead.dias]);
 
-  // a quantidade a solicitar inicia com a sugestão e permanece editável
+  // ajustes salvos: a quantidade informada manualmente persiste por período (mês/ano)
+  const [ajustesCarregados, setAjustesCarregados] = useState(false);
   useEffect(() => {
-    setAjustes((prev) => {
-      const next = { ...prev };
-      let changed = false;
-      for (const l of linhas) {
-        if (next[l.epi.id] === undefined) { next[l.epi.id] = l.sugerido; changed = true; }
-      }
-      return changed ? next : prev;
-    });
-  }, [linhas]);
+    if (ajustesCarregados || !linhas.length || salvosLoading) return;
+    const map: Record<string, number> = {};
+    for (const l of linhas) {
+      const s = salvosMap.get(l.epi.id);
+      map[l.epi.id] = s ? Number(s.quantidade) : l.sugerido;
+    }
+    setAjustes(map);
+    setAjustesCarregados(true);
+  }, [linhas, salvosMap, salvosLoading, ajustesCarregados]);
+
+  const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const persistir = useCallback((epiId: string, quantidade: number, sugestao: number) => {
+    clearTimeout(timers.current[epiId]);
+    timers.current[epiId] = setTimeout(async () => {
+      const { error } = await supabase.from("compras_ajustes").upsert(
+        { epi_id: epiId, ano, mes, quantidade, sugestao_registrada: sugestao, usuario_responsavel: user?.id ?? null } as any,
+        { onConflict: "epi_id,ano,mes" },
+      );
+      if (error) toast.error(`Falha ao salvar quantidade: ${error.message}`);
+      else qc.invalidateQueries({ queryKey: ["compras-ajustes", ano, mes] });
+    }, 700);
+  }, [ano, mes, qc, user?.id]);
+
+  useEffect(() => () => { Object.values(timers.current).forEach(clearTimeout); }, []);
 
   const qtdDe = (l: (typeof linhas)[number]) => ajustes[l.epi.id] ?? l.sugerido;
+
+  // divergência entre a sugestão vigente e a sugestão registrada no momento do ajuste
+  const divergenciaDe = (l: (typeof linhas)[number]) => {
+    const s = salvosMap.get(l.epi.id);
+    if (!s) return null;
+    const registrada = Number(s.sugestao_registrada);
+    return registrada === l.sugerido ? null : { registrada, atual: l.sugerido };
+  };
+
+  function restaurarSugestao(l: (typeof linhas)[number]) {
+    setAjustes((p) => ({ ...p, [l.epi.id]: l.sugerido }));
+    persistir(l.epi.id, l.sugerido, l.sugerido);
+  }
+
 
   const filtradas = linhas.filter((l) => {
     if (filterCat !== "all" && l.epi.categoria !== filterCat) return false;
@@ -243,6 +290,7 @@ function ComprasPage() {
       "Previsão de ruptura": l.ruptura ? fmtDate(l.ruptura) : "Sem consumo suficiente para previsão",
       "Quantidade sugerida": l.sugerido,
       "Quantidade ajustada": qtdDe(l),
+      "Divergência da sugestão": (() => { const d = divergenciaDe(l); return d ? `Sugestão mudou de ${d.registrada} para ${d.atual}` : ""; })(),
       Prioridade: prioridadeLabel(l.prioridade).replace(/[^\wÀ-ÿ]/g, "").trim(),
       "Responsável pela emissão": emissor,
       "Data e hora da geração": agora,
@@ -386,12 +434,43 @@ function ComprasPage() {
                   </td>
                   <td className="px-3 py-3 text-right font-semibold">{l.sugerido}</td>
                   <td className="px-3 py-2 text-right">
-                    <Input
-                      type="number" min={0} className="h-8 w-24 text-right ml-auto"
-                      value={qtdDe(l)}
-                      onChange={(e) => setAjustes((p) => ({ ...p, [l.epi.id]: Math.max(0, Number(e.target.value) || 0) }))}
-                    />
+                    <div className="flex items-center justify-end gap-1">
+                      {(() => {
+                        const div = divergenciaDe(l);
+                        if (!div) return null;
+                        return (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="text-amber-600 dark:text-amber-500"><AlertTriangle className="h-4 w-4" /></span>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="text-xs">
+                                  A sugestão mudou de {div.registrada} para {div.atual} desde o seu ajuste.
+                                  <br />Sua quantidade foi mantida.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        );
+                      })()}
+                      {divergenciaDe(l) && (
+                        <Button size="icon" variant="ghost" className="h-7 w-7" title="Usar sugestão atual" onClick={() => restaurarSugestao(l)}>
+                          <RotateCcw className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                      <Input
+                        type="number" min={0} className="h-8 w-24 text-right"
+                        value={qtdDe(l)}
+                        onChange={(e) => {
+                          const v = Math.max(0, Number(e.target.value) || 0);
+                          setAjustes((p) => ({ ...p, [l.epi.id]: v }));
+                          persistir(l.epi.id, v, l.sugerido);
+                        }}
+                      />
+                    </div>
                   </td>
+
                   <td className="px-3 py-3 whitespace-nowrap">{prioridadeLabel(l.prioridade)}</td>
                   <td className="px-3 py-3 whitespace-nowrap">{coberturaLabel(l.prioridade)}</td>
                 </tr>
