@@ -290,6 +290,7 @@ function ComprasPage() {
       "Previsão de ruptura": l.ruptura ? fmtDate(l.ruptura) : "Sem consumo suficiente para previsão",
       "Quantidade sugerida": l.sugerido,
       "Quantidade ajustada": qtdDe(l),
+      "Divergência da sugestão": (() => { const d = divergenciaDe(l); return d ? `Sugestão mudou de ${d.registrada} para ${d.atual}` : ""; })(),
       Prioridade: prioridadeLabel(l.prioridade).replace(/[^\wÀ-ÿ]/g, "").trim(),
       "Responsável pela emissão": emissor,
       "Data e hora da geração": agora,
