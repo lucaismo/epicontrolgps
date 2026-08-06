@@ -86,6 +86,50 @@ export type Database = {
         }
         Relationships: []
       }
+      compras_ajustes: {
+        Row: {
+          ano: number
+          created_at: string
+          epi_id: string
+          id: string
+          mes: number
+          quantidade: number
+          sugestao_registrada: number
+          updated_at: string
+          usuario_responsavel: string | null
+        }
+        Insert: {
+          ano: number
+          created_at?: string
+          epi_id: string
+          id?: string
+          mes: number
+          quantidade?: number
+          sugestao_registrada?: number
+          updated_at?: string
+          usuario_responsavel?: string | null
+        }
+        Update: {
+          ano?: number
+          created_at?: string
+          epi_id?: string
+          id?: string
+          mes?: number
+          quantidade?: number
+          sugestao_registrada?: number
+          updated_at?: string
+          usuario_responsavel?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compras_ajustes_epi_id_fkey"
+            columns: ["epi_id"]
+            isOneToOne: false
+            referencedRelation: "epis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       compras_config: {
         Row: {
           created_at: string
