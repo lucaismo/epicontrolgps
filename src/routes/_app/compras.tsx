@@ -167,19 +167,49 @@ function ComprasPage() {
     return arr.sort((a, b) => ordem[a.prioridade] - ordem[b.prioridade] || a.cobertura - b.cobertura);
   }, [epis, consumo, emTransito, lead.dias]);
 
-  // a quantidade a solicitar inicia com a sugestão e permanece editável
+  // ajustes salvos: a quantidade informada manualmente persiste por período (mês/ano)
+  const [ajustesCarregados, setAjustesCarregados] = useState(false);
   useEffect(() => {
-    setAjustes((prev) => {
-      const next = { ...prev };
-      let changed = false;
-      for (const l of linhas) {
-        if (next[l.epi.id] === undefined) { next[l.epi.id] = l.sugerido; changed = true; }
-      }
-      return changed ? next : prev;
-    });
-  }, [linhas]);
+    if (ajustesCarregados || !linhas.length || salvosLoading) return;
+    const map: Record<string, number> = {};
+    for (const l of linhas) {
+      const s = salvosMap.get(l.epi.id);
+      map[l.epi.id] = s ? Number(s.quantidade) : l.sugerido;
+    }
+    setAjustes(map);
+    setAjustesCarregados(true);
+  }, [linhas, salvosMap, salvosLoading, ajustesCarregados]);
+
+  const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const persistir = useCallback((epiId: string, quantidade: number, sugestao: number) => {
+    clearTimeout(timers.current[epiId]);
+    timers.current[epiId] = setTimeout(async () => {
+      const { error } = await supabase.from("compras_ajustes").upsert(
+        { epi_id: epiId, ano, mes, quantidade, sugestao_registrada: sugestao, usuario_responsavel: user?.id ?? null } as any,
+        { onConflict: "epi_id,ano,mes" },
+      );
+      if (error) toast.error(`Falha ao salvar quantidade: ${error.message}`);
+      else qc.invalidateQueries({ queryKey: ["compras-ajustes", ano, mes] });
+    }, 700);
+  }, [ano, mes, qc, user?.id]);
+
+  useEffect(() => () => { Object.values(timers.current).forEach(clearTimeout); }, []);
 
   const qtdDe = (l: (typeof linhas)[number]) => ajustes[l.epi.id] ?? l.sugerido;
+
+  // divergência entre a sugestão vigente e a sugestão registrada no momento do ajuste
+  const divergenciaDe = (l: (typeof linhas)[number]) => {
+    const s = salvosMap.get(l.epi.id);
+    if (!s) return null;
+    const registrada = Number(s.sugestao_registrada);
+    return registrada === l.sugerido ? null : { registrada, atual: l.sugerido };
+  };
+
+  function restaurarSugestao(l: (typeof linhas)[number]) {
+    setAjustes((p) => ({ ...p, [l.epi.id]: l.sugerido }));
+    persistir(l.epi.id, l.sugerido, l.sugerido);
+  }
+
 
   const filtradas = linhas.filter((l) => {
     if (filterCat !== "all" && l.epi.categoria !== filterCat) return false;
