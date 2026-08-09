@@ -92,7 +92,10 @@ function UsuariosPage() {
       toast.success("Usuário excluído");
       qc.invalidateQueries({ queryKey: ["admin-users"] });
     } catch (e: any) {
-      toast.error(e?.message ?? "Erro");
+      // Exibe a mensagem real retornada pela API/banco (auditoria).
+      const msg = e?.message ?? e?.error?.message ?? JSON.stringify(e);
+      console.error("[usuarios] falha ao excluir", e);
+      toast.error(msg, { duration: 10000 });
     }
   }
 

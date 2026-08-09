@@ -22,7 +22,8 @@ function friendlyError(e: unknown, fallback = "Não foi possível concluir a ope
   if (lower.includes("not allowed") || lower.includes("permission")) {
     return new Error("Operação não permitida para o seu perfil");
   }
-  return new Error(fallback);
+  // Auditoria: devolve a mensagem real da API/banco em vez de um texto genérico.
+  return new Error(raw ? `${fallback}: ${raw}` : fallback);
 }
 
 function sanitizeNome(s: string): string {
@@ -126,16 +127,14 @@ export const deleteUser = createServerFn({ method: "POST" })
     await assertCallerIsAdmin(context.userId);
     if (data.user_id === context.userId) throw new Error("Você não pode excluir a si mesmo");
     try {
-      // Trava: impede excluir o último admin
-      const { data: targetIsAdmin } = await supabaseAdmin
-        .from("user_roles").select("user_id").eq("user_id", data.user_id).eq("role", "admin").maybeSingle();
-      if (targetIsAdmin) {
-        const { count } = await supabaseAdmin
-          .from("user_roles").select("user_id", { count: "exact", head: true }).eq("role", "admin");
-        if ((count ?? 0) <= 1) {
-          throw new Error("Não é possível excluir o último administrador do sistema");
-        }
-      }
+      // Única trava é a autoexclusão (acima). Demais usuários podem ser excluídos.
+      // Ordem: roles -> profile -> conta Auth.
+      // Histórico (movimentacoes/inventarios/pedidos_compra/compras_ajustes) NÃO é
+      // apagado: as FKs para auth.users usam ON DELETE SET NULL, preservando os registros.
+      const { error: rolesErr } = await supabaseAdmin.from("user_roles").delete().eq("user_id", data.user_id);
+      if (rolesErr) throw rolesErr;
+      const { error: profErr } = await supabaseAdmin.from("profiles").delete().eq("id", data.user_id);
+      if (profErr) throw profErr;
       const { error } = await supabaseAdmin.auth.admin.deleteUser(data.user_id);
       if (error) throw error;
       return { ok: true };
