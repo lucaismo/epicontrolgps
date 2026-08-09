@@ -22,7 +22,8 @@ function friendlyError(e: unknown, fallback = "Não foi possível concluir a ope
   if (lower.includes("not allowed") || lower.includes("permission")) {
     return new Error("Operação não permitida para o seu perfil");
   }
-  return new Error(fallback);
+  // Auditoria: devolve a mensagem real da API/banco em vez de um texto genérico.
+  return new Error(raw ? `${fallback}: ${raw}` : fallback);
 }
 
 function sanitizeNome(s: string): string {
