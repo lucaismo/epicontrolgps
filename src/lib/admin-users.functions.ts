@@ -127,16 +127,7 @@ export const deleteUser = createServerFn({ method: "POST" })
     await assertCallerIsAdmin(context.userId);
     if (data.user_id === context.userId) throw new Error("Você não pode excluir a si mesmo");
     try {
-      // Trava: impede excluir o último admin
-      const { data: targetIsAdmin } = await supabaseAdmin
-        .from("user_roles").select("user_id").eq("user_id", data.user_id).eq("role", "admin").maybeSingle();
-      if (targetIsAdmin) {
-        const { count } = await supabaseAdmin
-          .from("user_roles").select("user_id", { count: "exact", head: true }).eq("role", "admin");
-        if ((count ?? 0) <= 1) {
-          throw new Error("Não é possível excluir o último administrador do sistema");
-        }
-      }
+      // Única trava é a autoexclusão (acima). Demais usuários podem ser excluídos.
       // Ordem: roles -> profile -> conta Auth.
       // Histórico (movimentacoes/inventarios/pedidos_compra/compras_ajustes) NÃO é
       // apagado: as FKs para auth.users usam ON DELETE SET NULL, preservando os registros.
