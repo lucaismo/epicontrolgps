@@ -137,6 +137,13 @@ export const deleteUser = createServerFn({ method: "POST" })
           throw new Error("Não é possível excluir o último administrador do sistema");
         }
       }
+      // Ordem: roles -> profile -> conta Auth.
+      // Histórico (movimentacoes/inventarios/pedidos_compra/compras_ajustes) NÃO é
+      // apagado: as FKs para auth.users usam ON DELETE SET NULL, preservando os registros.
+      const { error: rolesErr } = await supabaseAdmin.from("user_roles").delete().eq("user_id", data.user_id);
+      if (rolesErr) throw rolesErr;
+      const { error: profErr } = await supabaseAdmin.from("profiles").delete().eq("id", data.user_id);
+      if (profErr) throw profErr;
       const { error } = await supabaseAdmin.auth.admin.deleteUser(data.user_id);
       if (error) throw error;
       return { ok: true };
