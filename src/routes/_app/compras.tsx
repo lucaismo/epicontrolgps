@@ -16,6 +16,7 @@ import { CATEGORIAS_EPI } from "@/lib/constants";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { DIA_MS, agregarConsumo, calcLeadTime, calcularLinha, CONSUMO_ZERO } from "@/lib/estoque-calc";
 
 
 export const Route = createFileRoute("/_app/compras")({
