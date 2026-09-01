@@ -32,33 +32,9 @@ export const Route = createFileRoute("/_app/compras")({
   }),
 });
 
-const DIA_MS = 86400000;
+// Motor de cálculo compartilhado (mesmas fórmulas, agora reutilizadas por EPIs/Dashboard).
+export { calcLeadTime };
 
-function diaValidoDoMes(y: number, m: number, dia: number) {
-  return new Date(y, m, Math.min(dia, new Date(y, m + 1, 0).getDate()));
-}
-
-/**
- * Tempo total sem reposição = dias até o próximo dia de pedido +
- * dias entre esse pedido e o próximo dia de recebimento.
- * Dinâmico em relação à data de hoje; se o dia do pedido já passou, usa o próximo ciclo.
- */
-export function calcLeadTime(diaPedido: number, diaRecebimento: number, ref = new Date()) {
-  const hoje = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate());
-  let pedido = diaValidoDoMes(hoje.getFullYear(), hoje.getMonth(), diaPedido);
-  if (pedido.getTime() < hoje.getTime()) {
-    pedido = diaValidoDoMes(hoje.getFullYear(), hoje.getMonth() + 1, diaPedido);
-  }
-  let rm = pedido.getMonth();
-  let receb = diaValidoDoMes(pedido.getFullYear(), rm, diaRecebimento);
-  while (receb.getTime() <= pedido.getTime()) {
-    rm += 1;
-    receb = diaValidoDoMes(pedido.getFullYear(), rm, diaRecebimento);
-  }
-  const ateP = Math.round((pedido.getTime() - hoje.getTime()) / DIA_MS);
-  const entrega = Math.round((receb.getTime() - pedido.getTime()) / DIA_MS);
-  return { diasAtePedido: ateP, diasEntrega: entrega, dias: ateP + entrega, pedido, recebimento: receb };
-}
 
 type Epi = {
   id: string; nome: string; categoria: string; codigo_produto: string | null;
