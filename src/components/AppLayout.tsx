@@ -8,24 +8,50 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useState, type ReactNode } from "react";
 
-const baseNav = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/colaboradores", label: "Colaboradores", icon: Users },
-  { to: "/epis", label: "EPIs", icon: HardHat },
-  { to: "/entregas", label: "Entregas", icon: PackageCheck },
-  { to: "/compras", label: "Compras", icon: ShoppingCart },
-  { to: "/inventario", label: "Inventário", icon: ClipboardList },
-  { to: "/relatorios", label: "Relatórios", icon: FileBarChart },
+type NavItem = { to: string; label: string; icon: typeof LayoutDashboard; adminOnly?: boolean };
+type NavGroup = { title: string; items: NavItem[] };
+
+const navGroups: NavGroup[] = [
+  {
+    title: "Visão geral",
+    items: [{ to: "/dashboard", label: "Dashboard", icon: LayoutDashboard }],
+  },
+  {
+    title: "Operação",
+    items: [
+      { to: "/entregas", label: "Entregas", icon: PackageCheck },
+      { to: "/inventario", label: "Inventário", icon: ClipboardList },
+      { to: "/compras", label: "Compras", icon: ShoppingCart },
+    ],
+  },
+  {
+    title: "Cadastros",
+    items: [
+      { to: "/colaboradores", label: "Colaboradores", icon: Users },
+      { to: "/epis", label: "EPIs", icon: HardHat },
+    ],
+  },
+  {
+    title: "Gestão",
+    items: [{ to: "/relatorios", label: "Relatórios", icon: FileBarChart }],
+  },
+  {
+    title: "Administração",
+    items: [{ to: "/usuarios", label: "Usuários", icon: ShieldCheck, adminOnly: true }],
+  },
 ];
 
-const adminExtra = [{ to: "/usuarios", label: "Usuários", icon: ShieldCheck }];
-
-const bottomNav = baseNav.slice(0, 5);
+const bottomNav: NavItem[] = [
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/entregas", label: "Entregas", icon: PackageCheck },
+  { to: "/epis", label: "EPIs", icon: HardHat },
+  { to: "/compras", label: "Compras", icon: ShoppingCart },
+  { to: "/colaboradores", label: "Equipe", icon: Users },
+];
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const { user, role, signOut } = useAuth();
-  const nav = role === "admin" ? [...baseNav, ...adminExtra] : baseNav;
 
   return (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
@@ -38,24 +64,37 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           <div className="text-[11px] uppercase text-sidebar-foreground/60">Gestão de EPIs</div>
         </div>
       </div>
-      <nav className="flex-1 px-3 py-4 space-y-1">
-        {nav.map((item) => {
-          const Icon = item.icon;
-          const active = path.startsWith(item.to);
+      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
+        {navGroups.map((group) => {
+          const items = group.items.filter((i) => !i.adminOnly || role === "admin");
+          if (!items.length) return null;
           return (
-            <Link
-              key={item.to}
-              to={item.to}
-              onClick={onNavigate}
-              className={`flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors ${
-                active
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-              }`}
-            >
-              <Icon className="h-4 w-4" />
-              {item.label}
-            </Link>
+            <div key={group.title}>
+              <div className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/45">
+                {group.title}
+              </div>
+              <div className="space-y-0.5">
+                {items.map((item) => {
+                  const Icon = item.icon;
+                  const active = path.startsWith(item.to);
+                  return (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      onClick={onNavigate}
+                      className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                        active
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                      }`}
+                    >
+                      <Icon className="h-4 w-4" />
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
           );
         })}
       </nav>
