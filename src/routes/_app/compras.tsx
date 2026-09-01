@@ -120,39 +120,13 @@ function ComprasPage() {
   });
   const emissor = perfil?.nome ?? user?.email ?? "—";
 
-  const consumo = useMemo(() => {
-    const now = Date.now();
-    const map = new Map<string, { d30: number; d90: number; d365: number }>();
-    for (const m of movs as any[]) {
-      const t = new Date(m.data_movimentacao).getTime();
-      const age = (now - t) / DIA_MS;
-      const cur = map.get(m.epi_id) ?? { d30: 0, d90: 0, d365: 0 };
-      const q = Number(m.quantidade ?? 0);
-      if (age <= 30) cur.d30 += q;
-      if (age <= 90) cur.d90 += q;
-      cur.d365 += q;
-      map.set(m.epi_id, cur);
-    }
-    return map;
-  }, [movs]);
+  const consumo = useMemo(() => agregarConsumo(movs as any[]), [movs]);
 
   const linhas = useMemo(() => {
     const arr = epis.map((e) => {
-      const c = consumo.get(e.id) ?? { d30: 0, d90: 0, d365: 0 };
-      const diario = c.d90 > 0 ? c.d90 / 90 : c.d30 > 0 ? c.d30 / 30 : c.d365 / 365;
-      const mensal = diario * 30;
-      const transito = emTransito.get(e.id) ?? 0;
-      const disponivel = e.estoque_atual + transito;
-      const cobertura = diario > 0 ? disponivel / diario : Infinity;
-      const diasSeg = Number(e.dias_seguranca ?? 0);
-      const estoqueSeg = diario * diasSeg;
-      const sugerido = Math.max(0, Math.ceil(diario * lead.dias + estoqueSeg - disponivel));
-      let prioridade: "alta" | "media" | "baixa" = "baixa";
-      if (cobertura < lead.dias) prioridade = "alta";
-      else if (cobertura < lead.dias + diasSeg || e.estoque_atual < e.estoque_minimo) prioridade = "media";
-      const ruptura = diario > 0 && Number.isFinite(cobertura)
-        ? new Date(Date.now() + cobertura * DIA_MS) : null;
-      return { epi: e, c, diario, mensal, transito, disponivel, cobertura, estoqueSeg, sugerido, prioridade, ruptura };
+      const m = calcularLinha(e, consumo.get(e.id) ?? CONSUMO_ZERO, emTransito.get(e.id) ?? 0, lead.dias);
+      return { epi: e, ...m };
+
     });
     const ordem = { alta: 0, media: 1, baixa: 2 } as const;
     return arr.sort((a, b) => ordem[a.prioridade] - ordem[b.prioridade] || a.cobertura - b.cobertura);
