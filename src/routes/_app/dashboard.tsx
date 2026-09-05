@@ -130,6 +130,40 @@ function Dashboard() {
     return { zerados, criticos, abaixoMin, valorTotal, estoqueTotal, ruptura };
   }, [epis, metricaDe, lead.dias]);
 
+  // Pedidos de compra em aberto / atrasados (mesma fonte do módulo Compras)
+  const pedidosInfo = useMemo(() => {
+    const nomes = new Map(epis.map((e) => [e.id, e.nome]));
+    const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+    const abertos = (pedidos as any[]).filter((p) => p.status === "em_aberto");
+    const atrasados = abertos
+      .filter((p) => p.data_prevista && new Date(p.data_prevista).getTime() < hoje.getTime())
+      .sort((a, b) => new Date(a.data_prevista).getTime() - new Date(b.data_prevista).getTime())
+      .map((p) => ({
+        id: p.id as string, nome: nomes.get(p.epi_id) ?? "EPI", qtd: Number(p.quantidade ?? 0),
+        diasAtraso: Math.floor((hoje.getTime() - new Date(p.data_prevista).getTime()) / DIA_MS),
+      }));
+    const sortedAbertos = [...abertos]
+      .sort((a, b) => new Date(a.data_prevista ?? "2100-01-01").getTime() - new Date(b.data_prevista ?? "2100-01-01").getTime())
+      .map((p) => ({
+        id: p.id as string, nome: nomes.get(p.epi_id) ?? "EPI", qtd: Number(p.quantidade ?? 0),
+        prevista: p.data_prevista ? fmtData(new Date(p.data_prevista)) : "sem previsão",
+      }));
+    return { abertos: sortedAbertos, atrasados };
+  }, [pedidos, epis]);
+
+  // Evolução do estoque: reconstrói o saldo ao fim de cada mês a partir do estoque atual
+  const evolucao = useMemo(() => {
+    const buckets = evolucaoRaw?.buckets ?? [];
+    let saldo = estoque.estoqueTotal - (evolucaoRaw?.liquidoPosterior ?? 0);
+    const out: (typeof buckets[number] & { saldo: number })[] = [];
+    for (let i = buckets.length - 1; i >= 0; i--) {
+      out[i] = { ...buckets[i], saldo: Math.max(0, saldo) };
+      saldo -= buckets[i].entradas - buckets[i].saidas;
+    }
+    return out;
+  }, [evolucaoRaw, estoque.estoqueTotal]);
+
+
   const periodoStats = useMemo(() => {
     const entregas = movs.filter((m) => m.tipo === "entrega");
     const totalEntregas = entregas.reduce((s, m) => s + m.quantidade, 0);
