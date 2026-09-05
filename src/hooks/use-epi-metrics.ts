@@ -60,5 +60,5 @@ export function useEpiMetrics() {
     [consumo, emTransito, lead.dias],
   );
 
-  return { lead, consumo, emTransito, metricaDe, config };
+  return { lead, consumo, emTransito, metricaDe, config, pedidos };
 }

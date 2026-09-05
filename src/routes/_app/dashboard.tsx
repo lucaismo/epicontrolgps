@@ -40,7 +40,7 @@ function Dashboard() {
   const now = new Date();
   const [mes, setMes] = useState<number>(now.getMonth());
   const [ano, setAno] = useState<number>(now.getFullYear());
-  const { metricaDe, lead } = useEpiMetrics();
+  const { metricaDe, lead, pedidos } = useEpiMetrics();
 
   const periodo = useMemo(() => ({
     inicio: new Date(ano, mes, 1, 0, 0, 0).toISOString(),
@@ -78,8 +78,9 @@ function Dashboard() {
     },
   });
 
-  // Evolução: últimos 6 meses até o período selecionado
-  const { data: evolucao = [] } = useQuery({
+  // Evolução: últimos 6 meses até o período selecionado (+ movimentações posteriores
+  // até hoje, para reconstruir o saldo histórico a partir do estoque atual)
+  const { data: evolucaoRaw } = useQuery({
     queryKey: ["dashboard-evolucao", ano, mes],
     queryFn: async () => {
       const inicio6 = new Date(ano, mes - 5, 1, 0, 0, 0);
@@ -87,7 +88,6 @@ function Dashboard() {
         .from("movimentacoes")
         .select("tipo,quantidade,data_movimentacao")
         .gte("data_movimentacao", inicio6.toISOString())
-        .lt("data_movimentacao", periodo.fim)
         .limit(50000);
       const buckets: { key: string; label: string; entradas: number; saidas: number }[] = [];
       for (let i = 5; i >= 0; i--) {
@@ -95,14 +95,22 @@ function Dashboard() {
         buckets.push({ key: `${d.getFullYear()}-${d.getMonth()}`, label: `${MESES_CURTO[d.getMonth()]}/${String(d.getFullYear()).slice(2)}`, entradas: 0, saidas: 0 });
       }
       const idx = new Map(buckets.map((b, i) => [b.key, i]));
+      let liquidoPosterior = 0; // entradas − saídas ocorridas após o fim do período
+      const fimMs = new Date(periodo.fim).getTime();
       for (const m of (data ?? []) as any[]) {
         const d = new Date(m.data_movimentacao);
+        const q = Number(m.quantidade ?? 0);
+        if (d.getTime() >= fimMs) {
+          if (ENTRADA_TIPOS.has(m.tipo)) liquidoPosterior += q;
+          else if (SAIDA_TIPOS.has(m.tipo)) liquidoPosterior -= q;
+          continue;
+        }
         const i = idx.get(`${d.getFullYear()}-${d.getMonth()}`);
         if (i === undefined) continue;
-        if (ENTRADA_TIPOS.has(m.tipo)) buckets[i].entradas += m.quantidade;
-        else if (SAIDA_TIPOS.has(m.tipo)) buckets[i].saidas += m.quantidade;
+        if (ENTRADA_TIPOS.has(m.tipo)) buckets[i].entradas += q;
+        else if (SAIDA_TIPOS.has(m.tipo)) buckets[i].saidas += q;
       }
-      return buckets;
+      return { buckets, liquidoPosterior };
     },
   });
 
