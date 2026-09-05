@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
-  LineChart, Line, ComposedChart, Area,
+  Line, ComposedChart, Area,
 } from "recharts";
 import { useEpiMetrics } from "@/hooks/use-epi-metrics";
 import { DIA_MS, nivelEstoque } from "@/lib/estoque-calc";
