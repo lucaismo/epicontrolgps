@@ -6,11 +6,11 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Package, AlertTriangle, DollarSign, Users, ArrowDownRight, Boxes,
-  ArrowLeftRight, ChevronRight, CalendarClock, ClipboardList, XCircle, CheckCircle2,
+  ArrowLeftRight, ChevronRight, CalendarClock, ClipboardList, XCircle, CheckCircle2, ShoppingCart,
 } from "lucide-react";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
-  LineChart, Line,
+  LineChart, Line, ComposedChart, Area,
 } from "recharts";
 import { useEpiMetrics } from "@/hooks/use-epi-metrics";
 import { DIA_MS, nivelEstoque } from "@/lib/estoque-calc";
@@ -32,6 +32,7 @@ const ENTRADA_TIPOS = new Set(["entrada_estoque", "ajuste_entrada", "devolucao_n
 const SAIDA_TIPOS = new Set(["entrega", "ajuste_saida"]);
 const COR_ENTRADA = "oklch(0.72 0.17 155)";
 const COR_SAIDA = "oklch(0.623 0.188 259)";
+const COR_SALDO = "oklch(0.32 0.026 264)";
 
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const fmtData = (d: Date) => d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
@@ -204,7 +205,8 @@ function Dashboard() {
   const anos = useMemo(() => { const y = now.getFullYear(); return [y - 2, y - 1, y, y + 1]; }, [now]);
   const periodoLabel = `${MESES[mes]}/${ano}`;
   const inventariosPendentes = base?.inventariosPendentes ?? [];
-  const temAlertas = estoque.zerados.length + estoque.criticos.length + estoque.ruptura.length + estoque.abaixoMin.length + inventariosPendentes.length > 0;
+  const temAlertas = estoque.zerados.length + estoque.criticos.length + estoque.ruptura.length + estoque.abaixoMin.length
+    + inventariosPendentes.length + pedidosInfo.abertos.length > 0;
 
   return (
     <div className="p-4 md:p-8 space-y-8">
@@ -300,6 +302,24 @@ function Dashboard() {
                 itens={estoque.abaixoMin.slice(0, 5).map((e) => ({ id: e.id, nome: e.nome, sub: e.categoria ?? "", right: `${e.estoque_atual} / ${e.estoque_minimo}` }))}
               />
             )}
+            {pedidosInfo.atrasados.length > 0 && (
+              <AlertaCard
+                titulo="Pedidos de compra atrasados" tone="danger" count={pedidosInfo.atrasados.length}
+                descricao="Previsão de recebimento já passou."
+                icon={CalendarClock}
+                to="/compras"
+                itens={pedidosInfo.atrasados.slice(0, 5).map((p) => ({ id: p.id, nome: p.nome, sub: `${p.qtd} un`, right: `${p.diasAtraso} d de atraso` }))}
+              />
+            )}
+            {pedidosInfo.abertos.length > 0 && (
+              <AlertaCard
+                titulo="Pedidos em aberto" tone="info" count={pedidosInfo.abertos.length}
+                descricao="Aguardando recebimento (em trânsito)."
+                icon={ShoppingCart}
+                to="/compras"
+                itens={pedidosInfo.abertos.slice(0, 5).map((p) => ({ id: p.id, nome: p.nome, sub: `${p.qtd} un`, right: `prev. ${p.prevista}` }))}
+              />
+            )}
             {inventariosPendentes.length > 0 && (
               <AlertaCard
                 titulo="Inventários em andamento" tone="info" count={inventariosPendentes.length}
@@ -337,20 +357,22 @@ function Dashboard() {
 
         <Card className="p-5">
           <div className="mb-4">
-            <h3 className="font-semibold">Evolução das movimentações</h3>
-            <p className="text-xs text-muted-foreground">Entradas × saídas nos últimos 6 meses</p>
+            <h3 className="font-semibold">Evolução do estoque</h3>
+            <p className="text-xs text-muted-foreground">Saldo total ao fim de cada mês (estimado a partir das movimentações) e entradas × saídas — últimos 6 meses</p>
           </div>
-          {evolucao.some((b) => b.entradas || b.saidas) ? (
+          {evolucao.some((b) => b.entradas || b.saidas || b.saldo) ? (
             <ResponsiveContainer width="100%" height={260}>
-              <LineChart data={evolucao} margin={{ left: 0, right: 16 }}>
+              <ComposedChart data={evolucao} margin={{ left: 0, right: 16 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                 <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                <YAxis yAxisId="saldo" tick={{ fontSize: 11 }} allowDecimals={false} />
+                <YAxis yAxisId="mov" orientation="right" tick={{ fontSize: 11 }} allowDecimals={false} />
                 <Tooltip />
                 <Legend />
-                <Line type="monotone" dataKey="entradas" name="Entradas" stroke={COR_ENTRADA} strokeWidth={2} dot={{ r: 3 }} />
-                <Line type="monotone" dataKey="saidas" name="Saídas" stroke={COR_SAIDA} strokeWidth={2} dot={{ r: 3 }} />
-              </LineChart>
+                <Area yAxisId="saldo" type="monotone" dataKey="saldo" name="Estoque (saldo)" stroke={COR_SALDO} fill={COR_SALDO} fillOpacity={0.12} strokeWidth={2} />
+                <Line yAxisId="mov" type="monotone" dataKey="entradas" name="Entradas" stroke={COR_ENTRADA} strokeWidth={2} dot={{ r: 3 }} />
+                <Line yAxisId="mov" type="monotone" dataKey="saidas" name="Saídas" stroke={COR_SAIDA} strokeWidth={2} dot={{ r: 3 }} />
+              </ComposedChart>
             </ResponsiveContainer>
           ) : <Vazio />}
         </Card>
@@ -513,7 +535,6 @@ function AlertaCard({ titulo, descricao, count, tone, itens, to, search, icon: I
         </ul>
         <div className="mt-3 pt-2 border-t text-xs text-primary font-medium flex items-center gap-1">
           {count > itens.length ? `Ver todos (${count})` : "Abrir"} <ChevronRight className="h-3 w-3" />
-          <CalendarClock className="hidden" />
         </div>
       </Card>
     </Link>
