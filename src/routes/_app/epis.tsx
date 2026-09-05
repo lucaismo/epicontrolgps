@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { CATEGORIAS_EPI } from "@/lib/constants";
 import { useAuth, canManageRegistros, canMovimentar } from "@/lib/auth";
 import { toast } from "sonner";
-import { StockBadge } from "./dashboard";
+import { StockBadge } from "@/components/StockBadge";
 
 export const Route = createFileRoute("/_app/epis")({ component: EpisPage });
 
