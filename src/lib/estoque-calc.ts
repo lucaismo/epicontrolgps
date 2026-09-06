@@ -69,6 +69,21 @@ export type EpiCalc = {
 
 export type Prioridade = "alta" | "media" | "baixa";
 
+/** Dias de estoque de segurança usados SOMENTE no cálculo do estoque mínimo automático. */
+export const DIAS_SEGURANCA_MINIMO = 7;
+
+/**
+ * Estoque mínimo calculado dinamicamente (não persistido):
+ *   ceil(consumo_diario_medio × (lead_time_total + dias_estoque_seguranca))
+ * Retorna null quando não há consumo registrado (não inventa mínimo artificial).
+ */
+export function estoqueMinimoCalculado(diario: number, leadDias: number, diasSeg = DIAS_SEGURANCA_MINIMO): number | null {
+  if (!(diario > 0)) return null;
+  return Math.ceil(diario * (leadDias + diasSeg));
+}
+
+export const SEM_CONSUMO_LABEL = "Sem consumo registrado";
+
 /** Linha de planejamento — mesma fórmula usada no módulo Compras. */
 export function calcularLinha(epi: EpiCalc, c: ConsumoJanelas, transito: number, leadDias: number) {
   const diario = consumoDiario(c);
@@ -83,7 +98,14 @@ export function calcularLinha(epi: EpiCalc, c: ConsumoJanelas, transito: number,
   else if (cobertura < leadDias + diasSeg || epi.estoque_atual < epi.estoque_minimo) prioridade = "media";
   const ruptura =
     diario > 0 && Number.isFinite(cobertura) ? new Date(Date.now() + cobertura * DIA_MS) : null;
-  return { c, diario, mensal, transito, disponivel, cobertura, diasSeg, estoqueSeg, sugerido, prioridade, ruptura };
+  // Estoque mínimo automático (derivado do consumo). Quando não há consumo, usa o cadastrado como referência.
+  const minimoCalc = estoqueMinimoCalculado(diario, leadDias);
+  const minimoEfetivo = minimoCalc ?? epi.estoque_minimo;
+  const nivel = nivelEstoque(epi.estoque_atual, minimoEfetivo);
+  return {
+    c, diario, mensal, transito, disponivel, cobertura, diasSeg, estoqueSeg, sugerido, prioridade, ruptura,
+    minimoCalc, minimoEfetivo, nivel,
+  };
 }
 
 export type NivelEstoque = "zerado" | "critico" | "atencao" | "normal";

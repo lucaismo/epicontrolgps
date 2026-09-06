@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,15 +8,27 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Search, Pencil, Trash2, PackagePlus } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Plus, Search, Pencil, Trash2, PackagePlus, Boxes, XCircle, AlertTriangle, CalendarClock } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 
 import { CATEGORIAS_EPI } from "@/lib/constants";
 import { useAuth, canManageRegistros, canMovimentar } from "@/lib/auth";
 import { toast } from "sonner";
 import { StockBadge } from "@/components/StockBadge";
+import { useEpiMetrics } from "@/hooks/use-epi-metrics";
+import { DIAS_SEGURANCA_MINIMO, type NivelEstoque } from "@/lib/estoque-calc";
+import { ConsumptionCell, CoverageIndicator, StatCard, StockLevel } from "@/components/metrics";
 
-export const Route = createFileRoute("/_app/epis")({ component: EpisPage });
+type NivelFiltro = "zerado" | "critico" | "abaixo" | "atencao";
+
+export const Route = createFileRoute("/_app/epis")({
+  component: EpisPage,
+  validateSearch: (s: Record<string, unknown>): { nivel?: NivelFiltro } => {
+    const n = s.nivel;
+    return n === "zerado" || n === "critico" || n === "abaixo" || n === "atencao" ? { nivel: n } : {};
+  },
+});
 
 type Epi = {
   id: string; nome: string; categoria: string; codigo_produto: string | null; ca: string | null; modelo: string | null;
@@ -24,18 +36,24 @@ type Epi = {
   custo_unitario: number; localizacao: string | null; status: "ativo" | "inativo";
 };
 
+const NIVEL_FILTRO_LABEL: Record<NivelFiltro | "all", string> = {
+  all: "Todos os níveis", zerado: "Zerados", critico: "Críticos", atencao: "Em atenção", abaixo: "Abaixo do mínimo",
+};
 
 function EpisPage() {
   const { role, user } = useAuth();
   const canEdit = canManageRegistros(role);
   const canEditStock = canMovimentar(role);
   const qc = useQueryClient();
+  const { nivel: nivelUrl } = Route.useSearch();
+  const navigate = Route.useNavigate();
   const [search, setSearch] = useState("");
   const [filterCat, setFilterCat] = useState("all");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Epi | null>(null);
   const [entradaFor, setEntradaFor] = useState<Epi | null>(null);
-
+  const { metricaDe, lead } = useEpiMetrics();
+  const filterNivel: NivelFiltro | "all" = nivelUrl ?? "all";
 
   const { data: list = [] } = useQuery({
     queryKey: ["epis"],
@@ -46,11 +64,24 @@ function EpisPage() {
     },
   });
 
-  const filtered = list.filter((e) => {
+  // Métricas do motor compartilhado (mesmos números de Compras/Dashboard)
+  const linhas = useMemo(() => list.map((e) => ({ epi: e, m: metricaDe(e) })), [list, metricaDe]);
+
+  const resumo = useMemo(() => {
+    const ativos = linhas.filter((l) => l.epi.status === "ativo");
+    const conta = (n: NivelEstoque) => ativos.filter((l) => l.m.nivel === n).length;
+    const ruptura = ativos.filter((l) => l.m.ruptura && l.m.cobertura < lead.dias && l.epi.estoque_atual > 0).length;
+    return { total: ativos.length, zerados: conta("zerado"), criticos: conta("critico"), atencao: conta("atencao"), ruptura };
+  }, [linhas, lead.dias]);
+
+  const filtered = linhas.filter(({ epi: e, m }) => {
     if (filterCat !== "all" && e.categoria !== filterCat) return false;
+    if (filterNivel === "abaixo" ? e.estoque_atual >= m.minimoEfetivo : filterNivel !== "all" && m.nivel !== filterNivel) return false;
     if (search && !`${e.nome} ${e.ca} ${e.modelo} ${e.codigo_produto ?? ""}`.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
+
+  const setNivel = (v: string) => navigate({ search: v === "all" ? {} : { nivel: v as NivelFiltro }, replace: true });
 
   async function handleDelete(id: string, nome: string) {
     if (!confirm(`Excluir o EPI "${nome}"? Se houver movimentações, será apenas inativado para preservar o histórico.`)) return;
@@ -62,19 +93,54 @@ function EpisPage() {
     }
   }
 
+  const acoes = (e: Epi, label = false) => (canEdit || canEditStock) && (
+    <TooltipProvider delayDuration={200}>
+      <div className="inline-flex gap-1">
+        {canEditStock && (
+          <Tooltip><TooltipTrigger asChild>
+            <Button variant="outline" size={label ? "sm" : "icon"} onClick={() => setEntradaFor(e)}>
+              <PackagePlus className="h-4 w-4" />{label && <span className="ml-1">Entrada</span>}
+            </Button>
+          </TooltipTrigger><TooltipContent>Entrada de estoque</TooltipContent></Tooltip>
+        )}
+        <Tooltip><TooltipTrigger asChild>
+          <Button variant="ghost" size={label ? "sm" : "icon"} onClick={() => { setEditing(e); setOpen(true); }}>
+            <Pencil className="h-4 w-4" />{label && <span className="ml-1">Editar</span>}
+          </Button>
+        </TooltipTrigger><TooltipContent>Editar cadastro</TooltipContent></Tooltip>
+        {role === "admin" && (
+          <Tooltip><TooltipTrigger asChild>
+            <Button variant="ghost" size={label ? "sm" : "icon"} onClick={() => handleDelete(e.id, e.nome)}>
+              <Trash2 className="h-4 w-4 text-destructive" />
+            </Button>
+          </TooltipTrigger><TooltipContent>Excluir / inativar</TooltipContent></Tooltip>
+        )}
+      </div>
+    </TooltipProvider>
+  );
+
   return (
-    <div className="p-4 md:p-8 space-y-5">
-      <div className="flex justify-between items-center gap-3 flex-wrap">
+    <div className="p-4 md:p-8 space-y-6">
+      <div className="flex justify-between items-end gap-3 flex-wrap">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">EPIs</h1>
-          <p className="text-sm text-muted-foreground">{filtered.length} de {list.length} itens</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            {filtered.length} de {list.length} itens · mínimo recomendado = consumo diário × ({lead.dias} dias de lead time + {DIAS_SEGURANCA_MINIMO} de segurança)
+          </p>
         </div>
         {(canEdit || canEditStock) && (
           <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
-            <DialogTrigger asChild><Button onClick={() => setEditing(null)}><Plus className="h-4 w-4 mr-2" /> Novo EPI</Button></DialogTrigger>
+            <DialogTrigger asChild><Button size="lg" onClick={() => setEditing(null)}><Plus className="h-4 w-4 mr-2" /> Novo EPI</Button></DialogTrigger>
             <EpiForm key={editing?.id ?? "new"} editing={editing} onClose={() => { setOpen(false); setEditing(null); qc.invalidateQueries({ queryKey: ["epis"] }); }} />
           </Dialog>
         )}
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <StatCard icon={Boxes} label="EPIs ativos" value={resumo.total} />
+        <StatCard icon={XCircle} label="Zerados" value={resumo.zerados} tone={resumo.zerados ? "danger" : "neutral"} hint="sem estoque disponível" />
+        <StatCard icon={AlertTriangle} label="Abaixo do mínimo" value={resumo.criticos} tone={resumo.criticos ? "danger" : "neutral"} hint="com estoque, abaixo do recomendado" />
+        <StatCard icon={CalendarClock} label="Ruptura no ciclo" value={resumo.ruptura} tone={resumo.ruptura ? "warning" : "neutral"} hint={`acabam em menos de ${lead.dias} dias`} />
       </div>
 
       <Card className="p-3 flex flex-col md:flex-row gap-2">
@@ -83,75 +149,80 @@ function EpisPage() {
           <Input placeholder="Buscar por nome, código, CA ou modelo…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
         <Select value={filterCat} onValueChange={setFilterCat}>
-          <SelectTrigger className="md:w-64"><SelectValue placeholder="Categoria" /></SelectTrigger>
+          <SelectTrigger className="md:w-56"><SelectValue placeholder="Categoria" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas categorias</SelectItem>
             {CATEGORIAS_EPI.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Select value={filterNivel} onValueChange={setNivel}>
+          <SelectTrigger className="md:w-48"><SelectValue placeholder="Nível" /></SelectTrigger>
+          <SelectContent>
+            {(Object.keys(NIVEL_FILTRO_LABEL) as (NivelFiltro | "all")[]).map((k) => <SelectItem key={k} value={k}>{NIVEL_FILTRO_LABEL[k]}</SelectItem>)}
+          </SelectContent>
+        </Select>
       </Card>
 
+      {/* Mobile */}
       <div className="grid md:hidden gap-3">
-        {filtered.map((e) => (
-          <Card key={e.id} className="p-4">
+        {filtered.map(({ epi: e, m }) => (
+          <Card key={e.id} className="p-4 space-y-3">
             <div className="flex justify-between items-start gap-3">
               <div className="min-w-0">
-                <div className="font-semibold truncate">{e.nome}</div>
+                <div className="font-semibold text-base truncate">{e.nome}</div>
                 <div className="text-xs text-muted-foreground mt-0.5">Cód. {e.codigo_produto || "—"} · {e.categoria} · CA {e.ca || "—"} · {e.tamanho || "—"}</div>
-                <div className="text-xs text-muted-foreground">📍 {e.localizacao || "—"}</div>
               </div>
-              <StockBadge atual={e.estoque_atual} minimo={e.estoque_minimo} />
+              <StockBadge atual={e.estoque_atual} minimo={m.minimoEfetivo} compact />
             </div>
-            {(canEdit || canEditStock) && (
-              <div className="flex justify-end gap-1 mt-3 pt-3 border-t">
-                {canEditStock && <Button variant="ghost" size="sm" onClick={() => setEntradaFor(e)}><PackagePlus className="h-4 w-4 mr-1" /> Entrada</Button>}
-                <Button variant="ghost" size="sm" onClick={() => { setEditing(e); setOpen(true); }}><Pencil className="h-4 w-4 mr-1" /> Editar</Button>
-                {role === "admin" && <Button variant="ghost" size="sm" onClick={() => handleDelete(e.id, e.nome)}><Trash2 className="h-4 w-4 text-destructive" /></Button>}
-              </div>
-            )}
-
+            <div className="grid grid-cols-3 gap-2 pt-2 border-t">
+              <div><div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Estoque</div>
+                <StockLevel atual={e.estoque_atual} minimoCalc={m.minimoCalc} minimoCadastrado={e.estoque_minimo} nivel={m.nivel} /></div>
+              <div><div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Consumo</div>
+                <ConsumptionCell mensal={m.mensal} diario={m.diario} /></div>
+              <div><div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Cobertura</div>
+                <CoverageIndicator cobertura={m.cobertura} ruptura={m.ruptura} leadDias={lead.dias} /></div>
+            </div>
+            {(canEdit || canEditStock) && <div className="flex justify-end pt-2 border-t">{acoes(e, true)}</div>}
           </Card>
         ))}
+        {filtered.length === 0 && <p className="text-center py-12 text-muted-foreground text-sm">Nenhum EPI encontrado.</p>}
       </div>
 
+      {/* Desktop */}
       <Card className="overflow-hidden hidden md:block">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
+          <table className="tbl">
+            <thead>
               <tr>
-                <th className="text-left px-4 py-3">Código</th>
-                <th className="text-left px-4 py-3">EPI</th>
-                <th className="text-left px-4 py-3">Categoria</th>
-                <th className="text-left px-4 py-3">CA</th>
-                <th className="text-left px-4 py-3">Tamanho</th>
-                <th className="text-right px-4 py-3">Custo</th>
-                <th className="text-left px-4 py-3">Estoque</th>
-                <th className="text-right px-4 py-3">Ações</th>
+                <th>EPI</th>
+                <th>Estoque</th>
+                <th>Consumo</th>
+                <th>Cobertura</th>
+                <th>Status</th>
+                <th className="num">Custo un.</th>
+                <th className="num">Ações</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((e) => (
-                <tr key={e.id} className="border-t hover:bg-muted/30">
-                  <td className="px-4 py-3 font-mono text-xs">{e.codigo_produto || "—"}</td>
-                  <td className="px-4 py-3"><div className="font-medium">{e.nome}</div><div className="text-xs text-muted-foreground">{e.modelo}</div></td>
-                  <td className="px-4 py-3">{e.categoria}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{e.ca || "—"}</td>
-                  <td className="px-4 py-3">{e.tamanho || "—"}</td>
-                  <td className="px-4 py-3 text-right">R$ {Number(e.custo_unitario).toFixed(2)}</td>
-                  <td className="px-4 py-3"><StockBadge atual={e.estoque_atual} minimo={e.estoque_minimo} /></td>
-                  <td className="px-4 py-3 text-right">
-                    {(canEdit || canEditStock) && (
-                      <div className="inline-flex gap-1">
-                        {canEditStock && <Button variant="ghost" size="icon" title="Entrada de estoque" onClick={() => setEntradaFor(e)}><PackagePlus className="h-4 w-4" /></Button>}
-                        <Button variant="ghost" size="icon" title="Editar" onClick={() => { setEditing(e); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
-                        {role === "admin" && <Button variant="ghost" size="icon" title="Excluir" onClick={() => handleDelete(e.id, e.nome)}><Trash2 className="h-4 w-4 text-destructive" /></Button>}
-                      </div>
-                    )}
+              {filtered.map(({ epi: e, m }) => (
+                <tr key={e.id} className={e.status === "inativo" ? "opacity-60" : ""}>
+                  <td className="max-w-[320px]">
+                    <div className="font-semibold text-[15px] leading-snug">{e.nome}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5 truncate">
+                      <span className="font-mono">{e.codigo_produto || "—"}</span> · {e.categoria}
+                      {e.ca && <> · CA {e.ca}</>}{e.tamanho && <> · {e.tamanho}</>}{e.modelo && <> · {e.modelo}</>}
+                      {e.status === "inativo" && <> · <span className="font-medium">inativo</span></>}
+                    </div>
                   </td>
+                  <td><StockLevel atual={e.estoque_atual} minimoCalc={m.minimoCalc} minimoCadastrado={e.estoque_minimo} nivel={m.nivel} /></td>
+                  <td><ConsumptionCell mensal={m.mensal} diario={m.diario} /></td>
+                  <td><CoverageIndicator cobertura={m.cobertura} ruptura={m.ruptura} leadDias={lead.dias} /></td>
+                  <td><StockBadge atual={e.estoque_atual} minimo={m.minimoEfetivo} compact /></td>
+                  <td className="num text-muted-foreground whitespace-nowrap">R$ {Number(e.custo_unitario).toFixed(2)}</td>
+                  <td className="num">{acoes(e)}</td>
                 </tr>
               ))}
-
-              {filtered.length === 0 && <tr><td colSpan={8} className="text-center py-12 text-muted-foreground text-sm">Nenhum EPI encontrado.</td></tr>}
+              {filtered.length === 0 && <tr><td colSpan={7} className="text-center py-12 text-muted-foreground text-sm">Nenhum EPI encontrado.</td></tr>}
             </tbody>
           </table>
         </div>
