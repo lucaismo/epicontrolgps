@@ -294,35 +294,42 @@ function ComprasPage() {
   const nomeEpi = (id: string) => epis.find((e) => e.id === id)?.nome ?? "—";
 
   return (
-    <div className="p-4 md:p-8 space-y-5">
+    <div className="p-4 md:p-8 space-y-6">
       <div>
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Planejamento de Compras</h1>
-        <p className="text-sm text-muted-foreground">Reposição baseada em consumo, lead time total, pedidos em trânsito e previsão de ruptura</p>
+        <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Planejamento de Compras</h1>
+        <p className="text-sm text-muted-foreground mt-1">Reposição baseada em consumo, lead time total, pedidos em trânsito e previsão de ruptura</p>
       </div>
 
-      <Card className="p-5 space-y-4">
-        <h2 className="font-semibold">Configuração de lead time</h2>
-        <div className="grid md:grid-cols-4 gap-4 items-end">
-          <div className="space-y-1.5"><Label>Dia do envio do pedido</Label>
+      <div className="grid gap-3 grid-cols-2 xl:grid-cols-4">
+        <StatCard icon={AlertTriangle} label="EPIs em ruptura" value={resumo.ruptura} tone={resumo.ruptura ? "danger" : "neutral"} hint="cobertura abaixo do lead time" />
+        <StatCard icon={AlertTriangle} label="EPIs em atenção" value={resumo.atencao} tone={resumo.atencao ? "warning" : "neutral"} hint="dentro do estoque de segurança" />
+        <StatCard icon={PackagePlus} label="Compra necessária" value={resumo.comCompra} hint="itens com sugestão maior que zero" />
+        <StatCard icon={PackagePlus} label="Quantidade total" value={fmtNum(resumo.totalQtd)} tone={resumo.totalQtd ? "success" : "neutral"} hint="unidades a solicitar" />
+      </div>
+
+      <Card className="p-4 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Configuração de lead time</h2>
+          <p className="text-sm">
+            <b>{lead.dias} dias</b>{" "}
+            <span className="text-muted-foreground text-xs">
+              (hoje → {fmtDate(lead.pedido)}: {lead.diasAtePedido}d + entrega {lead.diasEntrega}d → {fmtDate(lead.recebimento)})
+            </span>
+          </p>
+        </div>
+        <div className="grid md:grid-cols-3 gap-3 items-end">
+          <div className="space-y-1.5"><Label className="text-xs">Dia do envio do pedido</Label>
             <Input type="number" min={1} max={31} value={dp} disabled={!podeConfigurar} onChange={(e) => setDiaPedido(Number(e.target.value))} />
           </div>
-          <div className="space-y-1.5"><Label>Dia previsto de recebimento</Label>
+          <div className="space-y-1.5"><Label className="text-xs">Dia previsto de recebimento</Label>
             <Input type="number" min={1} max={31} value={dr} disabled={!podeConfigurar} onChange={(e) => setDiaReceb(Number(e.target.value))} />
           </div>
-          <div className="space-y-1.5">
-            <Label>Tempo total sem reposição</Label>
-            <div className="h-10 flex items-center rounded-md border px-3 text-sm">
-              <b className="mr-1">{lead.dias} dias</b>
-              <span className="text-muted-foreground text-xs">
-                (hoje → {fmtDate(lead.pedido)}: {lead.diasAtePedido}d + entrega {lead.diasEntrega}d → {fmtDate(lead.recebimento)})
-              </span>
-            </div>
-          </div>
           {podeConfigurar && (
-            <Button onClick={salvarConfig}><Save className="h-4 w-4 mr-2" /> Salvar configuração</Button>
+            <Button variant="outline" onClick={salvarConfig}><Save className="h-4 w-4 mr-2" /> Salvar configuração</Button>
           )}
         </div>
       </Card>
+
 
       <Card className="p-3 flex flex-col md:flex-row gap-2">
         <div className="relative flex-1">
