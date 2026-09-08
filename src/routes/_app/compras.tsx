@@ -185,6 +185,19 @@ function ComprasPage() {
     return true;
   });
 
+  const resumo = useMemo(() => {
+    let ruptura = 0, atencao = 0, comCompra = 0, totalQtd = 0;
+    for (const l of filtradas) {
+      if (l.prioridade === "alta") ruptura++;
+      else if (l.prioridade === "media") atencao++;
+      const q = ajustes[l.epi.id] ?? l.sugerido;
+      if (q > 0) { comCompra++; totalQtd += q; }
+    }
+    return { ruptura, atencao, comCompra, totalQtd };
+  }, [filtradas, ajustes]);
+
+
+
   async function salvarConfig() {
     if (dp < 1 || dp > 31 || dr < 1 || dr > 31) { toast.error("Informe dias entre 1 e 31"); return; }
     const payload = { dia_pedido: dp, dia_recebimento: dr };
