@@ -454,8 +454,8 @@ function ComprasPage() {
       <Card className="overflow-hidden">
         <div className="p-4 border-b"><h2 className="font-semibold">Pedidos de compra</h2></div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
+          <table className="tbl w-full">
+            <thead>
               <tr>
                 <th className="text-left px-3 py-3">EPI</th>
                 <th className="text-right px-3 py-3">Quantidade solicitada</th>
@@ -500,8 +500,8 @@ function ComprasPage() {
       <Card className="overflow-hidden">
         <div className="p-4 border-b"><h2 className="font-semibold">Consumo por período</h2></div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
+          <table className="tbl w-full">
+            <thead>
               <tr>
                 <th className="text-left px-3 py-3">EPI</th>
                 <th className="text-right px-3 py-3">Últimos 30 dias</th>
