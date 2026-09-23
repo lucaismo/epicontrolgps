@@ -18,6 +18,9 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { DIA_MS, agregarConsumo, calcLeadTime, calcularLinha, CONSUMO_ZERO, DIAS_SEGURANCA_MINIMO, SEM_CONSUMO_LABEL } from "@/lib/estoque-calc";
 import { StatCard, StockLevel, ConsumptionCell, CoverageIndicator, PriorityBadge, MetricValue, fmtNum } from "@/components/metrics";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Info } from "lucide-react";
+import { fetchEntregasDesde } from "@/lib/consumo";
 
 
 
@@ -40,7 +43,7 @@ export { calcLeadTime };
 
 
 type Epi = {
-  id: string; nome: string; categoria: string; codigo_produto: string | null;
+  id: string; nome: string; categoria: string; codigo_produto: string | null; tamanho: string | null;
   estoque_atual: number; estoque_minimo: number; dias_seguranca: number; status: string;
 };
 
@@ -454,11 +457,30 @@ function ComprasPage() {
                         }}
                       />
                     </div>
+                    {qtdDe(l) !== l.sugerido && <div className="text-[11px] text-primary mt-0.5">ajustada (sugestão {l.sugerido})</div>}
+                  </td>
+                  <td className="num">
+                    <StockLevel
+                      atual={l.epi.estoque_atual} minimoCalc={l.minimoCalc} minimoCadastrado={l.epi.estoque_minimo}
+                      nivel={l.nivel} align="right"
+                    />
+                  </td>
+                  <td className="num"><CoverageIndicator cobertura={l.cobertura} ruptura={l.ruptura} leadDias={lead.dias} align="right" /></td>
+                  <td className="num"><ConsumptionCell mensal={l.mensal} diario={l.diario} align="right" /></td>
+                  <td className="num">
+                    {l.minimoCalc !== null
+                      ? <MetricValue value={fmtNum(l.minimoCalc)} size="sm" align="right" sub={`lead ${lead.dias}d + ${DIAS_SEGURANCA_MINIMO}d`} />
+                      : <MetricValue value="—" size="sm" tone="muted" align="right" sub={SEM_CONSUMO_LABEL} />}
+                  </td>
+                  <td className="num">{l.transito > 0 ? <span className="font-semibold">+{l.transito}</span> : <span className="text-muted-foreground">0</span>}</td>
+                  <td className="num">
+                    <MetricValue value={fmtNum(necessidade)} size="sm" align="right" sub={`${lead.dias}d + ${l.diasSeg}d seg.`} />
                   </td>
                   <td><PriorityBadge prioridade={l.prioridade} /></td>
                 </tr>
-              ))}
-              {filtradas.length === 0 && <tr><td colSpan={8} className="text-center py-12 text-muted-foreground text-sm">Nenhum EPI encontrado.</td></tr>}
+                );
+              })}
+              {filtradas.length === 0 && <tr><td colSpan={10}  className="text-center py-12 text-muted-foreground text-sm">Nenhum EPI encontrado.</td></tr>}
             </tbody>
           </table>
         </div>
