@@ -20,11 +20,12 @@ import { Route as AppInventarioRouteImport } from './routes/_app/inventario'
 import { Route as AppEpisRouteImport } from './routes/_app/epis'
 import { Route as AppEntregasRouteImport } from './routes/_app/entregas'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
+import { Route as AppConsumoRouteImport } from './routes/_app/consumo'
 import { Route as AppComprasRouteImport } from './routes/_app/compras'
 import { Route as AppColaboradoresRouteImport } from './routes/_app/colaboradores'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
-import { Route as AppColaboradoresIdRouteImport } from './routes/_app/colaboradores.$id'
+import { Route as AppColaboradoresIdRouteImport } from './routes/_app/colaboradores_.$id'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 
@@ -82,6 +83,11 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
+const AppConsumoRoute = AppConsumoRouteImport.update({
+  id: '/consumo',
+  path: '/consumo',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppComprasRoute = AppComprasRouteImport.update({
   id: '/compras',
   path: '/compras',
@@ -105,9 +111,9 @@ const Char91DotmcpChar93ListToolsRoute =
     getParentRoute: () => rootRouteImport,
   } as any)
 const AppColaboradoresIdRoute = AppColaboradoresIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => AppColaboradoresRoute,
+  id: '/colaboradores_/$id',
+  path: '/colaboradores/$id',
+  getParentRoute: () => AppRoute,
 } as any)
 const Char91DotmcpChar93InvokeToolToolRoute =
   Char91DotmcpChar93InvokeToolToolRouteImport.update({
@@ -128,8 +134,9 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
-  '/colaboradores': typeof AppColaboradoresRouteWithChildren
+  '/colaboradores': typeof AppColaboradoresRoute
   '/compras': typeof AppComprasRoute
+  '/consumo': typeof AppConsumoRoute
   '/dashboard': typeof AppDashboardRoute
   '/entregas': typeof AppEntregasRoute
   '/epis': typeof AppEpisRoute
@@ -147,8 +154,9 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
-  '/colaboradores': typeof AppColaboradoresRouteWithChildren
+  '/colaboradores': typeof AppColaboradoresRoute
   '/compras': typeof AppComprasRoute
+  '/consumo': typeof AppConsumoRoute
   '/dashboard': typeof AppDashboardRoute
   '/entregas': typeof AppEntregasRoute
   '/epis': typeof AppEpisRoute
@@ -168,8 +176,9 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
-  '/_app/colaboradores': typeof AppColaboradoresRouteWithChildren
+  '/_app/colaboradores': typeof AppColaboradoresRoute
   '/_app/compras': typeof AppComprasRoute
+  '/_app/consumo': typeof AppConsumoRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/entregas': typeof AppEntregasRoute
   '/_app/epis': typeof AppEpisRoute
@@ -178,7 +187,7 @@ export interface FileRoutesById {
   '/_app/usuarios': typeof AppUsuariosRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
-  '/_app/colaboradores/$id': typeof AppColaboradoresIdRoute
+  '/_app/colaboradores_/$id': typeof AppColaboradoresIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -191,6 +200,7 @@ export interface FileRouteTypes {
     | '/.well-known/oauth-protected-resource'
     | '/colaboradores'
     | '/compras'
+    | '/consumo'
     | '/dashboard'
     | '/entregas'
     | '/epis'
@@ -210,6 +220,7 @@ export interface FileRouteTypes {
     | '/.well-known/oauth-protected-resource'
     | '/colaboradores'
     | '/compras'
+    | '/consumo'
     | '/dashboard'
     | '/entregas'
     | '/epis'
@@ -230,6 +241,7 @@ export interface FileRouteTypes {
     | '/.well-known/oauth-protected-resource'
     | '/_app/colaboradores'
     | '/_app/compras'
+    | '/_app/consumo'
     | '/_app/dashboard'
     | '/_app/entregas'
     | '/_app/epis'
@@ -238,7 +250,7 @@ export interface FileRouteTypes {
     | '/_app/usuarios'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
-    | '/_app/colaboradores/$id'
+    | '/_app/colaboradores_/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -332,6 +344,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/consumo': {
+      id: '/_app/consumo'
+      path: '/consumo'
+      fullPath: '/consumo'
+      preLoaderRoute: typeof AppConsumoRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/compras': {
       id: '/_app/compras'
       path: '/compras'
@@ -360,12 +379,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char91DotmcpChar93ListToolsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_app/colaboradores/$id': {
-      id: '/_app/colaboradores/$id'
-      path: '/$id'
+    '/_app/colaboradores_/$id': {
+      id: '/_app/colaboradores_/$id'
+      path: '/colaboradores/$id'
       fullPath: '/colaboradores/$id'
       preLoaderRoute: typeof AppColaboradoresIdRouteImport
-      parentRoute: typeof AppColaboradoresRoute
+      parentRoute: typeof AppRoute
     }
     '/.mcp/invoke-tool/$tool': {
       id: '/.mcp/invoke-tool/$tool'
@@ -384,37 +403,30 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface AppColaboradoresRouteChildren {
-  AppColaboradoresIdRoute: typeof AppColaboradoresIdRoute
-}
-
-const AppColaboradoresRouteChildren: AppColaboradoresRouteChildren = {
-  AppColaboradoresIdRoute: AppColaboradoresIdRoute,
-}
-
-const AppColaboradoresRouteWithChildren =
-  AppColaboradoresRoute._addFileChildren(AppColaboradoresRouteChildren)
-
 interface AppRouteChildren {
-  AppColaboradoresRoute: typeof AppColaboradoresRouteWithChildren
+  AppColaboradoresRoute: typeof AppColaboradoresRoute
   AppComprasRoute: typeof AppComprasRoute
+  AppConsumoRoute: typeof AppConsumoRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppEntregasRoute: typeof AppEntregasRoute
   AppEpisRoute: typeof AppEpisRoute
   AppInventarioRoute: typeof AppInventarioRoute
   AppRelatoriosRoute: typeof AppRelatoriosRoute
   AppUsuariosRoute: typeof AppUsuariosRoute
+  AppColaboradoresIdRoute: typeof AppColaboradoresIdRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
-  AppColaboradoresRoute: AppColaboradoresRouteWithChildren,
+  AppColaboradoresRoute: AppColaboradoresRoute,
   AppComprasRoute: AppComprasRoute,
+  AppConsumoRoute: AppConsumoRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppEntregasRoute: AppEntregasRoute,
   AppEpisRoute: AppEpisRoute,
   AppInventarioRoute: AppInventarioRoute,
   AppRelatoriosRoute: AppRelatoriosRoute,
   AppUsuariosRoute: AppUsuariosRoute,
+  AppColaboradoresIdRoute: AppColaboradoresIdRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

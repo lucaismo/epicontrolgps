@@ -22,6 +22,7 @@ const navGroups: NavGroup[] = [
       { to: "/entregas", label: "Entregas", icon: PackageCheck },
       { to: "/inventario", label: "Inventário", icon: ClipboardList },
       { to: "/compras", label: "Compras", icon: ShoppingCart },
+      { to: "/consumo", label: "Consumo mensal", icon: FileBarChart },
     ],
   },
   {

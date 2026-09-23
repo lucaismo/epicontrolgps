@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { tamanhoParaEpi, mesmoTamanho } from "@/lib/consumo";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,19 @@ function EntregasPage() {
     queryKey: ["epis-ativos"],
     queryFn: async () => (await supabase.from("epis").select("id,nome,codigo_produto,estoque_atual,categoria,tamanho").eq("status", "ativo").order("nome")).data ?? [],
   });
+  const { data: tamanhosColab = [] } = useQuery({
+    queryKey: ["colab-tamanhos", colaboradorId],
+    enabled: !!colaboradorId,
+    queryFn: async () => (await supabase.from("colaborador_tamanhos").select("id,item,tamanho").eq("colaborador_id", colaboradorId).order("item")).data ?? [],
+  });
+  // EPIs que batem com o tamanho cadastrado do colaborador aparecem primeiro (★)
+  const episOrdenados = useMemo(() => {
+    const arr = epis.map((e: any) => {
+      const t = tamanhoParaEpi(tamanhosColab, e);
+      return { ...e, _match: !!t && mesmoTamanho(e.tamanho, t.tamanho) };
+    });
+    return arr.sort((a, b) => Number(b._match) - Number(a._match));
+  }, [epis, tamanhosColab]);
   const { data: entregasPage } = useQuery({
     queryKey: ["ultimas-entregas", page],
     queryFn: async () => {
@@ -146,8 +160,18 @@ function EntregasPage() {
 
           <div className="space-y-3">
             <h2 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">EPIs a entregar ({itens.length}/{MAX_ITENS})</h2>
+            {colaboradorId && (
+              <div className="rounded-md border bg-muted/30 p-3 text-sm">
+                <span className="font-medium">Tamanhos cadastrados: </span>
+                {tamanhosColab.length
+                  ? tamanhosColab.map((t) => <span key={t.item} className="mr-3">{t.item}: <b>{t.tamanho}</b></span>)
+                  : <span className="text-muted-foreground">nenhum — cadastre na ficha do colaborador.</span>}
+              </div>
+            )}
             {itens.map((it, idx) => {
               const sel = epis.find((e: any) => e.id === it.epiId);
+              const tamSel = sel ? tamanhoParaEpi(tamanhosColab, sel) : null;
+              const outroTam = sel && tamSel && sel.tamanho && !mesmoTamanho(sel.tamanho, tamSel.tamanho);
               return (
                 <div key={idx} className="grid md:grid-cols-[1fr_140px_44px] gap-2 items-end">
                   <div className="space-y-1.5">
@@ -155,13 +179,19 @@ function EntregasPage() {
                     <Select value={it.epiId} onValueChange={(v) => setItens(itens.map((x, i) => i === idx ? { ...x, epiId: v } : x))}>
                       <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                       <SelectContent>
-                        {epis.map((e: any) => (
+                        {episOrdenados.map((e: any) => (
                           <SelectItem key={e.id} value={e.id}>
-                            {e.codigo_produto ? `[${e.codigo_produto}] ` : ""}{e.nome} {e.tamanho ? `(${e.tamanho})` : ""} — estoque {e.estoque_atual}
+                            {e._match ? "★ " : ""}{e.codigo_produto ? `[${e.codigo_produto}] ` : ""}{e.nome} {e.tamanho ? `(${e.tamanho})` : ""} — estoque {e.estoque_atual}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
+                    {tamSel && (
+                      <p className={`text-xs ${outroTam ? "text-warning" : "text-muted-foreground"}`}>
+                        Tamanho cadastrado ({tamSel.item}): <b>{tamSel.tamanho}</b>
+                        {outroTam ? ` — o EPI selecionado é ${sel.tamanho}. A entrega é permitida.` : ""}
+                      </p>
+                    )}
                     {sel && typeof it.quantidade === "number" && sel.estoque_atual < it.quantidade && (
                       <p className="text-xs text-destructive">Estoque insuficiente (disponível {sel.estoque_atual})</p>
                     )}

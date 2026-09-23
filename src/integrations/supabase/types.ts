@@ -47,6 +47,41 @@ export type Database = {
         }
         Relationships: []
       }
+      colaborador_tamanhos: {
+        Row: {
+          colaborador_id: string
+          created_at: string
+          id: string
+          item: string
+          tamanho: string
+          updated_at: string
+        }
+        Insert: {
+          colaborador_id: string
+          created_at?: string
+          id?: string
+          item: string
+          tamanho: string
+          updated_at?: string
+        }
+        Update: {
+          colaborador_id?: string
+          created_at?: string
+          id?: string
+          item?: string
+          tamanho?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "colaborador_tamanhos_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "colaboradores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       colaboradores: {
         Row: {
           created_at: string
