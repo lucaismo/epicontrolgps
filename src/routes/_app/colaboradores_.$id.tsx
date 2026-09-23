@@ -67,16 +67,39 @@ function FichaColab() {
     },
   });
 
-  // EPIs em posse: última entrega por categoria (mesma regra da troca automática na entrega).
+  // EPIs em posse = saldo por EPI a partir das movimentações reais do colaborador:
+  //   + entrega   − troca/devolução/avaria/descarte/perda/roubo (saída do EPI anterior)
   const emPosse = useMemo(() => {
-    const porCat = new Map<string, any>();
+    const SAIDA_POSSE = new Set(["troca", "devolucao_normal", "avariado", "descarte", "perda", "roubo"]);
+    const porEpi = new Map<string, { epi_id: string; epis: any; saldo: number; ultima: string }>();
     for (const m of movs) {
-      if (m.tipo !== "entrega") continue;
-      const cat = m.epis?.categoria ?? m.epi_id;
-      if (!porCat.has(cat)) porCat.set(cat, m);
+      const sinal = m.tipo === "entrega" ? 1 : SAIDA_POSSE.has(m.tipo) ? -1 : 0;
+      if (!sinal) continue;
+      const cur = porEpi.get(m.epi_id) ?? { epi_id: m.epi_id, epis: m.epis, saldo: 0, ultima: "" };
+      cur.saldo += sinal * Number(m.quantidade ?? 0);
+      if (m.tipo === "entrega" && m.data_movimentacao > cur.ultima) cur.ultima = m.data_movimentacao;
+      porEpi.set(m.epi_id, cur);
     }
-    return Array.from(porCat.values());
+    return Array.from(porEpi.values()).filter((p) => p.saldo > 0).sort((a, b) => b.ultima.localeCompare(a.ultima));
   }, [movs]);
+
+  // Turno histórico: reconstruído pelas alterações de turno registradas na auditoria (visível a admins).
+  const { data: mudTurno = [] } = useQuery({
+    queryKey: ["colab-turno-hist", id],
+    queryFn: async () => (await supabase.from("auditoria")
+      .select("created_at,dados_anteriores,dados_novos")
+      .eq("tabela", "colaboradores").eq("registro_id", id).eq("operacao", "UPDATE")
+      .order("created_at", { ascending: true })).data ?? [],
+  });
+  const trocasTurno = useMemo(
+    () => (mudTurno as any[]).filter((a) => (a.dados_anteriores?.turno ?? null) !== (a.dados_novos?.turno ?? null)),
+    [mudTurno],
+  );
+  const turnoNaData = (data: string): { turno: string; historico: boolean } => {
+    const prox = trocasTurno.find((a) => a.created_at > data);
+    if (prox) return { turno: prox.dados_anteriores?.turno ?? "—", historico: true };
+    return { turno: colab?.turno ?? "—", historico: trocasTurno.length > 0 && data >= trocasTurno[trocasTurno.length - 1].created_at };
+  };
 
   // form de tamanhos
   const [novoItem, setNovoItem] = useState("");
@@ -170,15 +193,16 @@ function FichaColab() {
         {/* 3. Em posse */}
         <Card className="p-5 space-y-3">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">EPIs atualmente em posse</h2>
+          <p className="text-xs text-muted-foreground">Saldo por EPI: entregas menos trocas, devoluções, avarias, descartes, perdas e roubos registrados.</p>
           {emPosse.length === 0 && <p className="text-sm text-muted-foreground">Nenhum EPI entregue.</p>}
           <ul className="divide-y">
-            {emPosse.map((m) => (
-              <li key={m.id} className="py-2 flex items-center justify-between gap-3">
+            {emPosse.map((p) => (
+              <li key={p.epi_id} className="py-2 flex items-center justify-between gap-3">
                 <div>
-                  <div className="font-medium">{m.epis?.nome}{m.epis?.tamanho ? ` · ${m.epis.tamanho}` : ""}</div>
-                  <div className="text-xs text-muted-foreground">{m.epis?.categoria} · entregue em {fmtData(m.data_movimentacao)}</div>
+                  <div className="font-medium">{p.epis?.nome}{p.epis?.tamanho ? ` · ${p.epis.tamanho}` : ""}</div>
+                  <div className="text-xs text-muted-foreground">{p.epis?.categoria}{p.ultima ? ` · última entrega em ${fmtData(p.ultima)}` : ""}</div>
                 </div>
-                <span className="text-lg font-bold tabular-nums">{m.quantidade}</span>
+                <span className="text-lg font-bold tabular-nums">{p.saldo}</span>
               </li>
             ))}
           </ul>
@@ -189,7 +213,7 @@ function FichaColab() {
       <Card className="overflow-hidden">
         <div className="p-4 border-b flex items-center justify-between">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Histórico de EPI</h2>
-          <span className="text-xs text-muted-foreground">{movs.length} registro(s)</span>
+          <span className="text-xs text-muted-foreground">{movs.length} registro(s) · * turno atual (sem registro histórico do turno na data)</span>
         </div>
         <div className="overflow-x-auto">
           <table className="tbl w-full">
@@ -214,7 +238,7 @@ function FichaColab() {
                   <td className="num font-semibold">{m.quantidade}</td>
                   <td><span className="text-xs font-medium">{TIPO_LABEL[m.tipo] ?? m.tipo}</span></td>
                   <td>{m.responsavel}</td>
-                  <td>{colab?.turno ?? "—"}</td>
+                  <td>{(() => { const t = turnoNaData(m.data_movimentacao); return t.historico ? t.turno : <span title="Turno histórico não registrado para esta data; exibindo o turno atual">{t.turno}*</span>; })()}</td>
                   <td className="text-xs">{[m.motivo, m.observacao].filter(Boolean).join(" · ") || "—"}</td>
                 </tr>
               ))}
