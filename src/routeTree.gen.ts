@@ -20,6 +20,7 @@ import { Route as AppInventarioRouteImport } from './routes/_app/inventario'
 import { Route as AppEpisRouteImport } from './routes/_app/epis'
 import { Route as AppEntregasRouteImport } from './routes/_app/entregas'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
+import { Route as AppConsumoRouteImport } from './routes/_app/consumo'
 import { Route as AppComprasRouteImport } from './routes/_app/compras'
 import { Route as AppColaboradoresRouteImport } from './routes/_app/colaboradores'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
@@ -82,6 +83,11 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
+const AppConsumoRoute = AppConsumoRouteImport.update({
+  id: '/consumo',
+  path: '/consumo',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppComprasRoute = AppComprasRouteImport.update({
   id: '/compras',
   path: '/compras',
@@ -130,6 +136,7 @@ export interface FileRoutesByFullPath {
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/colaboradores': typeof AppColaboradoresRoute
   '/compras': typeof AppComprasRoute
+  '/consumo': typeof AppConsumoRoute
   '/dashboard': typeof AppDashboardRoute
   '/entregas': typeof AppEntregasRoute
   '/epis': typeof AppEpisRoute
@@ -149,6 +156,7 @@ export interface FileRoutesByTo {
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/colaboradores': typeof AppColaboradoresRoute
   '/compras': typeof AppComprasRoute
+  '/consumo': typeof AppConsumoRoute
   '/dashboard': typeof AppDashboardRoute
   '/entregas': typeof AppEntregasRoute
   '/epis': typeof AppEpisRoute
@@ -170,6 +178,7 @@ export interface FileRoutesById {
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/_app/colaboradores': typeof AppColaboradoresRoute
   '/_app/compras': typeof AppComprasRoute
+  '/_app/consumo': typeof AppConsumoRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/entregas': typeof AppEntregasRoute
   '/_app/epis': typeof AppEpisRoute
@@ -191,6 +200,7 @@ export interface FileRouteTypes {
     | '/.well-known/oauth-protected-resource'
     | '/colaboradores'
     | '/compras'
+    | '/consumo'
     | '/dashboard'
     | '/entregas'
     | '/epis'
@@ -210,6 +220,7 @@ export interface FileRouteTypes {
     | '/.well-known/oauth-protected-resource'
     | '/colaboradores'
     | '/compras'
+    | '/consumo'
     | '/dashboard'
     | '/entregas'
     | '/epis'
@@ -230,6 +241,7 @@ export interface FileRouteTypes {
     | '/.well-known/oauth-protected-resource'
     | '/_app/colaboradores'
     | '/_app/compras'
+    | '/_app/consumo'
     | '/_app/dashboard'
     | '/_app/entregas'
     | '/_app/epis'
@@ -332,6 +344,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/consumo': {
+      id: '/_app/consumo'
+      path: '/consumo'
+      fullPath: '/consumo'
+      preLoaderRoute: typeof AppConsumoRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/compras': {
       id: '/_app/compras'
       path: '/compras'
@@ -387,6 +406,7 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppColaboradoresRoute: typeof AppColaboradoresRoute
   AppComprasRoute: typeof AppComprasRoute
+  AppConsumoRoute: typeof AppConsumoRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppEntregasRoute: typeof AppEntregasRoute
   AppEpisRoute: typeof AppEpisRoute
@@ -399,6 +419,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppColaboradoresRoute: AppColaboradoresRoute,
   AppComprasRoute: AppComprasRoute,
+  AppConsumoRoute: AppConsumoRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppEntregasRoute: AppEntregasRoute,
   AppEpisRoute: AppEpisRoute,
