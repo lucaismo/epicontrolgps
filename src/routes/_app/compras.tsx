@@ -293,7 +293,7 @@ function ComprasPage() {
       body: rows.map((r) => [
         r["Código do produto"], r.Nome, r.Categoria, String(r["Estoque atual"]), String(r["Pedido em trânsito"]),
         String(r["Consumo médio diário"]), String(r["Consumo médio mensal"]), String(r["Cobertura (dias)"]),
-        String(r["Lead time (dias)"]), String(r["Estoque de segurança (dias)"]), String(r["Previsão de ruptura"]),
+        String(r["Período sem reposição (dias)"]), String(r["Estoque de segurança (dias)"]), String(r["Previsão de ruptura"]),
         String(r["Quantidade sugerida"]), String(r["Quantidade ajustada"]), String(r.Prioridade),
       ]),
       styles: { fontSize: 7, cellPadding: 3 },
