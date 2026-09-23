@@ -250,7 +250,7 @@ function ComprasPage() {
       "Consumo médio diário": Number(l.diario.toFixed(2)),
       "Consumo médio mensal": Number(l.mensal.toFixed(1)),
       "Cobertura (dias)": Number.isFinite(l.cobertura) ? Math.floor(l.cobertura) : "—",
-      "Lead time (dias)": lead.dias,
+      "Período sem reposição (dias)": lead.dias,
       "Estoque de segurança (dias)": l.epi.dias_seguranca,
       "Previsão de ruptura": l.ruptura ? fmtDate(l.ruptura) : "Sem consumo suficiente para previsão",
       "Quantidade sugerida": l.sugerido,
@@ -285,7 +285,7 @@ function ComprasPage() {
     doc.setFontSize(9); doc.setTextColor(120);
     doc.text(`Emitido em: ${new Date().toLocaleString("pt-BR")}`, w - 40, 40, { align: "right" });
     doc.text(`Responsável: ${emissor}`, w - 40, 54, { align: "right" });
-    doc.text(`Lead time considerado: ${lead.dias} dias`, w - 40, 68, { align: "right" });
+    doc.text(`Período sem reposição: ${lead.dias} dias`, w - 40, 68, { align: "right" });
     doc.setTextColor(0);
     autoTable(doc, {
       startY: 90,
@@ -323,11 +323,11 @@ function ComprasPage() {
 
       <Card className="p-4 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Configuração de lead time</h2>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Período sem reposição</h2>
           <p className="text-sm">
             <b>{lead.dias} dias</b>{" "}
             <span className="text-muted-foreground text-xs">
-              (hoje → {fmtDate(lead.pedido)}: {lead.diasAtePedido}d + entrega {lead.diasEntrega}d → {fmtDate(lead.recebimento)})
+              (hoje → próximo pedido {fmtDate(lead.pedido)}: {lead.diasAtePedido}d de espera + {lead.diasEntrega}d de prazo do fornecedor → recebimento {fmtDate(lead.recebimento)}). O estoque atual + em trânsito precisa durar até esse recebimento.
             </span>
           </p>
         </div>
@@ -405,8 +405,10 @@ function ComprasPage() {
                         <dl className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 tabular-nums">
                           <dt className="text-muted-foreground">Consumo diário</dt><dd>{fmtNum(l.diario, 2)}</dd>
                           <dt className="text-muted-foreground">Base do consumo</dt><dd className="text-xs">{l.c.d90 > 0 ? `90d: ${l.c.d90}` : l.c.d30 > 0 ? `30d: ${l.c.d30}` : `365d: ${l.c.d365}`}</dd>
-                          <dt className="text-muted-foreground">Lead time</dt><dd>{lead.dias} dias</dd>
+                          <dt className="text-muted-foreground">Período sem reposição</dt><dd>{lead.dias} dias</dd>
+                          <dt className="text-muted-foreground text-xs pl-2">espera até pedido {lead.diasAtePedido}d + prazo fornecedor {lead.diasEntrega}d</dt><dd />
                           <dt className="text-muted-foreground">Segurança</dt><dd>{l.diasSeg} dias</dd>
+                          <dt className="text-muted-foreground">Período considerado</dt><dd>{lead.dias + l.diasSeg} dias</dd>
                           <dt className="text-muted-foreground">Necessidade calculada</dt><dd>{necessidade}</dd>
                           <dt className="text-muted-foreground text-xs pl-2">= {fmtNum(l.diario, 2)} × ({lead.dias} + {l.diasSeg})</dt><dd />
                           <dt className="text-muted-foreground">Estoque atual</dt><dd>{l.epi.estoque_atual}</dd>
@@ -414,9 +416,10 @@ function ComprasPage() {
                           <dt className="text-muted-foreground">Estoque disponível</dt><dd>{l.disponivel}</dd>
                           <dt className="font-semibold border-t pt-1">Quantidade sugerida</dt><dd className="font-semibold border-t pt-1">{l.sugerido}</dd>
                         </dl>
-                        {qtdDe(l) !== l.sugerido && (
-                          <p className="mt-2 text-xs rounded bg-primary/10 p-2">Quantidade ajustada pelo usuário: <b>{qtdDe(l)}</b> (adotada no pedido).</p>
-                        )}
+                        <div className="mt-2 text-xs rounded bg-primary/10 p-2 space-y-0.5">
+                          <div>Quantidade adotada: <b>{qtdDe(l)} {qtdDe(l) === 1 ? "unidade" : "unidades"}</b></div>
+                          <div className="text-muted-foreground">{qtdDe(l) !== l.sugerido ? `Ajuste manual · sugestão automática: ${l.sugerido} unidades` : "Sem ajuste manual (= sugestão automática)"}</div>
+                        </div>
                         {!(l.diario > 0) && <p className="mt-2 text-xs text-muted-foreground">{SEM_CONSUMO_LABEL} nos últimos 365 dias.</p>}
                       </PopoverContent>
                     </Popover>
@@ -469,7 +472,7 @@ function ComprasPage() {
                   <td className="num"><ConsumptionCell mensal={l.mensal} diario={l.diario} align="right" /></td>
                   <td className="num">
                     {l.minimoCalc !== null
-                      ? <MetricValue value={fmtNum(l.minimoCalc)} size="sm" align="right" sub={`lead ${lead.dias}d + ${DIAS_SEGURANCA_MINIMO}d`} />
+                      ? <MetricValue value={fmtNum(l.minimoCalc)} size="sm" align="right" sub={`${lead.dias}d s/ reposição + ${DIAS_SEGURANCA_MINIMO}d`} />
                       : <MetricValue value="—" size="sm" tone="muted" align="right" sub={SEM_CONSUMO_LABEL} />}
                   </td>
                   <td className="num">{l.transito > 0 ? <span className="font-semibold">+{l.transito}</span> : <span className="text-muted-foreground">0</span>}</td>

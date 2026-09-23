@@ -189,7 +189,7 @@ function EntregasPage() {
                     {tamSel && (
                       <p className={`text-xs ${outroTam ? "text-warning" : "text-muted-foreground"}`}>
                         Tamanho cadastrado ({tamSel.item}): <b>{tamSel.tamanho}</b>
-                        {outroTam ? ` — o EPI selecionado é ${sel.tamanho}. A entrega é permitida.` : ""}
+                        {outroTam ? <><br />Tamanho diferente do cadastrado para este colaborador. (EPI selecionado: {sel.tamanho})</> : ""}
                       </p>
                     )}
                     {sel && typeof it.quantidade === "number" && sel.estoque_atual < it.quantidade && (
