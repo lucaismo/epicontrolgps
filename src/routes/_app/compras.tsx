@@ -93,11 +93,7 @@ function ComprasPage() {
   const desde = useMemo(() => new Date(Date.now() - 365 * DIA_MS).toISOString(), []);
   const { data: movs = [] } = useQuery({
     queryKey: ["compras-movs"],
-    queryFn: async () => (await supabase.from("movimentacoes")
-      .select("epi_id,quantidade,tipo,data_movimentacao")
-      .eq("tipo", "entrega")
-      .gte("data_movimentacao", desde)
-      .limit(20000)).data ?? [],
+    queryFn: () => fetchEntregasDesde(desde),
   });
 
   const { data: pedidos = [] } = useQuery({

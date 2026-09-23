@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   DIA_MS, agregarConsumo, calcLeadTime, calcularLinha, CONSUMO_ZERO, type EpiCalc,
 } from "@/lib/estoque-calc";
+import { fetchEntregasDesde } from "@/lib/consumo";
 
 /**
  * Métricas de consumo/cobertura reaproveitando EXATAMENTE as mesmas queries do
@@ -20,12 +21,7 @@ export function useEpiMetrics() {
 
   const { data: movs = [] } = useQuery({
     queryKey: ["compras-movs"],
-    queryFn: async () =>
-      (await supabase.from("movimentacoes")
-        .select("epi_id,quantidade,tipo,data_movimentacao")
-        .eq("tipo", "entrega")
-        .gte("data_movimentacao", desde)
-        .limit(20000)).data ?? [],
+    queryFn: () => fetchEntregasDesde(desde),
     staleTime: 60_000,
   });
 
