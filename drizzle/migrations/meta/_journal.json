@@ -8,6 +8,13 @@
       "when": 1790189666185,
       "tag": "0000_colaborador_tamanhos",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790192370758,
+      "tag": "0001_troca_mesmo_item",
+      "breakpoints": true
     }
   ]
 }
