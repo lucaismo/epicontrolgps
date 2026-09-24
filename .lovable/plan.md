@@ -23,13 +23,32 @@ Não muda a política. Vou apenas acrescentar um comentário no motor diferencia
 - Inventários antigos continuam mostrando o `local` como nome. A opção "Editar local" passa a se chamar "Editar descrição".
 
 ## 5. Paginação
-O Dashboard ainda usa consultas com `.limit(20000)` e `.limit(50000)`. Vou trocar pela mesma estratégia de lotes de 1.000 de `consumo.ts`, generalizando a função atual para aceitar filtros sem duplicar código. EPIs e Compras já usam `fetchEntregasDesde`.
+Há exatamente duas consultas com limite fixo em `dashboard.tsx`:
+- **"Movimentações do período"** (chave `dashboard-movs`): busca todos os tipos entre o início e o fim do período, junto com os dados de EPI e colaborador, e usa `.limit(20000)`.
+- **"Evolução de 6 meses"** (chave `dashboard-evolucao`): busca todos os tipos a partir de 6 meses atrás e usa `.limit(50000)`.
+
+As duas passam a usar lotes de 1.000, com o mesmo loop por `range` de `consumo.ts`. Para isso entra em `consumo.ts` uma função auxiliar genérica e pequena (`fetchPaginado`), que recebe a consulta montada. `fetchEntregasDesde` continua com o mesmo contrato, e EPIs e Compras não são alterados. Filtros, colunas e resultados continuam os mesmos.
 
 ## Preservado
-Movimentações, histórico, estoque, pedidos, ajustes, auditoria, RLS, permissões, rotas, cálculo de compras, troca automática e consumo.
+Movimentações, histórico, estoque, pedidos, ajustes, auditoria, RLS, permissões, rotas, cálculo de compras, troca automática, consumo, a tabela `colaborador_tamanhos` e o comportamento atual das entregas. Os tamanhos não serão preenchidos a partir das entregas antigas. Mínimo operacional e segurança da compra continuam como conceitos separados.
 
 ## Validação
-Com dados reais, sem criar dados de teste: typecheck/build uma única vez no final; o Dashboard e a tela de EPIs devem mostrar as mesmas contagens; Compras deve mostrar os mesmos valores de antes; checagem por leitura dos inventários antigos. A validação visual depende de uma sessão autorizada na prévia. Relatório final no formato pedido.
+Somente com dados reais, sem criar dados de teste:
+- Tamanhos: cadastro de Camisa, Calça e Bota; edição e remoção; situação Completo/Pendente. As situações serão conferidas por leitura; gravar um cadastro real depende de uma sessão autorizada.
+- Dashboard e EPIs: mesmas contagens de zerados, críticos, atenção e ruptura, comparadas no mesmo conjunto de dados.
+- Compras: mesmos valores de antes, já que a tela não é alterada.
+- Inventários: os antigos continuam iguais (contagem e `local` antes e depois da mudança no banco); o novo não exige Local e inclui todos os EPIs ativos.
+- Paginação: as consultas identificadas não usam mais `.limit(20000)` nem `.limit(50000)`.
+- Histórico: contagem de movimentações inalterada (1.863).
+- Typecheck/build executado uma única vez, no final. Relatório final no formato pedido.
 
 ## Arquivos
-colaboradores.tsx, colaboradores_.$id.tsx, dashboard.tsx, inventario.tsx, estoque-calc.ts (só comentário), consumo.ts, e 1 migration (inventarios: local opcional + descricao).
+- `src/routes/_app/colaboradores.tsx`: tamanhos no formulário e coluna "Tamanhos".
+- `src/routes/_app/colaboradores_.$id.tsx`: Camisa, Calça e Bota primeiro.
+- `src/routes/_app/dashboard.tsx`: nível de estoque pelo motor e paginação.
+- `src/routes/_app/inventario.tsx`: novo inventário sem Local, com Descrição.
+- `src/lib/estoque-calc.ts`: somente comentário.
+- `src/lib/consumo.ts`: função auxiliar de paginação.
+- 1 migration: `inventarios.local` DROP NOT NULL + `descricao text` opcional.
+
+Nenhum outro arquivo. O arquivo de tipos do banco é atualizado automaticamente após a migration.
