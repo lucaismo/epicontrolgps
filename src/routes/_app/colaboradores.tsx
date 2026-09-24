@@ -115,7 +115,7 @@ function ColaboradoresPage() {
               <DialogTrigger asChild>
                 <Button onClick={() => setEditing(null)}><Plus className="h-4 w-4 mr-2" /> Novo colaborador</Button>
               </DialogTrigger>
-              <ColabForm key={editing?.id ?? "new"} editing={editing} onClose={() => { setOpen(false); setEditing(null); qc.invalidateQueries({ queryKey: ["colaboradores"] }); }} />
+              <ColabForm key={editing?.id ?? "new"} editing={editing} onClose={() => { setOpen(false); setEditing(null); qc.invalidateQueries({ queryKey: ["colaboradores"] }); qc.invalidateQueries({ queryKey: ["colaborador-tamanhos-all"] }); }} />
             </Dialog>
           </div>
         )}
