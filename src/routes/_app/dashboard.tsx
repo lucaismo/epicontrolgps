@@ -13,7 +13,8 @@ import {
   Line, ComposedChart, Area,
 } from "recharts";
 import { useEpiMetrics } from "@/hooks/use-epi-metrics";
-import { DIA_MS, nivelEstoque } from "@/lib/estoque-calc";
+import { DIA_MS } from "@/lib/estoque-calc";
+import { fetchPaginado } from "@/lib/consumo";
 import { StockBadge } from "@/components/StockBadge";
 
 export const Route = createFileRoute("/_app/dashboard")({
@@ -65,18 +66,17 @@ function Dashboard() {
     },
   });
 
-  // Movimentações do período selecionado
+  // Movimentações do período selecionado (paginado em lotes de 1.000)
   const { data: movs = [] } = useQuery({
     queryKey: ["dashboard-movs", ano, mes],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("movimentacoes")
-        .select("tipo,quantidade,epi_id,colaborador_id,data_movimentacao,epis(nome,categoria,custo_unitario),colaboradores(nome,matricula,turno)")
-        .gte("data_movimentacao", periodo.inicio)
-        .lt("data_movimentacao", periodo.fim)
-        .limit(20000);
-      return (data ?? []) as any[];
-    },
+    queryFn: () => fetchPaginado<any>((from, to) => supabase
+      .from("movimentacoes")
+      .select("tipo,quantidade,epi_id,colaborador_id,data_movimentacao,epis(nome,categoria,custo_unitario),colaboradores(nome,matricula,turno)")
+      .gte("data_movimentacao", periodo.inicio)
+      .lt("data_movimentacao", periodo.fim)
+      .order("data_movimentacao", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to)),
   });
 
   // Evolução: últimos 6 meses até o período selecionado (+ movimentações posteriores
@@ -85,11 +85,13 @@ function Dashboard() {
     queryKey: ["dashboard-evolucao", ano, mes],
     queryFn: async () => {
       const inicio6 = new Date(ano, mes - 5, 1, 0, 0, 0);
-      const { data } = await supabase
+      const data = await fetchPaginado<any>((from, to) => supabase
         .from("movimentacoes")
         .select("tipo,quantidade,data_movimentacao")
         .gte("data_movimentacao", inicio6.toISOString())
-        .limit(50000);
+        .order("data_movimentacao", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to));
       const buckets: { key: string; label: string; entradas: number; saidas: number }[] = [];
       for (let i = 5; i >= 0; i--) {
         const d = new Date(ano, mes - i, 1);
@@ -118,9 +120,15 @@ function Dashboard() {
   const epis = base?.epis ?? [];
 
   const estoque = useMemo(() => {
-    const zerados = epis.filter((e) => nivelEstoque(e.estoque_atual, e.estoque_minimo) === "zerado");
-    const criticos = epis.filter((e) => nivelEstoque(e.estoque_atual, e.estoque_minimo) === "critico");
-    const abaixoMin = epis.filter((e) => e.estoque_atual < e.estoque_minimo);
+    // Mesma origem de EPIs/Compras: nível e mínimo efetivo vêm do motor (calcularLinha).
+    // `estoque_minimo` abaixo passa a representar o mínimo EFETIVO (exibição nas listas).
+    const efetivos = epis.map((e) => {
+      const m = metricaDe(e);
+      return { ...e, estoque_minimo: m.minimoEfetivo, nivel: m.nivel };
+    });
+    const zerados = efetivos.filter((e) => e.nivel === "zerado");
+    const criticos = efetivos.filter((e) => e.nivel === "critico");
+    const abaixoMin = efetivos.filter((e) => e.estoque_atual < e.estoque_minimo);
     const valorTotal = epis.reduce((s, e) => s + e.estoque_atual * Number(e.custo_unitario ?? 0), 0);
     const estoqueTotal = epis.reduce((s, e) => s + (e.estoque_atual ?? 0), 0);
     // Ruptura prevista dentro do ciclo de reposição (mesma métrica do módulo Compras)
