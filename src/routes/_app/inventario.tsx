@@ -19,7 +19,7 @@ function InventarioPage() {
   const qc = useQueryClient();
   const [active, setActive] = useState<string | null>(null);
   const [newOpen, setNewOpen] = useState(false);
-  const [local, setLocal] = useState("");
+  const [descricao, setDescricao] = useState("");
   const [creating, setCreating] = useState(false);
 
   const { data: inventarios = [] } = useQuery({
@@ -28,18 +28,20 @@ function InventarioPage() {
   });
 
   async function criar() {
-    if (!local.trim()) { toast.error("Informe o local"); return; }
     setCreating(true);
-    const { data, error } = await supabase.from("inventarios").insert({ local, responsavel: user?.id }).select().single();
+    // Identificação automática por data/hora (inventário não depende mais de localização)
+    const agora = new Date();
+    const nome = `Inventário de estoque - ${agora.toLocaleDateString("pt-BR")} ${agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
+    const { data, error } = await supabase.from("inventarios")
+      .insert({ local: nome, descricao: descricao.trim() || null, responsavel: user?.id }).select().single();
     if (error) { toast.error(error.message); setCreating(false); return; }
-    // popular itens com snapshot dos EPIs ativos do local (ou todos se não houver match)
-    const { data: epis } = await supabase.from("epis").select("id,estoque_atual,localizacao").eq("status", "ativo");
-    const filtrados = (epis ?? []).filter((e) => !e.localizacao || e.localizacao.toLowerCase().includes(local.toLowerCase()));
-    const itens = (filtrados.length ? filtrados : epis ?? []).map((e) => ({
+    // Snapshot de TODOS os EPIs ativos, independentemente de localização
+    const { data: epis } = await supabase.from("epis").select("id,estoque_atual").eq("status", "ativo");
+    const itens = (epis ?? []).map((e) => ({
       inventario_id: data.id, epi_id: e.id, quantidade_sistema: e.estoque_atual,
     }));
     if (itens.length) await supabase.from("inventario_itens").insert(itens);
-    setCreating(false); setNewOpen(false); setLocal(""); setActive(data.id);
+    setCreating(false); setNewOpen(false); setDescricao(""); setActive(data.id);
     qc.invalidateQueries({ queryKey: ["inventarios"] });
     toast.success("Inventário iniciado!");
   }
