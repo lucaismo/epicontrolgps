@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { TAMANHOS_PRINCIPAIS, fetchPaginado, norm } from "@/lib/consumo";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -49,6 +50,21 @@ function ColaboradoresPage() {
       return (data ?? []) as Colab[];
     },
   });
+
+  // Situação do cadastro de tamanhos (fonte: colaborador_tamanhos)
+  const { data: tamRows = [] } = useQuery({
+    queryKey: ["colaborador-tamanhos-all"],
+    queryFn: () => fetchPaginado<{ colaborador_id: string; item: string }>((from, to) =>
+      supabase.from("colaborador_tamanhos").select("colaborador_id,item").order("id").range(from, to)),
+  });
+  const tamCompleto = useMemo(() => {
+    const porColab = new Map<string, Set<string>>();
+    for (const r of tamRows) {
+      const s = porColab.get(r.colaborador_id) ?? new Set<string>();
+      s.add(norm(r.item)); porColab.set(r.colaborador_id, s);
+    }
+    return (id: string) => { const s = porColab.get(id); return !!s && TAMANHOS_PRINCIPAIS.every((p) => s.has(norm(p))); };
+  }, [tamRows]);
 
   const filtered = list.filter((c) => {
     if (filterTurno !== "all" && c.turno !== filterTurno) return false;
@@ -139,6 +155,7 @@ function ColaboradoresPage() {
                 <th className="text-left px-4 py-3 hidden md:table-cell">Função</th>
                 <th className="text-left px-4 py-3 hidden lg:table-cell">Turno</th>
                 <th className="text-left px-4 py-3">Status</th>
+                <th className="text-left px-4 py-3">Tamanhos</th>
                 <th className="text-right px-4 py-3">Ações</th>
               </tr>
             </thead>
@@ -150,6 +167,11 @@ function ColaboradoresPage() {
                   <td className="px-4 py-3 hidden md:table-cell">{c.funcao}</td>
                   <td className="px-4 py-3 hidden lg:table-cell text-muted-foreground">{c.turno ?? "—"}</td>
                   <td className="px-4 py-3"><StatusPill status={c.status} /></td>
+                  <td className="px-4 py-3">
+                    {tamCompleto(c.id)
+                      ? <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-success/15 text-success">Completo</span>
+                      : <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-warning/15 text-warning">Pendente</span>}
+                  </td>
                   <td className="px-4 py-3 text-right">
                     <div className="inline-flex gap-1">
                       <Button asChild variant="ghost" size="icon" title="Histórico">
@@ -175,7 +197,7 @@ function ColaboradoresPage() {
                 </tr>
               ))}
               {filtered.length === 0 && (
-                <tr><td colSpan={6} className="text-center py-12 text-muted-foreground text-sm">Nenhum colaborador encontrado.</td></tr>
+                <tr><td colSpan={7} className="text-center py-12 text-muted-foreground text-sm">Nenhum colaborador encontrado.</td></tr>
               )}
             </tbody>
           </table>
