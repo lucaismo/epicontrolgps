@@ -69,7 +69,18 @@ export type EpiCalc = {
 
 export type Prioridade = "alta" | "media" | "baixa";
 
-/** Dias de estoque de segurança usados SOMENTE no cálculo do estoque mínimo automático. */
+/**
+ * DOIS CONCEITOS DISTINTOS (não unificar):
+ *
+ * 1) MÍNIMO OPERACIONAL (nível de estoque: zerado/crítico/atenção/normal)
+ *      ceil(consumo_diario × (período sem reposição + DIAS_SEGURANCA_MINIMO=7))
+ *    Usado por Dashboard, EPIs e Compras via `minimoEfetivo`/`nivel`.
+ *    Sem consumo registrado, usa o `estoque_minimo` cadastrado como referência.
+ *
+ * 2) ESTOQUE DE SEGURANÇA DA COMPRA
+ *      consumo_diario × `dias_seguranca` do EPI (`estoqueSeg`)
+ *    Usado SOMENTE na compra sugerida e na prioridade.
+ */
 export const DIAS_SEGURANCA_MINIMO = 7;
 
 /**

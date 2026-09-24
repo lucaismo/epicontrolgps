@@ -35,6 +35,23 @@ export type EntregaRow = { epi_id: string; quantidade: number | null; tipo: stri
 const PAGE = 1000;
 
 /**
+ * Pagina qualquer consulta em lotes de 1000 (mesma estratégia de fetchEntregasDesde).
+ * `build(from, to)` deve retornar a consulta já filtrada/ordenada com `.range(from, to)`.
+ */
+export async function fetchPaginado<T>(
+  build: (from: number, to: number) => PromiseLike<{ data: unknown[] | null; error: unknown }>,
+): Promise<T[]> {
+  const out: T[] = [];
+  for (let from = 0; from < 200_000; from += PAGE) {
+    const { data, error } = await build(from, from + PAGE - 1);
+    if (error) throw error;
+    out.push(...((data ?? []) as T[]));
+    if (!data || data.length < PAGE) break;
+  }
+  return out;
+}
+
+/**
  * Busca TODAS as entregas desde a data informada, paginando de 1000 em 1000.
  * O backend limita cada resposta a 1000 linhas; sem paginação o consumo era truncado.
  */
