@@ -292,24 +292,27 @@ export type Database = {
         Row: {
           data_fim: string | null
           data_inicio: string
+          descricao: string | null
           id: string
-          local: string
+          local: string | null
           responsavel: string | null
           status: Database["public"]["Enums"]["inventario_status"]
         }
         Insert: {
           data_fim?: string | null
           data_inicio?: string
+          descricao?: string | null
           id?: string
-          local: string
+          local?: string | null
           responsavel?: string | null
           status?: Database["public"]["Enums"]["inventario_status"]
         }
         Update: {
           data_fim?: string | null
           data_inicio?: string
+          descricao?: string | null
           id?: string
-          local?: string
+          local?: string | null
           responsavel?: string | null
           status?: Database["public"]["Enums"]["inventario_status"]
         }
