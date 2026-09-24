@@ -19,7 +19,7 @@ function InventarioPage() {
   const qc = useQueryClient();
   const [active, setActive] = useState<string | null>(null);
   const [newOpen, setNewOpen] = useState(false);
-  const [local, setLocal] = useState("");
+  const [descricao, setDescricao] = useState("");
   const [creating, setCreating] = useState(false);
 
   const { data: inventarios = [] } = useQuery({
@@ -28,18 +28,20 @@ function InventarioPage() {
   });
 
   async function criar() {
-    if (!local.trim()) { toast.error("Informe o local"); return; }
     setCreating(true);
-    const { data, error } = await supabase.from("inventarios").insert({ local, responsavel: user?.id }).select().single();
+    // Identificação automática por data/hora (inventário não depende mais de localização)
+    const agora = new Date();
+    const nome = `Inventário de estoque - ${agora.toLocaleDateString("pt-BR")} ${agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
+    const { data, error } = await supabase.from("inventarios")
+      .insert({ local: nome, descricao: descricao.trim() || null, responsavel: user?.id }).select().single();
     if (error) { toast.error(error.message); setCreating(false); return; }
-    // popular itens com snapshot dos EPIs ativos do local (ou todos se não houver match)
-    const { data: epis } = await supabase.from("epis").select("id,estoque_atual,localizacao").eq("status", "ativo");
-    const filtrados = (epis ?? []).filter((e) => !e.localizacao || e.localizacao.toLowerCase().includes(local.toLowerCase()));
-    const itens = (filtrados.length ? filtrados : epis ?? []).map((e) => ({
+    // Snapshot de TODOS os EPIs ativos, independentemente de localização
+    const { data: epis } = await supabase.from("epis").select("id,estoque_atual").eq("status", "ativo");
+    const itens = (epis ?? []).map((e) => ({
       inventario_id: data.id, epi_id: e.id, quantidade_sistema: e.estoque_atual,
     }));
     if (itens.length) await supabase.from("inventario_itens").insert(itens);
-    setCreating(false); setNewOpen(false); setLocal(""); setActive(data.id);
+    setCreating(false); setNewOpen(false); setDescricao(""); setActive(data.id);
     qc.invalidateQueries({ queryKey: ["inventarios"] });
     toast.success("Inventário iniciado!");
   }
@@ -59,10 +61,10 @@ function InventarioPage() {
             <DialogContent>
               <DialogHeader><DialogTitle>Novo inventário</DialogTitle></DialogHeader>
               <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">A identificação é gerada automaticamente com data e hora. Todos os EPIs ativos serão incluídos.</p>
                 <div className="space-y-1.5">
-                  <Label>Local</Label>
-                  <Input value={local} onChange={(e) => setLocal(e.target.value)} placeholder="Ex: Prateleira A ou Almoxarifado 1" />
-                  <p className="text-xs text-muted-foreground">EPIs cuja localização contenha este texto serão incluídos.</p>
+                  <Label>Descrição (opcional)</Label>
+                  <Input value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Ex: Contagem mensal" />
                 </div>
               </div>
               <DialogFooter>
@@ -82,21 +84,22 @@ function InventarioPage() {
                 {inv.status === "finalizado" ? <Check className="h-5 w-5" /> : <ClipboardList className="h-5 w-5" />}
               </div>
               <div className="min-w-0">
-                <div className="font-semibold truncate">{inv.local}</div>
+                <div className="font-semibold truncate">{inv.local ?? "Inventário de estoque"}</div>
                 <div className="text-xs text-muted-foreground">
                   {new Date(inv.data_inicio).toLocaleString("pt-BR")} · <span className="capitalize">{inv.status.replace("_", " ")}</span>
+                  {inv.descricao ? ` · ${inv.descricao}` : ""}
                 </div>
               </div>
             </button>
             <div className="flex items-center gap-1">
               {pode && inv.status !== "finalizado" && (
                 <>
-                  <Button variant="ghost" size="icon" title="Editar local" onClick={async () => {
-                    const novo = prompt("Novo local do inventário:", inv.local);
-                    if (!novo || novo.trim() === "" || novo === inv.local) return;
-                    const { error } = await supabase.from("inventarios").update({ local: novo.trim() }).eq("id", inv.id);
+                  <Button variant="ghost" size="icon" title="Editar descrição" onClick={async () => {
+                    const novo = prompt("Descrição do inventário:", inv.descricao ?? "");
+                    if (novo === null || novo.trim() === (inv.descricao ?? "")) return;
+                    const { error } = await supabase.from("inventarios").update({ descricao: novo.trim() || null }).eq("id", inv.id);
                     if (error) toast.error(error.message);
-                    else { toast.success("Local atualizado"); qc.invalidateQueries({ queryKey: ["inventarios"] }); }
+                    else { toast.success("Descrição atualizada"); qc.invalidateQueries({ queryKey: ["inventarios"] }); }
                   }}><Pencil className="h-4 w-4" /></Button>
                   <Button variant="ghost" size="icon" title="Cancelar/Excluir" onClick={async () => {
                     if (!confirm(`Cancelar/excluir o inventário "${inv.local}"? Apenas inventários em andamento podem ser removidos.`)) return;

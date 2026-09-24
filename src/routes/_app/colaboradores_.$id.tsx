@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { ArrowLeft, Pencil, Plus, Save, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth, canMovimentar } from "@/lib/auth";
-import { ITENS_TAMANHO, TIPO_GRUPO, TIPO_LABEL, norm } from "@/lib/consumo";
+import { ITENS_TAMANHO, TAMANHOS_PRINCIPAIS, TIPO_GRUPO, TIPO_LABEL, norm } from "@/lib/consumo";
 import { sanitizeText } from "@/lib/sanitize";
 
 export const Route = createFileRoute("/_app/colaboradores_/$id")({
@@ -38,10 +38,15 @@ function FichaColab() {
     queryFn: async () => (await supabase.from("colaboradores").select("*").eq("id", id).maybeSingle()).data,
   });
 
-  const { data: tamanhos = [] } = useQuery({
+  const { data: tamanhosRaw = [] } = useQuery({
     queryKey: ["colab-tamanhos", id],
     queryFn: async () => (await supabase.from("colaborador_tamanhos").select("id,item,tamanho").eq("colaborador_id", id).order("item")).data ?? [],
   });
+  // Camisa, Calça e Bota (tamanhos principais) aparecem primeiro
+  const tamanhos = useMemo(() => {
+    const ordem = (i: string) => { const k = TAMANHOS_PRINCIPAIS.findIndex((p) => norm(p) === norm(i)); return k < 0 ? 99 : k; };
+    return [...tamanhosRaw].sort((a, b) => ordem(a.item) - ordem(b.item));
+  }, [tamanhosRaw]);
 
   const { data: movs = [] } = useQuery({
     queryKey: ["colab-movs", id],

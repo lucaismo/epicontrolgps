@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { TAMANHOS_PRINCIPAIS, fetchPaginado, norm } from "@/lib/consumo";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -49,6 +50,21 @@ function ColaboradoresPage() {
       return (data ?? []) as Colab[];
     },
   });
+
+  // Situação do cadastro de tamanhos (fonte: colaborador_tamanhos)
+  const { data: tamRows = [] } = useQuery({
+    queryKey: ["colaborador-tamanhos-all"],
+    queryFn: () => fetchPaginado<{ colaborador_id: string; item: string }>((from, to) =>
+      supabase.from("colaborador_tamanhos").select("colaborador_id,item").order("id").range(from, to)),
+  });
+  const tamCompleto = useMemo(() => {
+    const porColab = new Map<string, Set<string>>();
+    for (const r of tamRows) {
+      const s = porColab.get(r.colaborador_id) ?? new Set<string>();
+      s.add(norm(r.item)); porColab.set(r.colaborador_id, s);
+    }
+    return (id: string) => { const s = porColab.get(id); return !!s && TAMANHOS_PRINCIPAIS.every((p) => s.has(norm(p))); };
+  }, [tamRows]);
 
   const filtered = list.filter((c) => {
     if (filterTurno !== "all" && c.turno !== filterTurno) return false;
@@ -99,7 +115,7 @@ function ColaboradoresPage() {
               <DialogTrigger asChild>
                 <Button onClick={() => setEditing(null)}><Plus className="h-4 w-4 mr-2" /> Novo colaborador</Button>
               </DialogTrigger>
-              <ColabForm key={editing?.id ?? "new"} editing={editing} onClose={() => { setOpen(false); setEditing(null); qc.invalidateQueries({ queryKey: ["colaboradores"] }); }} />
+              <ColabForm key={editing?.id ?? "new"} editing={editing} onClose={() => { setOpen(false); setEditing(null); qc.invalidateQueries({ queryKey: ["colaboradores"] }); qc.invalidateQueries({ queryKey: ["colaborador-tamanhos-all"] }); }} />
             </Dialog>
           </div>
         )}
@@ -139,6 +155,7 @@ function ColaboradoresPage() {
                 <th className="text-left px-4 py-3 hidden md:table-cell">Função</th>
                 <th className="text-left px-4 py-3 hidden lg:table-cell">Turno</th>
                 <th className="text-left px-4 py-3">Status</th>
+                <th className="text-left px-4 py-3">Tamanhos</th>
                 <th className="text-right px-4 py-3">Ações</th>
               </tr>
             </thead>
@@ -150,6 +167,11 @@ function ColaboradoresPage() {
                   <td className="px-4 py-3 hidden md:table-cell">{c.funcao}</td>
                   <td className="px-4 py-3 hidden lg:table-cell text-muted-foreground">{c.turno ?? "—"}</td>
                   <td className="px-4 py-3"><StatusPill status={c.status} /></td>
+                  <td className="px-4 py-3">
+                    {tamCompleto(c.id)
+                      ? <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-success/15 text-success">Completo</span>
+                      : <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-warning/15 text-warning">Pendente</span>}
+                  </td>
                   <td className="px-4 py-3 text-right">
                     <div className="inline-flex gap-1">
                       <Button asChild variant="ghost" size="icon" title="Histórico">
@@ -175,7 +197,7 @@ function ColaboradoresPage() {
                 </tr>
               ))}
               {filtered.length === 0 && (
-                <tr><td colSpan={6} className="text-center py-12 text-muted-foreground text-sm">Nenhum colaborador encontrado.</td></tr>
+                <tr><td colSpan={7} className="text-center py-12 text-muted-foreground text-sm">Nenhum colaborador encontrado.</td></tr>
               )}
             </tbody>
           </table>
@@ -197,6 +219,36 @@ function StatusPill({ status }: { status: string }) {
 function ColabForm({ editing, onClose }: { editing: Colab | null; onClose: () => void }) {
   const [form, setForm] = useState<Partial<Colab>>(editing ?? { status: "ativo" });
   const [saving, setSaving] = useState(false);
+  const [tams, setTams] = useState<Record<string, string>>({});
+  const [tamsExist, setTamsExist] = useState<{ id: string; item: string; tamanho: string }[]>([]);
+
+  useEffect(() => {
+    if (!editing) return;
+    supabase.from("colaborador_tamanhos").select("id,item,tamanho").eq("colaborador_id", editing.id).then(({ data }) => {
+      const rows = data ?? [];
+      setTamsExist(rows);
+      const init: Record<string, string> = {};
+      for (const p of TAMANHOS_PRINCIPAIS) init[p] = rows.find((r) => norm(r.item) === norm(p))?.tamanho ?? "";
+      setTams(init);
+    });
+  }, [editing]);
+
+  async function salvarTamanhos(colabId: string) {
+    for (const p of TAMANHOS_PRINCIPAIS) {
+      const val = sanitizeText(tams[p] ?? "", 20)?.trim() ?? "";
+      const ex = tamsExist.find((r) => norm(r.item) === norm(p));
+      if (val && ex && ex.tamanho !== val) {
+        const { error } = await supabase.from("colaborador_tamanhos").update({ tamanho: val }).eq("id", ex.id);
+        if (error) throw error;
+      } else if (val && !ex) {
+        const { error } = await supabase.from("colaborador_tamanhos").insert({ colaborador_id: colabId, item: p, tamanho: val });
+        if (error) throw error;
+      } else if (!val && ex) {
+        const { error } = await supabase.from("colaborador_tamanhos").delete().eq("id", ex.id);
+        if (error) throw error;
+      }
+    }
+  }
 
   async function save() {
     if (!form.nome || !form.matricula || !form.funcao) {
@@ -218,12 +270,23 @@ function ColabForm({ editing, onClose }: { editing: Colab | null; onClose: () =>
       data_admissao: form.data_admissao || null,
       observacoes: sanitizeText(form.observacoes, 1000),
     };
-    const { error } = editing
-      ? await supabase.from("colaboradores").update(payload).eq("id", editing.id)
-      : await supabase.from("colaboradores").insert(payload);
+    let colabId = editing?.id;
+    if (editing) {
+      const { error } = await supabase.from("colaboradores").update(payload).eq("id", editing.id);
+      if (error) { setSaving(false); toast.error(error.message); return; }
+    } else {
+      const { data, error } = await supabase.from("colaboradores").insert(payload).select("id").single();
+      if (error) { setSaving(false); toast.error(error.message); return; }
+      colabId = data.id;
+    }
+    try {
+      await salvarTamanhos(colabId!);
+    } catch (e: any) {
+      toast.error(`Colaborador salvo, mas houve erro nos tamanhos: ${e?.message ?? e}`);
+    }
     setSaving(false);
-    if (error) toast.error(error.message);
-    else { toast.success(editing ? "Atualizado" : "Cadastrado"); onClose(); }
+    toast.success(editing ? "Atualizado" : "Cadastrado");
+    onClose();
   }
 
   return (
@@ -251,6 +314,19 @@ function ColabForm({ editing, onClose }: { editing: Colab | null; onClose: () =>
         </div>
         <div className="space-y-1.5"><Label>Data de admissão</Label><Input type="date" value={form.data_admissao ?? ""} onChange={(e) => setForm({ ...form, data_admissao: e.target.value })} /></div>
         <div className="md:col-span-2 space-y-1.5"><Label>Observações</Label><Textarea rows={3} value={form.observacoes ?? ""} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} /></div>
+        <div className="md:col-span-2 space-y-2 border-t pt-4">
+          <Label className="text-sm font-semibold">Tamanhos de EPI</Label>
+          <p className="text-xs text-muted-foreground">Opcional. Deixe em branco se ainda não souber (fica como pendente).</p>
+          <div className="grid grid-cols-3 gap-3">
+            {TAMANHOS_PRINCIPAIS.map((p) => (
+              <div key={p} className="space-y-1.5">
+                <Label className="text-xs">{p}</Label>
+                <Input value={tams[p] ?? ""} placeholder={p === "Camisa" ? "Ex: G" : p === "Calça" ? "Ex: 42" : "Ex: 41"}
+                  onChange={(e) => setTams({ ...tams, [p]: e.target.value })} />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
       <DialogFooter>
         <Button variant="ghost" onClick={onClose}>Cancelar</Button>
