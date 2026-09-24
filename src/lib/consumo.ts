@@ -75,6 +75,9 @@ export async function fetchEntregasDesde(desdeIso: string): Promise<EntregaRow[]
 /** Itens sugeridos para cadastro de tamanho do colaborador. */
 export const ITENS_TAMANHO = ["Camisa", "Calça", "Bota", "Luva", "Colete", "Capacete", "Jaqueta", "Macacão", "Óculos", "Protetor auricular"] as const;
 
+/** Tamanhos principais: Completo = os três cadastrados; qualquer ausência = Pendente. */
+export const TAMANHOS_PRINCIPAIS = ["Camisa", "Calça", "Bota"] as const;
+
 export const norm = (s: string | null | undefined) =>
   (s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 
