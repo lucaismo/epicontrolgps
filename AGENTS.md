@@ -1,0 +1,1 @@
+- Technical: /__review renders real screens with local fixtures via a fetch shield active only on /__review paths; why: lets visual review run without auth or real data.
