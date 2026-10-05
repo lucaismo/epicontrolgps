@@ -1,5 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { fetchPaginado } from "@/lib/consumo";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +16,7 @@ import autoTable from "jspdf-autotable";
 export const Route = createFileRoute("/_app/relatorios")({ component: Relatorios });
 
 const APP_NAME = "EpiControl GPS";
+const MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
 function fmtDate(d: string | Date | null | undefined) {
   if (!d) return "";
@@ -109,9 +113,18 @@ function Relatorios() {
   EMISSOR = perfil?.nome ?? user?.email ?? "—";
 
   const { data: epis = [] } = useQuery({ queryKey: ["rel-epis"], queryFn: async () => (await supabase.from("epis").select("*").order("nome")).data ?? [] });
-  const { data: movs = [] } = useQuery({ queryKey: ["rel-movs"], queryFn: async () => {
-    const { data: ms } = await supabase.from("movimentacoes").select("*, epis(nome,categoria,codigo_produto,custo_unitario), colaboradores(nome,matricula,funcao)").order("data_movimentacao", { ascending: false }).limit(2000);
-    const rows = ms ?? [];
+  const hoje = new Date();
+  const [mes, setMes] = useState(hoje.getMonth());
+  const [ano, setAno] = useState(hoje.getFullYear());
+  const periodoLabel = `${MESES[mes]}/${ano}`;
+  // Movimentações do período escolhido, em lotes de 1.000 (sem limite fixo que corte dados).
+  const { data: movs = [] } = useQuery({ queryKey: ["rel-movs", ano, mes], queryFn: async () => {
+    const ini = new Date(ano, mes, 1).toISOString();
+    const fim = new Date(ano, mes + 1, 1).toISOString();
+    const rows = await fetchPaginado<any>((a, b) => supabase.from("movimentacoes")
+      .select("*, epis(nome,categoria,codigo_produto,custo_unitario), colaboradores(nome,matricula,funcao)")
+      .gte("data_movimentacao", ini).lt("data_movimentacao", fim)
+      .order("data_movimentacao", { ascending: false }).order("id").range(a, b));
     const userIds = Array.from(new Set(rows.map((r: any) => r.usuario_responsavel).filter(Boolean)));
     let profMap = new Map<string, any>();
     if (userIds.length) {
@@ -164,7 +177,7 @@ function Relatorios() {
   }
   function xlsxMovs() {
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, buildSheet("Movimentações", rowsMovs()), "Movimentações");
+    XLSX.utils.book_append_sheet(wb, buildSheet(`Movimentações — ${periodoLabel}`, rowsMovs()), "Movimentações");
     XLSX.writeFile(wb, `movimentacoes_${Date.now()}.xlsx`);
   }
   function xlsxColabs() {
@@ -176,7 +189,7 @@ function Relatorios() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, buildSheet("Estoque atual", rowsEstoque()), "Estoque");
     XLSX.utils.book_append_sheet(wb, buildSheet("EPIs críticos", rowsCriticos()), "Críticos");
-    XLSX.utils.book_append_sheet(wb, buildSheet("Movimentações", rowsMovs()), "Movimentações");
+    XLSX.utils.book_append_sheet(wb, buildSheet(`Movimentações — ${periodoLabel}`, rowsMovs()), "Movimentações");
     XLSX.utils.book_append_sheet(wb, buildSheet("Colaboradores", rowsColabs()), "Colaboradores");
     XLSX.writeFile(wb, `relatorio_geral_${Date.now()}.xlsx`);
   }
@@ -191,8 +204,8 @@ function Relatorios() {
   }
   function pdfMovs() {
     const doc = new jsPDF({ orientation: "landscape", unit: "pt" });
-    pdfHeader(doc, "Relatório de Movimentações");
-    pdfTable(doc, "Movimentações", rowsMovs());
+    pdfHeader(doc, `Relatório de Movimentações — ${periodoLabel}`);
+    pdfTable(doc, `Movimentações — ${periodoLabel}`, rowsMovs());
     pdfFooter(doc);
     doc.save(`movimentacoes_${Date.now()}.pdf`);
   }
@@ -211,7 +224,7 @@ function Relatorios() {
     doc.addPage(); pdfHeader(doc, "Relatório Geral");
     y = pdfTable(doc, "2. EPIs críticos", rowsCriticos(), 88);
     doc.addPage(); pdfHeader(doc, "Relatório Geral");
-    y = pdfTable(doc, "3. Movimentações", rowsMovs(), 88);
+    y = pdfTable(doc, `3. Movimentações — ${periodoLabel}`, rowsMovs(), 88);
     doc.addPage(); pdfHeader(doc, "Relatório Geral");
     y = pdfTable(doc, "4. Colaboradores", rowsColabs(), 88);
     pdfFooter(doc);
@@ -220,22 +233,39 @@ function Relatorios() {
 
   const reports = [
     { title: "Estoque atual", desc: `${epis.length} EPIs cadastrados`, xlsx: xlsxEstoque, pdf: pdfEstoque },
-    { title: "Movimentações", desc: `${movs.length} movimentações`, xlsx: xlsxMovs, pdf: pdfMovs },
+    { title: "Movimentações", desc: `${movs.length} movimentações em ${periodoLabel}`, xlsx: xlsxMovs, pdf: pdfMovs },
     { title: "EPIs críticos", desc: "Itens abaixo do estoque mínimo", xlsx: () => { const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, buildSheet("EPIs críticos", rowsCriticos()), "Críticos"); XLSX.writeFile(wb, `criticos_${Date.now()}.xlsx`); toast.success("Exportado"); }, pdf: pdfCriticos },
     { title: "Colaboradores", desc: `${colabs.length} cadastrados`, xlsx: xlsxColabs, pdf: () => { const doc = new jsPDF({ unit: "pt" }); pdfHeader(doc, "Colaboradores"); pdfTable(doc, "Colaboradores", rowsColabs()); pdfFooter(doc); doc.save(`colaboradores_${Date.now()}.pdf`); } },
-    { title: "Relatório geral (todas as seções)", desc: "Estoque + Críticos + Movimentações + Colaboradores", xlsx: xlsxGeral, pdf: pdfGeral },
+    { title: "Relatório geral (todas as seções)", desc: `Estoque + Críticos + Movimentações (${periodoLabel}) + Colaboradores`, xlsx: xlsxGeral, pdf: pdfGeral },
   ];
 
   return (
     <div className="p-4 md:p-8 space-y-5">
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Relatórios</h1>
-        <p className="text-sm text-muted-foreground">Exporte em Excel (planilhas formatadas) ou PDF (paginação, cabeçalho e rodapé)</p>
+      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Relatórios</h1>
+          <p className="text-sm text-muted-foreground">Exporte em Excel (planilhas formatadas) ou PDF (paginação, cabeçalho e rodapé)</p>
+        </div>
+        <div className="flex items-end gap-2">
+          <div className="space-y-1">
+            <div className="type-label">Período das movimentações</div>
+            <div className="flex gap-2">
+              <Select value={String(mes)} onValueChange={(v) => setMes(Number(v))}>
+                <SelectTrigger className="w-36" aria-label="Mês"><SelectValue /></SelectTrigger>
+                <SelectContent>{MESES.map((m, i) => <SelectItem key={m} value={String(i)}>{m}</SelectItem>)}</SelectContent>
+              </Select>
+              <Select value={String(ano)} onValueChange={(v) => setAno(Number(v))}>
+                <SelectTrigger className="w-24" aria-label="Ano"><SelectValue /></SelectTrigger>
+                <SelectContent>{Array.from({ length: 6 }, (_, i) => hoje.getFullYear() - i).map((a) => <SelectItem key={a} value={String(a)}>{a}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="grid md:grid-cols-2 gap-4">
         {reports.map((r) => (
-          <Card key={r.title} className="p-5 flex items-center justify-between gap-3">
+          <Card key={r.title} className="p-4 md:p-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between min-w-0">
             <div className="flex items-center gap-3 min-w-0">
               <div className="h-10 w-10 rounded-md bg-primary/10 text-primary grid place-items-center"><FileSpreadsheet className="h-5 w-5" /></div>
               <div className="min-w-0">
@@ -243,9 +273,9 @@ function Relatorios() {
                 <div className="text-xs text-muted-foreground">{r.desc}</div>
               </div>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={r.xlsx}><FileSpreadsheet className="h-4 w-4 mr-2" /> Excel</Button>
-              <Button variant="outline" size="sm" onClick={r.pdf}><FileText className="h-4 w-4 mr-2" /> PDF</Button>
+            <div className="flex gap-2 shrink-0">
+              <Button variant="outline" size="sm" className="flex-1 sm:flex-none" onClick={r.xlsx}><FileSpreadsheet className="h-4 w-4 mr-2" /> Excel</Button>
+              <Button variant="outline" size="sm" className="flex-1 sm:flex-none" onClick={r.pdf}><FileText className="h-4 w-4 mr-2" /> PDF</Button>
             </div>
           </Card>
         ))}

@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchPaginado } from "@/lib/consumo";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +26,26 @@ function InventarioPage() {
   const { data: inventarios = [] } = useQuery({
     queryKey: ["inventarios"],
     queryFn: async () => (await supabase.from("inventarios").select("*").order("data_inicio", { ascending: false })).data ?? [],
+  });
+
+  // Resumo por inventário a partir dos itens já gravados (sem nova regra de cálculo).
+  const { data: resumos = {} } = useQuery({
+    queryKey: ["inventarios-resumo"],
+    queryFn: async () => {
+      const itens = await fetchPaginado<{ inventario_id: string; quantidade_sistema: number; quantidade_contada: number | null }>((a, b) =>
+        supabase.from("inventario_itens").select("inventario_id,quantidade_sistema,quantidade_contada").order("id").range(a, b));
+      const map: Record<string, { esperados: number; contados: number; divergencias: number; mais: number; menos: number }> = {};
+      for (const it of itens) {
+        const r = (map[it.inventario_id] ??= { esperados: 0, contados: 0, divergencias: 0, mais: 0, menos: 0 });
+        r.esperados++;
+        if (it.quantidade_contada == null) continue;
+        r.contados++;
+        const d = it.quantidade_contada - it.quantidade_sistema;
+        if (d !== 0) r.divergencias++;
+        if (d > 0) r.mais += d; else r.menos += -d;
+      }
+      return map;
+    },
   });
 
   async function criar() {
@@ -76,43 +97,68 @@ function InventarioPage() {
         )}
       </div>
 
-      <div className="grid gap-3">
-        {inventarios.map((inv: any) => (
-          <Card key={inv.id} className="p-4 flex items-center justify-between gap-3 hover:bg-muted/40 transition">
-            <button className="flex items-center gap-3 min-w-0 flex-1 text-left" onClick={() => setActive(inv.id)}>
-              <div className={`h-10 w-10 rounded-md grid place-items-center ${inv.status === "finalizado" ? "bg-success/15 text-success" : "bg-primary/10 text-primary"}`}>
-                {inv.status === "finalizado" ? <Check className="h-5 w-5" /> : <ClipboardList className="h-5 w-5" />}
+      <div className="grid gap-3 min-w-0">
+        {inventarios.map((inv: any) => {
+          const r = resumos[inv.id];
+          const andamento = inv.status !== "finalizado";
+          const pct = r && r.esperados ? Math.round((r.contados / r.esperados) * 100) : 0;
+          return (
+          <Card key={inv.id} className={`p-4 min-w-0 transition hover:bg-muted/40 ${andamento ? "border-primary/50 ring-1 ring-primary/20" : ""}`}>
+            <div className="flex items-start justify-between gap-2 min-w-0">
+              <button className="flex items-center gap-3 min-w-0 flex-1 text-left" onClick={() => setActive(inv.id)}>
+                <div className={`h-10 w-10 shrink-0 rounded-md grid place-items-center ${andamento ? "bg-primary/10 text-primary" : "bg-success/15 text-success"}`}>
+                  {andamento ? <ClipboardList className="h-5 w-5" /> : <Check className="h-5 w-5" />}
+                </div>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-semibold truncate">{inv.local ?? "Inventário de estoque"}</span>
+                    <span className={`status-pill ${andamento ? "status-warning" : "status-normal"}`}>{andamento ? "Em andamento" : "Finalizado"}</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {new Date(inv.data_inicio).toLocaleString("pt-BR")}{inv.descricao ? ` · ${inv.descricao}` : ""}
+                  </div>
+                </div>
+              </button>
+              <div className="flex shrink-0 items-center gap-0.5">
+                {pode && andamento && (
+                  <>
+                    <Button variant="ghost" size="icon" title="Editar descrição" className="text-muted-foreground hover:text-foreground" onClick={async () => {
+                      const novo = prompt("Descrição do inventário:", inv.descricao ?? "");
+                      if (novo === null || novo.trim() === (inv.descricao ?? "")) return;
+                      const { error } = await supabase.from("inventarios").update({ descricao: novo.trim() || null }).eq("id", inv.id);
+                      if (error) toast.error(error.message);
+                      else { toast.success("Descrição atualizada"); qc.invalidateQueries({ queryKey: ["inventarios"] }); }
+                    }}><Pencil className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" title="Cancelar/Excluir" className="text-muted-foreground hover:text-destructive" onClick={async () => {
+                      if (!confirm(`Cancelar/excluir o inventário "${inv.local}"? Apenas inventários em andamento podem ser removidos.`)) return;
+                      const { error } = await supabase.rpc("excluir_inventario", { p_inventario_id: inv.id });
+                      if (error) toast.error(error.message);
+                      else { toast.success("Inventário excluído"); qc.invalidateQueries({ queryKey: ["inventarios"] }); }
+                    }}><Trash2 className="h-4 w-4" /></Button>
+                  </>
+                )}
+                <Button variant="ghost" size="icon" title={andamento ? "Continuar contagem" : "Abrir"} onClick={() => setActive(inv.id)}><ChevronRight className="h-4 w-4" /></Button>
               </div>
-              <div className="min-w-0">
-                <div className="font-semibold truncate">{inv.local ?? "Inventário de estoque"}</div>
-                <div className="text-xs text-muted-foreground">
-                  {new Date(inv.data_inicio).toLocaleString("pt-BR")} · <span className="capitalize">{inv.status.replace("_", " ")}</span>
-                  {inv.descricao ? ` · ${inv.descricao}` : ""}
+            </div>
+            {r && (
+              <div className="mt-3 border-t pt-3 space-y-2">
+                {andamento && (
+                  <div className="flex items-center gap-3">
+                    <div className="h-1.5 flex-1 rounded-full bg-muted overflow-hidden"><div className="h-full bg-primary" style={{ width: `${pct}%` }} /></div>
+                    <span className="text-xs num text-muted-foreground shrink-0">{pct}% contado</span>
+                  </div>
+                )}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
+                  <div><div className="type-label">Contados</div><span className="font-semibold num">{r.contados}</span><span className="text-muted-foreground num"> / {r.esperados}</span></div>
+                  <div><div className="type-label">Divergências</div><span className={`font-semibold num ${r.divergencias ? "text-warning-ink" : ""}`}>{r.divergencias}</span></div>
+                  <div><div className="type-label">A mais</div><span className="font-semibold num">{r.mais ? `+${r.mais}` : 0}</span> <span className="text-xs text-muted-foreground">un</span></div>
+                  <div><div className="type-label">A menos</div><span className={`font-semibold num ${r.menos ? "text-destructive" : ""}`}>{r.menos ? `−${r.menos}` : 0}</span> <span className="text-xs text-muted-foreground">un</span></div>
                 </div>
               </div>
-            </button>
-            <div className="flex items-center gap-1">
-              {pode && inv.status !== "finalizado" && (
-                <>
-                  <Button variant="ghost" size="icon" title="Editar descrição" onClick={async () => {
-                    const novo = prompt("Descrição do inventário:", inv.descricao ?? "");
-                    if (novo === null || novo.trim() === (inv.descricao ?? "")) return;
-                    const { error } = await supabase.from("inventarios").update({ descricao: novo.trim() || null }).eq("id", inv.id);
-                    if (error) toast.error(error.message);
-                    else { toast.success("Descrição atualizada"); qc.invalidateQueries({ queryKey: ["inventarios"] }); }
-                  }}><Pencil className="h-4 w-4" /></Button>
-                  <Button variant="ghost" size="icon" title="Cancelar/Excluir" onClick={async () => {
-                    if (!confirm(`Cancelar/excluir o inventário "${inv.local}"? Apenas inventários em andamento podem ser removidos.`)) return;
-                    const { error } = await supabase.rpc("excluir_inventario", { p_inventario_id: inv.id });
-                    if (error) toast.error(error.message);
-                    else { toast.success("Inventário excluído"); qc.invalidateQueries({ queryKey: ["inventarios"] }); }
-                  }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                </>
-              )}
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </div>
+            )}
           </Card>
-        ))}
+          );
+        })}
         {inventarios.length === 0 && (
           <Card className="p-10 text-center text-muted-foreground">Nenhum inventário ainda. Clique em "Iniciar inventário" para começar.</Card>
         )}
