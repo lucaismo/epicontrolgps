@@ -108,6 +108,7 @@ function handleAuth(url: URL): Response {
 export function installReviewNetwork() {
   if (typeof window === "undefined" || original) return;
   original = window.fetch.bind(window);
+  console.info("[review] escudo de rede ativo");
   window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     // Só atua dentro de /__review; fora dele, a rede segue intacta para o sistema real.
     if (!window.location.pathname.startsWith("/__review")) return original!(input as any, init);
