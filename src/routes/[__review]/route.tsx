@@ -1,4 +1,7 @@
-import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
+import { Route as DashboardRoute } from "@/routes/_app/dashboard";
+
+const Dashboard = DashboardRoute.options.component!;
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Suspense, useEffect, useState } from "react";
 import { Loader2, FlaskConical } from "lucide-react";
@@ -41,6 +44,10 @@ function ReviewLayout() {
   });
   useEffect(() => { installReviewNetwork(); return () => qc.clear(); }, [qc]);
 
+  // /__review sem subtela = Central de Controle (evita rota índice dentro da pasta escapada).
+  const pathname = useLocation({ select: (l) => l.pathname });
+  const isCentral = pathname.replace(/\/$/, "") === "/__review";
+
   return (
     <QueryClientProvider client={qc}>
       <ReviewAuthProvider userId={REVIEW_USER_ID}>
@@ -67,7 +74,7 @@ function ReviewLayout() {
           </div>
           <main className="mx-auto max-w-[1600px]">
             <Suspense fallback={<div className="grid place-items-center py-24"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>}>
-              <Outlet />
+              {isCentral ? <Dashboard /> : <Outlet />}
             </Suspense>
           </main>
         </div>
