@@ -9,51 +9,37 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as McpRouteImport } from './routes/mcp'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as AppRouteImport } from './routes/_app'
-import { Route as Char91__reviewChar93RouteRouteImport } from './routes/[__review]/route'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AppUsuariosRouteImport } from './routes/_app/usuarios'
-import { Route as AppRelatoriosRouteImport } from './routes/_app/relatorios'
-import { Route as AppInventarioRouteImport } from './routes/_app/inventario'
-import { Route as AppEpisRouteImport } from './routes/_app/epis'
-import { Route as AppEntregasRouteImport } from './routes/_app/entregas'
-import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
-import { Route as AppConsumoRouteImport } from './routes/_app/consumo'
-import { Route as AppComprasRouteImport } from './routes/_app/compras'
-import { Route as AppColaboradoresRouteImport } from './routes/_app/colaboradores'
-import { Route as Char91__reviewChar93RelatoriosRouteImport } from './routes/[__review]/relatorios'
-import { Route as Char91__reviewChar93InventarioRouteImport } from './routes/[__review]/inventario'
-import { Route as Char91__reviewChar93EpisRouteImport } from './routes/[__review]/epis'
-import { Route as Char91__reviewChar93EntregasRouteImport } from './routes/[__review]/entregas'
-import { Route as Char91__reviewChar93ConsumoRouteImport } from './routes/[__review]/consumo'
-import { Route as Char91__reviewChar93ComprasRouteImport } from './routes/[__review]/compras'
-import { Route as Char91__reviewChar93ColaboradoresRouteImport } from './routes/[__review]/colaboradores'
-import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
+import { Route as Char91__reviewChar93RouteRouteImport } from './routes/[__review]/route'
+import { Route as AppRouteImport } from './routes/_app'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as McpRouteImport } from './routes/mcp'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
-import { Route as AppColaboradoresIdRouteImport } from './routes/_app/colaboradores_.$id'
-import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
+import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
+import { Route as Char91__reviewChar93ColaboradoresRouteImport } from './routes/[__review]/colaboradores'
+import { Route as Char91__reviewChar93ComprasRouteImport } from './routes/[__review]/compras'
+import { Route as Char91__reviewChar93ConsumoRouteImport } from './routes/[__review]/consumo'
+import { Route as Char91__reviewChar93EntregasRouteImport } from './routes/[__review]/entregas'
+import { Route as Char91__reviewChar93EpisRouteImport } from './routes/[__review]/epis'
+import { Route as Char91__reviewChar93InventarioRouteImport } from './routes/[__review]/inventario'
+import { Route as Char91__reviewChar93RelatoriosRouteImport } from './routes/[__review]/relatorios'
+import { Route as AppColaboradoresRouteImport } from './routes/_app/colaboradores'
+import { Route as AppComprasRouteImport } from './routes/_app/compras'
+import { Route as AppConsumoRouteImport } from './routes/_app/consumo'
+import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
+import { Route as AppEntregasRouteImport } from './routes/_app/entregas'
+import { Route as AppEpisRouteImport } from './routes/_app/epis'
+import { Route as AppInventarioRouteImport } from './routes/_app/inventario'
+import { Route as AppRelatoriosRouteImport } from './routes/_app/relatorios'
+import { Route as AppUsuariosRouteImport } from './routes/_app/usuarios'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
+import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
+import { Route as AppColaboradoresIdRouteImport } from './routes/_app/colaboradores_.$id'
 
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const McpRoute = McpRouteImport.update({
-  id: '/mcp',
-  path: '/mcp',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AppRoute = AppRouteImport.update({
-  id: '/_app',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const Char91__reviewChar93RouteRoute =
@@ -62,84 +48,41 @@ const Char91__reviewChar93RouteRoute =
     path: '/__review',
     getParentRoute: () => rootRouteImport,
   } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppUsuariosRoute = AppUsuariosRouteImport.update({
-  id: '/usuarios',
-  path: '/usuarios',
-  getParentRoute: () => AppRoute,
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AppRelatoriosRoute = AppRelatoriosRouteImport.update({
-  id: '/relatorios',
-  path: '/relatorios',
-  getParentRoute: () => AppRoute,
+const McpRoute = McpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AppInventarioRoute = AppInventarioRouteImport.update({
-  id: '/inventario',
-  path: '/inventario',
-  getParentRoute: () => AppRoute,
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AppEpisRoute = AppEpisRouteImport.update({
-  id: '/epis',
-  path: '/epis',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppEntregasRoute = AppEntregasRouteImport.update({
-  id: '/entregas',
-  path: '/entregas',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppDashboardRoute = AppDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppConsumoRoute = AppConsumoRouteImport.update({
-  id: '/consumo',
-  path: '/consumo',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppComprasRoute = AppComprasRouteImport.update({
-  id: '/compras',
-  path: '/compras',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppColaboradoresRoute = AppColaboradoresRouteImport.update({
-  id: '/colaboradores',
-  path: '/colaboradores',
-  getParentRoute: () => AppRoute,
-} as any)
-const Char91__reviewChar93RelatoriosRoute =
-  Char91__reviewChar93RelatoriosRouteImport.update({
-    id: '/relatorios',
-    path: '/relatorios',
-    getParentRoute: () => Char91__reviewChar93RouteRoute,
+const Char91DotmcpChar93ListToolsRoute =
+  Char91DotmcpChar93ListToolsRouteImport.update({
+    id: '/.mcp/list-tools',
+    path: '/.mcp/list-tools',
+    getParentRoute: () => rootRouteImport,
   } as any)
-const Char91__reviewChar93InventarioRoute =
-  Char91__reviewChar93InventarioRouteImport.update({
-    id: '/inventario',
-    path: '/inventario',
-    getParentRoute: () => Char91__reviewChar93RouteRoute,
+const Char91DotwellKnownChar93OauthProtectedResourceRoute =
+  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
+    id: '/.well-known/oauth-protected-resource',
+    path: '/.well-known/oauth-protected-resource',
+    getParentRoute: () => rootRouteImport,
   } as any)
-const Char91__reviewChar93EpisRoute =
-  Char91__reviewChar93EpisRouteImport.update({
-    id: '/epis',
-    path: '/epis',
-    getParentRoute: () => Char91__reviewChar93RouteRoute,
-  } as any)
-const Char91__reviewChar93EntregasRoute =
-  Char91__reviewChar93EntregasRouteImport.update({
-    id: '/entregas',
-    path: '/entregas',
-    getParentRoute: () => Char91__reviewChar93RouteRoute,
-  } as any)
-const Char91__reviewChar93ConsumoRoute =
-  Char91__reviewChar93ConsumoRouteImport.update({
-    id: '/consumo',
-    path: '/consumo',
+const Char91__reviewChar93ColaboradoresRoute =
+  Char91__reviewChar93ColaboradoresRouteImport.update({
+    id: '/colaboradores',
+    path: '/colaboradores',
     getParentRoute: () => Char91__reviewChar93RouteRoute,
   } as any)
 const Char91__reviewChar93ComprasRoute =
@@ -148,28 +91,85 @@ const Char91__reviewChar93ComprasRoute =
     path: '/compras',
     getParentRoute: () => Char91__reviewChar93RouteRoute,
   } as any)
-const Char91__reviewChar93ColaboradoresRoute =
-  Char91__reviewChar93ColaboradoresRouteImport.update({
-    id: '/colaboradores',
-    path: '/colaboradores',
+const Char91__reviewChar93ConsumoRoute =
+  Char91__reviewChar93ConsumoRouteImport.update({
+    id: '/consumo',
+    path: '/consumo',
     getParentRoute: () => Char91__reviewChar93RouteRoute,
   } as any)
-const Char91DotwellKnownChar93OauthProtectedResourceRoute =
-  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
-    id: '/.well-known/oauth-protected-resource',
-    path: '/.well-known/oauth-protected-resource',
-    getParentRoute: () => rootRouteImport,
+const Char91__reviewChar93EntregasRoute =
+  Char91__reviewChar93EntregasRouteImport.update({
+    id: '/entregas',
+    path: '/entregas',
+    getParentRoute: () => Char91__reviewChar93RouteRoute,
   } as any)
-const Char91DotmcpChar93ListToolsRoute =
-  Char91DotmcpChar93ListToolsRouteImport.update({
-    id: '/.mcp/list-tools',
-    path: '/.mcp/list-tools',
-    getParentRoute: () => rootRouteImport,
+const Char91__reviewChar93EpisRoute =
+  Char91__reviewChar93EpisRouteImport.update({
+    id: '/epis',
+    path: '/epis',
+    getParentRoute: () => Char91__reviewChar93RouteRoute,
   } as any)
-const AppColaboradoresIdRoute = AppColaboradoresIdRouteImport.update({
-  id: '/colaboradores_/$id',
-  path: '/colaboradores/$id',
+const Char91__reviewChar93InventarioRoute =
+  Char91__reviewChar93InventarioRouteImport.update({
+    id: '/inventario',
+    path: '/inventario',
+    getParentRoute: () => Char91__reviewChar93RouteRoute,
+  } as any)
+const Char91__reviewChar93RelatoriosRoute =
+  Char91__reviewChar93RelatoriosRouteImport.update({
+    id: '/relatorios',
+    path: '/relatorios',
+    getParentRoute: () => Char91__reviewChar93RouteRoute,
+  } as any)
+const AppColaboradoresRoute = AppColaboradoresRouteImport.update({
+  id: '/colaboradores',
+  path: '/colaboradores',
   getParentRoute: () => AppRoute,
+} as any)
+const AppComprasRoute = AppComprasRouteImport.update({
+  id: '/compras',
+  path: '/compras',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppConsumoRoute = AppConsumoRouteImport.update({
+  id: '/consumo',
+  path: '/consumo',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDashboardRoute = AppDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppEntregasRoute = AppEntregasRouteImport.update({
+  id: '/entregas',
+  path: '/entregas',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppEpisRoute = AppEpisRouteImport.update({
+  id: '/epis',
+  path: '/epis',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppInventarioRoute = AppInventarioRouteImport.update({
+  id: '/inventario',
+  path: '/inventario',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRelatoriosRoute = AppRelatoriosRouteImport.update({
+  id: '/relatorios',
+  path: '/relatorios',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppUsuariosRoute = AppUsuariosRouteImport.update({
+  id: '/usuarios',
+  path: '/usuarios',
+  getParentRoute: () => AppRoute,
+} as any)
+const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
+  id: '/.lovable/oauth/consent',
+  path: '/.lovable/oauth/consent',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const Char91DotmcpChar93InvokeToolToolRoute =
   Char91DotmcpChar93InvokeToolToolRouteImport.update({
@@ -177,10 +177,10 @@ const Char91DotmcpChar93InvokeToolToolRoute =
     path: '/.mcp/invoke-tool/$tool',
     getParentRoute: () => rootRouteImport,
   } as any)
-const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
-  id: '/.lovable/oauth/consent',
-  path: '/.lovable/oauth/consent',
-  getParentRoute: () => rootRouteImport,
+const AppColaboradoresIdRoute = AppColaboradoresIdRouteImport.update({
+  id: '/colaboradores_/$id',
+  path: '/colaboradores/$id',
+  getParentRoute: () => AppRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -372,32 +372,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/mcp': {
-      id: '/mcp'
-      path: '/mcp'
-      fullPath: '/mcp'
-      preLoaderRoute: typeof McpRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_app': {
-      id: '/_app'
-      path: ''
+    '/': {
+      id: '/'
+      path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof AppRouteImport
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/__review': {
@@ -407,130 +386,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char91__reviewChar93RouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
+    '/_app': {
+      id: '/_app'
+      path: ''
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+      preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_app/usuarios': {
-      id: '/_app/usuarios'
-      path: '/usuarios'
-      fullPath: '/usuarios'
-      preLoaderRoute: typeof AppUsuariosRouteImport
-      parentRoute: typeof AppRoute
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_app/relatorios': {
-      id: '/_app/relatorios'
-      path: '/relatorios'
-      fullPath: '/relatorios'
-      preLoaderRoute: typeof AppRelatoriosRouteImport
-      parentRoute: typeof AppRoute
+    '/mcp': {
+      id: '/mcp'
+      path: '/mcp'
+      fullPath: '/mcp'
+      preLoaderRoute: typeof McpRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_app/inventario': {
-      id: '/_app/inventario'
-      path: '/inventario'
-      fullPath: '/inventario'
-      preLoaderRoute: typeof AppInventarioRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/epis': {
-      id: '/_app/epis'
-      path: '/epis'
-      fullPath: '/epis'
-      preLoaderRoute: typeof AppEpisRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/entregas': {
-      id: '/_app/entregas'
-      path: '/entregas'
-      fullPath: '/entregas'
-      preLoaderRoute: typeof AppEntregasRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/dashboard': {
-      id: '/_app/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof AppDashboardRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/consumo': {
-      id: '/_app/consumo'
-      path: '/consumo'
-      fullPath: '/consumo'
-      preLoaderRoute: typeof AppConsumoRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/compras': {
-      id: '/_app/compras'
-      path: '/compras'
-      fullPath: '/compras'
-      preLoaderRoute: typeof AppComprasRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/colaboradores': {
-      id: '/_app/colaboradores'
-      path: '/colaboradores'
-      fullPath: '/colaboradores'
-      preLoaderRoute: typeof AppColaboradoresRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/__review/relatorios': {
-      id: '/__review/relatorios'
-      path: '/relatorios'
-      fullPath: '/__review/relatorios'
-      preLoaderRoute: typeof Char91__reviewChar93RelatoriosRouteImport
-      parentRoute: typeof Char91__reviewChar93RouteRoute
-    }
-    '/__review/inventario': {
-      id: '/__review/inventario'
-      path: '/inventario'
-      fullPath: '/__review/inventario'
-      preLoaderRoute: typeof Char91__reviewChar93InventarioRouteImport
-      parentRoute: typeof Char91__reviewChar93RouteRoute
-    }
-    '/__review/epis': {
-      id: '/__review/epis'
-      path: '/epis'
-      fullPath: '/__review/epis'
-      preLoaderRoute: typeof Char91__reviewChar93EpisRouteImport
-      parentRoute: typeof Char91__reviewChar93RouteRoute
-    }
-    '/__review/entregas': {
-      id: '/__review/entregas'
-      path: '/entregas'
-      fullPath: '/__review/entregas'
-      preLoaderRoute: typeof Char91__reviewChar93EntregasRouteImport
-      parentRoute: typeof Char91__reviewChar93RouteRoute
-    }
-    '/__review/consumo': {
-      id: '/__review/consumo'
-      path: '/consumo'
-      fullPath: '/__review/consumo'
-      preLoaderRoute: typeof Char91__reviewChar93ConsumoRouteImport
-      parentRoute: typeof Char91__reviewChar93RouteRoute
-    }
-    '/__review/compras': {
-      id: '/__review/compras'
-      path: '/compras'
-      fullPath: '/__review/compras'
-      preLoaderRoute: typeof Char91__reviewChar93ComprasRouteImport
-      parentRoute: typeof Char91__reviewChar93RouteRoute
-    }
-    '/__review/colaboradores': {
-      id: '/__review/colaboradores'
-      path: '/colaboradores'
-      fullPath: '/__review/colaboradores'
-      preLoaderRoute: typeof Char91__reviewChar93ColaboradoresRouteImport
-      parentRoute: typeof Char91__reviewChar93RouteRoute
-    }
-    '/.well-known/oauth-protected-resource': {
-      id: '/.well-known/oauth-protected-resource'
-      path: '/.well-known/oauth-protected-resource'
-      fullPath: '/.well-known/oauth-protected-resource'
-      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/.mcp/list-tools': {
@@ -540,12 +421,131 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char91DotmcpChar93ListToolsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_app/colaboradores_/$id': {
-      id: '/_app/colaboradores_/$id'
-      path: '/colaboradores/$id'
-      fullPath: '/colaboradores/$id'
-      preLoaderRoute: typeof AppColaboradoresIdRouteImport
+    '/.well-known/oauth-protected-resource': {
+      id: '/.well-known/oauth-protected-resource'
+      path: '/.well-known/oauth-protected-resource'
+      fullPath: '/.well-known/oauth-protected-resource'
+      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/__review/colaboradores': {
+      id: '/__review/colaboradores'
+      path: '/colaboradores'
+      fullPath: '/__review/colaboradores'
+      preLoaderRoute: typeof Char91__reviewChar93ColaboradoresRouteImport
+      parentRoute: typeof Char91__reviewChar93RouteRoute
+    }
+    '/__review/compras': {
+      id: '/__review/compras'
+      path: '/compras'
+      fullPath: '/__review/compras'
+      preLoaderRoute: typeof Char91__reviewChar93ComprasRouteImport
+      parentRoute: typeof Char91__reviewChar93RouteRoute
+    }
+    '/__review/consumo': {
+      id: '/__review/consumo'
+      path: '/consumo'
+      fullPath: '/__review/consumo'
+      preLoaderRoute: typeof Char91__reviewChar93ConsumoRouteImport
+      parentRoute: typeof Char91__reviewChar93RouteRoute
+    }
+    '/__review/entregas': {
+      id: '/__review/entregas'
+      path: '/entregas'
+      fullPath: '/__review/entregas'
+      preLoaderRoute: typeof Char91__reviewChar93EntregasRouteImport
+      parentRoute: typeof Char91__reviewChar93RouteRoute
+    }
+    '/__review/epis': {
+      id: '/__review/epis'
+      path: '/epis'
+      fullPath: '/__review/epis'
+      preLoaderRoute: typeof Char91__reviewChar93EpisRouteImport
+      parentRoute: typeof Char91__reviewChar93RouteRoute
+    }
+    '/__review/inventario': {
+      id: '/__review/inventario'
+      path: '/inventario'
+      fullPath: '/__review/inventario'
+      preLoaderRoute: typeof Char91__reviewChar93InventarioRouteImport
+      parentRoute: typeof Char91__reviewChar93RouteRoute
+    }
+    '/__review/relatorios': {
+      id: '/__review/relatorios'
+      path: '/relatorios'
+      fullPath: '/__review/relatorios'
+      preLoaderRoute: typeof Char91__reviewChar93RelatoriosRouteImport
+      parentRoute: typeof Char91__reviewChar93RouteRoute
+    }
+    '/_app/colaboradores': {
+      id: '/_app/colaboradores'
+      path: '/colaboradores'
+      fullPath: '/colaboradores'
+      preLoaderRoute: typeof AppColaboradoresRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/_app/compras': {
+      id: '/_app/compras'
+      path: '/compras'
+      fullPath: '/compras'
+      preLoaderRoute: typeof AppComprasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/consumo': {
+      id: '/_app/consumo'
+      path: '/consumo'
+      fullPath: '/consumo'
+      preLoaderRoute: typeof AppConsumoRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/dashboard': {
+      id: '/_app/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/entregas': {
+      id: '/_app/entregas'
+      path: '/entregas'
+      fullPath: '/entregas'
+      preLoaderRoute: typeof AppEntregasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/epis': {
+      id: '/_app/epis'
+      path: '/epis'
+      fullPath: '/epis'
+      preLoaderRoute: typeof AppEpisRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/inventario': {
+      id: '/_app/inventario'
+      path: '/inventario'
+      fullPath: '/inventario'
+      preLoaderRoute: typeof AppInventarioRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/relatorios': {
+      id: '/_app/relatorios'
+      path: '/relatorios'
+      fullPath: '/relatorios'
+      preLoaderRoute: typeof AppRelatoriosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/usuarios': {
+      id: '/_app/usuarios'
+      path: '/usuarios'
+      fullPath: '/usuarios'
+      preLoaderRoute: typeof AppUsuariosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/.lovable/oauth/consent': {
+      id: '/.lovable/oauth/consent'
+      path: '/.lovable/oauth/consent'
+      fullPath: '/.lovable/oauth/consent'
+      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/.mcp/invoke-tool/$tool': {
       id: '/.mcp/invoke-tool/$tool'
@@ -554,12 +554,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char91DotmcpChar93InvokeToolToolRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/.lovable/oauth/consent': {
-      id: '/.lovable/oauth/consent'
-      path: '/.lovable/oauth/consent'
-      fullPath: '/.lovable/oauth/consent'
-      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_app/colaboradores_/$id': {
+      id: '/_app/colaboradores_/$id'
+      path: '/colaboradores/$id'
+      fullPath: '/colaboradores/$id'
+      preLoaderRoute: typeof AppColaboradoresIdRouteImport
+      parentRoute: typeof AppRoute
     }
   }
 }
