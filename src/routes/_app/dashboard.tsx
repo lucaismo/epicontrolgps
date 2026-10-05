@@ -233,7 +233,7 @@ function Dashboard() {
             </Select>
             <Select value={String(ano)} onValueChange={(v) => setAno(Number(v))}>
               <SelectTrigger className="w-24 h-9" aria-label="Ano de referência"><SelectValue /></SelectTrigger>
-              <SelectContent>{anos.map((y) => <SelectItem key={y} value={String(y))}>{y}</SelectItem>)}</SelectContent>
+              <SelectContent>{anos.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
             </Select>
           </>
         }
