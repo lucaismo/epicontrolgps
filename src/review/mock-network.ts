@@ -2,7 +2,7 @@
  * Escudo de rede do Ambiente de Revisão.
  * Enquanto instalado, TODA requisição destinada ao backend é respondida
  * localmente com dados fictícios — nada sai do navegador. Gravações são
- * recusadas com uma mensagem clara. Desinstalado ao sair de /__review.
+ * recusadas com uma mensagem clara. Só atua enquanto a URL está em /__review.
  */
 import { TABLES, profiles } from "./fixtures";
 
@@ -109,6 +109,8 @@ export function installReviewNetwork() {
   if (typeof window === "undefined" || original) return;
   original = window.fetch.bind(window);
   window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    // Só atua dentro de /__review; fora dele, a rede segue intacta para o sistema real.
+    if (!window.location.pathname.startsWith("/__review")) return original!(input as any, init);
     const req = input instanceof Request ? input : null;
     const href = req ? req.url : String(input);
     const url = new URL(href, window.location.origin);

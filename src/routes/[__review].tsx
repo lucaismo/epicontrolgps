@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Suspense, useEffect, useState } from "react";
 import { Loader2, FlaskConical } from "lucide-react";
 import { ReviewAuthProvider } from "@/lib/auth";
-import { installReviewNetwork, uninstallReviewNetwork } from "@/review/mock-network";
+import { installReviewNetwork } from "@/review/mock-network";
 import { REVIEW_USER_ID } from "@/review/fixtures";
 
 export const Route = createFileRoute("/__review")({
@@ -39,7 +39,7 @@ function ReviewLayout() {
     installReviewNetwork();
     return new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } } });
   });
-  useEffect(() => () => { uninstallReviewNetwork(); qc.clear(); }, [qc]);
+  useEffect(() => { installReviewNetwork(); return () => qc.clear(); }, [qc]);
 
   return (
     <QueryClientProvider client={qc}>
