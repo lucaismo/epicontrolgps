@@ -177,7 +177,9 @@ function EntregasPage() {
                 </Select>
               </div>
               <div className="space-y-1.5"><Label>Data</Label>
-                <Input type="date" value={data} onChange={(e) => setData(e.target.value)} />
+                <Input inputMode="numeric" placeholder="DD/MM/AAAA" value={dataTxt} maxLength={10}
+                  onChange={(e) => { const v = mascaraData(e.target.value); setDataTxt(v); const iso = brParaIso(v); if (iso) setData(iso); }}
+                  onBlur={() => setDataTxt(isoParaBr(data))} aria-label="Data da entrega (DD/MM/AAAA)" />
               </div>
             </div>
           </div>
