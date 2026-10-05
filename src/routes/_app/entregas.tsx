@@ -138,7 +138,7 @@ function EntregasPage() {
     <div className="p-4 md:p-8 space-y-5">
       <div>
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Entrega de EPI</h1>
-        <p className="text-sm text-muted-foreground">Até {MAX_ITENS} EPIs por operação · a troca do EPI anterior da mesma categoria é registrada automaticamente</p>
+        <p className="text-sm text-muted-foreground">Até {MAX_ITENS} EPIs por operação · a troca baixa o EPI anterior do mesmo item (ex.: Camisa M → Camisa G), não de outro item da mesma categoria</p>
       </div>
 
       {podeEntregar ? (
