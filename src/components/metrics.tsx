@@ -8,8 +8,8 @@ export type MetricTone = "neutral" | "danger" | "warning" | "success" | "muted";
 const TONE_TEXT: Record<MetricTone, string> = {
   neutral: "text-foreground",
   danger: "text-destructive",
-  warning: "text-warning",
-  success: "text-success",
+  warning: "text-warning-ink",
+  success: "text-success-ink",
   muted: "text-muted-foreground",
 };
 
@@ -20,6 +20,12 @@ export const NIVEL_TONE: Record<NivelEstoque, MetricTone> = {
 export const PRIORIDADE_TONE: Record<Prioridade, MetricTone> = { alta: "danger", media: "warning", baixa: "success" };
 export const PRIORIDADE_LABEL: Record<Prioridade, string> = { alta: "Alta", media: "Média", baixa: "Baixa" };
 
+/** Classe semântica de estado (crítico/atenção/normal/neutro/sem consumo) por tom. */
+export const TONE_STATUS: Record<MetricTone, string> = {
+  danger: "status-critical", warning: "status-warning", success: "status-normal",
+  neutral: "status-neutral", muted: "status-nodata",
+};
+
 export const fmtNum = (v: number, dec = 0) =>
   v.toLocaleString("pt-BR", { minimumFractionDigits: dec, maximumFractionDigits: dec });
 
@@ -28,14 +34,14 @@ export function MetricValue({ value, unit, sub, tone = "neutral", size = "md", a
   value: ReactNode; unit?: string; sub?: ReactNode; tone?: MetricTone;
   size?: "sm" | "md" | "lg"; align?: "left" | "right"; className?: string;
 }) {
-  const sizeCls = size === "lg" ? "text-2xl" : size === "sm" ? "text-base" : "text-lg";
+  const sizeCls = size === "lg" ? "type-kpi-sm" : size === "sm" ? "text-base font-semibold" : "text-lg font-semibold";
   return (
     <div className={cn("leading-tight", align === "right" && "text-right", className)}>
-      <div className={cn("font-semibold tabular-nums tracking-tight", sizeCls, TONE_TEXT[tone])}>
+      <div className={cn("num tracking-tight", sizeCls, TONE_TEXT[tone])}>
         {value}
-        {unit && <span className="ml-1 text-xs font-normal text-muted-foreground">{unit}</span>}
+        {unit && <span className="ml-1 text-xs font-medium tracking-normal text-muted-foreground">{unit}</span>}
       </div>
-      {sub && <div className="text-xs text-muted-foreground mt-0.5">{sub}</div>}
+      {sub && <div className="type-aux num mt-0.5">{sub}</div>}
     </div>
   );
 }
@@ -84,13 +90,8 @@ export function ConsumptionCell({ mensal, diario, align }: { mensal: number; dia
 
 /** Selo compacto de prioridade (cor apenas para situação). */
 export function PriorityBadge({ prioridade }: { prioridade: Prioridade }) {
-  const cls: Record<Prioridade, string> = {
-    alta: "bg-destructive/10 text-destructive border-destructive/30",
-    media: "bg-warning/15 text-warning border-warning/40",
-    baixa: "bg-success/15 text-success border-success/30",
-  };
   return (
-    <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium", cls[prioridade])}>
+    <span className={cn("status-pill", TONE_STATUS[PRIORIDADE_TONE[prioridade]])}>
       <span className="h-1.5 w-1.5 rounded-full bg-current" /> {PRIORIDADE_LABEL[prioridade]}
     </span>
   );
@@ -100,20 +101,22 @@ export function PriorityBadge({ prioridade }: { prioridade: Prioridade }) {
 export function StatCard({ icon: Icon, label, value, hint, tone = "neutral", className }: {
   icon?: ComponentType<{ className?: string }>; label: string; value: ReactNode; hint?: string; tone?: MetricTone; className?: string;
 }) {
-  const border = tone === "danger" ? "border-destructive/40" : tone === "warning" ? "border-warning/50" : "";
+  const accent = tone === "danger" ? "before:bg-destructive" : tone === "warning" ? "before:bg-warning"
+    : tone === "success" ? "before:bg-success" : "before:bg-transparent";
   return (
-    <Card className={cn("p-4 flex items-center gap-4", border, className)}>
+    <Card className={cn("relative overflow-hidden rounded-lg p-4 flex items-center gap-4 shadow-none",
+      "before:absolute before:inset-y-0 before:left-0 before:w-1", accent, className)}>
       {Icon && (
         <div className={cn("h-10 w-10 shrink-0 rounded-md grid place-items-center",
-          tone === "danger" ? "bg-destructive/10 text-destructive" : tone === "warning" ? "bg-warning/15 text-warning"
-            : tone === "success" ? "bg-success/10 text-success" : "bg-muted text-foreground")}>
+          tone === "danger" ? "bg-destructive/10 text-destructive" : tone === "warning" ? "bg-warning/15 text-warning-ink"
+            : tone === "success" ? "bg-success/10 text-success-ink" : "bg-muted text-muted-foreground")}>
           <Icon className="h-5 w-5" />
         </div>
       )}
       <div className="min-w-0">
-        <div className={cn("text-3xl font-bold tabular-nums tracking-tight leading-none", TONE_TEXT[tone])}>{value}</div>
-        <div className="text-sm font-medium mt-1.5">{label}</div>
-        {hint && <div className="text-xs text-muted-foreground truncate">{hint}</div>}
+        <div className={cn("type-kpi num", TONE_TEXT[tone])}>{value}</div>
+        <div className="text-sm font-medium mt-2 text-foreground/90">{label}</div>
+        {hint && <div className="type-aux truncate">{hint}</div>}
       </div>
     </Card>
   );
