@@ -389,7 +389,7 @@ function ComprasPage() {
       </div>
 
       <div className="grid gap-3 grid-cols-2 xl:grid-cols-4">
-        <StatCard icon={AlertTriangle} label="EPIs em ruptura" value={resumo.ruptura} tone={resumo.ruptura ? "danger" : "neutral"} hint="cobertura abaixo do período sem reposição" />
+        <StatCard icon={AlertTriangle} label="EPIs em ruptura" value={resumo.ruptura} tone={resumo.ruptura ? "danger" : "neutral"} hint="acabam antes da reposição" />
         <StatCard icon={AlertTriangle} label="EPIs em atenção" value={resumo.atencao} tone={resumo.atencao ? "warning" : "neutral"} hint="dentro do estoque de segurança" />
         <StatCard icon={PackagePlus} label="Compra necessária" value={resumo.comCompra} hint="itens com sugestão maior que zero" />
         <StatCard icon={PackagePlus} label="Quantidade total" value={fmtNum(resumo.totalQtd)} tone={resumo.totalQtd ? "success" : "neutral"} hint="unidades a solicitar" />
