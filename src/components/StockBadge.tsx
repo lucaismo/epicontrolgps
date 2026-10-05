@@ -4,8 +4,8 @@ import { cn } from "@/lib/utils";
 
 export function StockBadge({ atual, minimo, compact }: { atual: number; minimo: number; compact?: boolean }) {
   const nivel = nivelEstoque(atual, minimo);
-  // "Crítico" mantém o tom de atenção usado até aqui; zerado é o estado crítico.
-  const status = nivel === "critico" ? TONE_STATUS.warning : TONE_STATUS[NIVEL_TONE[nivel] === "neutral" ? "success" : NIVEL_TONE[nivel]];
+  // "Crítico" e "Zerado" usam a mesma semântica vermelha (severidade alta) em todo o sistema.
+  const status = TONE_STATUS[NIVEL_TONE[nivel] === "neutral" ? "success" : NIVEL_TONE[nivel]];
   return (
     <div className={compact ? "" : "text-right"}>
       <div className={cn("status-pill", status)}>

@@ -126,7 +126,7 @@ function EpisPage() {
         <div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">EPIs</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {filtered.length} de {list.length} itens · mínimo recomendado = consumo diário × ({lead.dias} dias de lead time + {DIAS_SEGURANCA_MINIMO} de segurança)
+            {filtered.length} de {list.length} itens · mínimo recomendado = consumo diário × ({lead.dias} dias sem reposição + {DIAS_SEGURANCA_MINIMO} de segurança)
           </p>
         </div>
         {(canEdit || canEditStock) && (
