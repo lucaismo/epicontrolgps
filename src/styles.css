@@ -158,3 +158,53 @@
   .tbl tbody tr:first-child { border-top: 0; }
   .tbl tbody tr:hover { background-color: color-mix(in oklab, var(--color-muted) 45%, transparent); }
 }
+
+/* ===== Fundação visual (Etapa 1): escala tipográfica, estados semânticos e números ===== */
+:root {
+  --warning-ink: oklch(0.52 0.13 65);   /* texto de atenção legível sobre fundo claro */
+  --success-ink: oklch(0.5 0.13 155);
+  --status-neutral: oklch(0.55 0.02 264);
+  --status-nodata: oklch(0.62 0.01 264);
+}
+.dark {
+  --warning-ink: oklch(0.82 0.15 75);
+  --success-ink: oklch(0.76 0.15 155);
+  --status-neutral: oklch(0.72 0.02 264);
+  --status-nodata: oklch(0.6 0.01 264);
+}
+@theme inline {
+  --color-warning-ink: var(--warning-ink);
+  --color-success-ink: var(--success-ink);
+  --color-status-neutral: var(--status-neutral);
+  --color-status-nodata: var(--status-nodata);
+}
+
+/* Tipografia */
+@utility type-page { font-size: 1.75rem; line-height: 2.125rem; font-weight: 700; letter-spacing: -0.02em; }
+@utility type-section { font-size: 1rem; line-height: 1.5rem; font-weight: 600; letter-spacing: -0.01em; }
+@utility type-kpi { font-size: 2rem; line-height: 1; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+@utility type-kpi-sm { font-size: 1.375rem; line-height: 1.1; font-weight: 650; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+@utility type-table { font-size: 0.875rem; line-height: 1.25rem; }
+@utility type-aux { font-size: 0.75rem; line-height: 1rem; color: var(--color-muted-foreground); }
+@utility type-label { font-size: 0.6875rem; line-height: 1rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-muted-foreground); }
+
+/* Números: largura fixa e alinhamento */
+@utility num { font-variant-numeric: tabular-nums slashed-zero; font-feature-settings: "tnum" 1, "zero" 1; }
+
+/* Estados semânticos: crítico, atenção, normal, neutro, sem consumo */
+@utility status-pill {
+  display: inline-flex; align-items: center; gap: 0.375rem;
+  border-radius: 0.375rem; border-width: 1px; padding: 0.125rem 0.5rem;
+  font-size: 0.75rem; line-height: 1.125rem; font-weight: 600; white-space: nowrap;
+}
+@utility status-critical { color: var(--color-destructive); background-color: color-mix(in oklab, var(--color-destructive) 10%, transparent); border-color: color-mix(in oklab, var(--color-destructive) 30%, transparent); }
+@utility status-warning { color: var(--color-warning-ink); background-color: color-mix(in oklab, var(--color-warning) 14%, transparent); border-color: color-mix(in oklab, var(--color-warning) 45%, transparent); }
+@utility status-normal { color: var(--color-success-ink); background-color: color-mix(in oklab, var(--color-success) 12%, transparent); border-color: color-mix(in oklab, var(--color-success) 32%, transparent); }
+@utility status-neutral { color: var(--color-status-neutral); background-color: var(--color-muted); border-color: var(--color-border); }
+@utility status-nodata { color: var(--color-status-nodata); background-color: transparent; border-color: var(--color-border); border-style: dashed; }
+
+/* Tabela: refinamento de contraste e números */
+@layer components {
+  .tbl tbody td.num, .tbl thead th.num { font-variant-numeric: tabular-nums; }
+  .tbl thead th { color: color-mix(in oklab, var(--color-foreground) 60%, transparent); }
+}
