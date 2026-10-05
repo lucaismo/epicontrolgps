@@ -125,7 +125,65 @@ function ConsumoPage() {
         <Card className="p-4"><div className="text-3xl font-bold tabular-nums">{fmtNum(totAno / mesesVisiveis, 1)}</div><div className="text-sm mt-1">Média mensal ({mesesVisiveis} meses)</div></Card>
       </div>
 
-      <Card className="overflow-hidden">
+      <div className="md:hidden space-y-2">
+        {linhas.map((l) => (
+          <Card key={l.e.id} className="p-4 space-y-2">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <div className="font-semibold leading-tight">{l.e.nome}</div>
+                <div className="text-xs text-muted-foreground">{l.e.categoria} · {l.e.tamanho || "Único"}</div>
+              </div>
+              {visao === "anual" ? (
+                <div className="text-right shrink-0">
+                  <div className="type-kpi-sm">{fmtNum(l.total)}</div>
+                  <div className="text-xs text-muted-foreground">média {fmtNum(l.media, 1)}/mês</div>
+                </div>
+              ) : (
+                <div className="text-right shrink-0">
+                  <div className="type-kpi-sm">{fmtNum(l.meses[mes])}</div>
+                  <div className="text-xs text-muted-foreground">{MESES[mes]}/{ano}</div>
+                </div>
+              )}
+            </div>
+            {visao === "anual" ? (
+              <div className="grid grid-cols-6 gap-1 border-t pt-2 text-center">
+                {l.meses.slice(0, mesesVisiveis).map((v, i) => (
+                  <div key={i} className={`rounded py-1 ${i === mes ? "bg-primary/10" : ""}`}>
+                    <div className={`text-[10px] uppercase ${i === mes ? "text-primary font-semibold" : "text-muted-foreground"}`}>{MESES[i]}</div>
+                    <div className={`text-sm num ${v ? "" : "text-muted-foreground"}`}>{v || "·"}</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-4 gap-2 border-t pt-2 text-xs">
+                <div><div className="type-label">Estoque</div><div className="text-sm font-semibold num">{fmtNum(l.e.estoque_atual)}</div></div>
+                <div><div className="type-label">30d</div><div className="text-sm num">{fmtNum(l.j.d30)}</div></div>
+                <div><div className="type-label">90d/mês</div><div className="text-sm num">{fmtNum(l.j.d90 / 3, 1)}</div></div>
+                <div><div className="type-label">365d/mês</div><div className="text-sm num">{fmtNum(l.j.d365 / 12, 1)}</div></div>
+              </div>
+            )}
+          </Card>
+        ))}
+        {linhas.length > 0 && visao === "anual" && (
+          <Card className="p-4 bg-muted/40">
+            <div className="flex items-center justify-between font-semibold">
+              <span>Total</span>
+              <span className="text-right"><span className="type-kpi-sm">{fmtNum(totAno)}</span> <span className="text-xs text-muted-foreground font-normal">média {fmtNum(totAno / mesesVisiveis, 1)}/mês</span></span>
+            </div>
+            <div className="grid grid-cols-6 gap-1 border-t mt-2 pt-2 text-center">
+              {totMes.slice(0, mesesVisiveis).map((v, i) => (
+                <div key={i} className={`rounded py-1 ${i === mes ? "bg-primary/10" : ""}`}>
+                  <div className={`text-[10px] uppercase ${i === mes ? "text-primary font-semibold" : "text-muted-foreground"}`}>{MESES[i]}</div>
+                  <div className="text-sm num">{fmtNum(v)}</div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
+        {!linhas.length && <Card className="p-8 text-center text-sm text-muted-foreground">{isLoading ? "Carregando…" : "Sem entregas no período."}</Card>}
+      </div>
+
+      <Card className="overflow-hidden hidden md:block">
         <div className="overflow-x-auto">
           {visao === "anual" ? (
             <table className="tbl w-full">
