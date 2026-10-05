@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useSearch, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -45,8 +45,9 @@ function EpisPage() {
   const canEdit = canManageRegistros(role);
   const canEditStock = canMovimentar(role);
   const qc = useQueryClient();
-  const { nivel: nivelUrl } = Route.useSearch();
-  const navigate = Route.useNavigate();
+  // Leitura não estrita: mesma busca validada na rota real; permite renderizar a tela no Ambiente de Revisão.
+  const { nivel: nivelUrl } = useSearch({ strict: false }) as { nivel?: NivelFiltro };
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [filterCat, setFilterCat] = useState("all");
   const [open, setOpen] = useState(false);
@@ -81,7 +82,7 @@ function EpisPage() {
     return true;
   });
 
-  const setNivel = (v: string) => navigate({ search: v === "all" ? {} : { nivel: v as NivelFiltro }, replace: true });
+  const setNivel = (v: string) => navigate({ to: ".", search: (v === "all" ? {} : { nivel: v as NivelFiltro }) as any, replace: true });
 
   async function handleDelete(id: string, nome: string) {
     if (!confirm(`Excluir o EPI "${nome}"? Se houver movimentações, será apenas inativado para preservar o histórico.`)) return;
