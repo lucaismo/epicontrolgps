@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { tamanhoParaEpi, mesmoTamanho } from "@/lib/consumo";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { PackageCheck, Trash2, Pencil, Plus, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { PackageCheck, Trash2, Pencil, Plus, X, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { useAuth, canMovimentar } from "@/lib/auth";
 import { toast } from "sonner";
 import { sanitizeText } from "@/lib/sanitize";
@@ -34,6 +34,14 @@ function EntregasPage() {
   const [saving, setSaving] = useState(false);
   const [page, setPage] = useState(0);
   const [editing, setEditing] = useState<any | null>(null);
+  const [busca, setBusca] = useState("");
+  const [termo, setTermo] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => { setTermo(busca.trim()); setPage(0); }, 300);
+    return () => clearTimeout(t);
+  }, [busca]);
+  // Data exibida em DD/MM/AAAA; o valor guardado continua AAAA-MM-DD.
+  const [dataTxt, setDataTxt] = useState(() => isoParaBr(new Date().toISOString().slice(0, 10)));
 
   const { data: colabs = [] } = useQuery({
     queryKey: ["colabs-ativos"],
@@ -57,13 +65,29 @@ function EntregasPage() {
     return arr.sort((a, b) => Number(b._match) - Number(a._match));
   }, [epis, tamanhosColab]);
   const { data: entregasPage } = useQuery({
-    queryKey: ["ultimas-entregas", page],
+    queryKey: ["ultimas-entregas", page, termo],
     queryFn: async () => {
       const from = page * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
-      const { data: ents, count } = await supabase.from("movimentacoes")
+      let q = supabase.from("movimentacoes")
         .select("*, epis(nome,codigo_produto), colaboradores(nome,matricula,turno)", { count: "exact" })
-        .eq("tipo", "entrega")
+        .eq("tipo", "entrega");
+      if (termo) {
+        // Busca por colaborador (nome/matrícula) ou EPI (nome/código): resolve os ids e filtra a listagem paginada.
+        const like = `%${termo.replace(/[%,()]/g, " ")}%`;
+        const [cn, cm, en, ec] = await Promise.all([
+          supabase.from("colaboradores").select("id").ilike("nome", like),
+          supabase.from("colaboradores").select("id").ilike("matricula", like),
+          supabase.from("epis").select("id").ilike("nome", like),
+          supabase.from("epis").select("id").ilike("codigo_produto", like),
+        ]);
+        const cIds = Array.from(new Set([...(cn.data ?? []), ...(cm.data ?? [])].map((r: any) => r.id)));
+        const eIds = Array.from(new Set([...(en.data ?? []), ...(ec.data ?? [])].map((r: any) => r.id)));
+        if (!cIds.length && !eIds.length) return { rows: [], total: 0 };
+        const conds = [cIds.length ? `colaborador_id.in.(${cIds.join(",")})` : "", eIds.length ? `epi_id.in.(${eIds.join(",")})` : ""].filter(Boolean);
+        q = q.or(conds.join(","));
+      }
+      const { data: ents, count } = await q
         .order("data_movimentacao", { ascending: false })
         .range(from, to);
       const entregas = ents ?? [];
@@ -234,7 +258,13 @@ function EntregasPage() {
       )}
 
       <Card className="overflow-hidden">
-        <div className="p-4 border-b"><h2 className="font-semibold">Histórico de entregas</h2></div>
+        <div className="p-4 border-b flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <h2 className="font-semibold">Histórico de entregas</h2>
+          <div className="relative w-full md:w-80">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar colaborador, matrícula ou EPI…" className="pl-9" aria-label="Buscar no histórico" />
+          </div>
+        </div>
         <ul className="md:hidden divide-y">
           {ultimas.map((m: any) => (
             <li key={m.id} className="px-4 py-3 space-y-1">
@@ -258,7 +288,7 @@ function EntregasPage() {
               )}
             </li>
           ))}
-          {ultimas.length === 0 && <li className="text-center py-10 text-muted-foreground text-sm">Nenhuma entrega registrada ainda.</li>}
+          {ultimas.length === 0 && <li className="text-center py-10 text-muted-foreground text-sm">{termo ? `Nenhuma entrega encontrada para "${termo}".` : "Nenhuma entrega registrada ainda."}</li>}
         </ul>
         <div className="overflow-x-auto hidden md:block">
           <table className="w-full text-sm">
@@ -296,18 +326,18 @@ function EntregasPage() {
                     </td>
                     {role === "admin" && (
                       <td className="px-4 py-3 text-right whitespace-nowrap">
-                        <Button variant="ghost" size="icon" title="Editar entrega" onClick={() => setEditing(m)}>
+                        <Button variant="ghost" size="icon" title="Editar entrega" className="text-muted-foreground hover:text-foreground" onClick={() => setEditing(m)}>
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" title="Excluir entrega" onClick={() => excluirEntrega(m.id)}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
+                        <Button variant="ghost" size="icon" title="Excluir entrega" className="text-muted-foreground hover:text-destructive" onClick={() => excluirEntrega(m.id)}>
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </td>
                     )}
                   </tr>
                 );
               })}
-              {ultimas.length === 0 && <tr><td colSpan={role === "admin" ? 8 : 7} className="text-center py-10 text-muted-foreground">Nenhuma entrega registrada ainda.</td></tr>}
+              {ultimas.length === 0 && <tr><td colSpan={role === "admin" ? 8 : 7} className="text-center py-10 text-muted-foreground">{termo ? `Nenhuma entrega encontrada para "${termo}".` : "Nenhuma entrega registrada ainda."}</td></tr>}
             </tbody>
           </table>
         </div>
@@ -406,4 +436,21 @@ function EditarEntregaDialog({ entrega, epis, onClose }: { entrega: any | null; 
       </DialogContent>
     </Dialog>
   );
+}
+
+function isoParaBr(iso: string) {
+  const [y, m, d] = iso.split("-");
+  return y && m && d ? `${d}/${m}/${y}` : "";
+}
+function brParaIso(br: string): string | null {
+  const m = br.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!m) return null;
+  const [, d, mo, y] = m;
+  const dt = new Date(Number(y), Number(mo) - 1, Number(d));
+  if (dt.getFullYear() !== Number(y) || dt.getMonth() !== Number(mo) - 1 || dt.getDate() !== Number(d)) return null;
+  return `${y}-${mo}-${d}`;
+}
+function mascaraData(v: string) {
+  const n = v.replace(/\D/g, "").slice(0, 8);
+  return [n.slice(0, 2), n.slice(2, 4), n.slice(4)].filter(Boolean).join("/");
 }

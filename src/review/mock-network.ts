@@ -48,6 +48,24 @@ function matches(row: any, key: string, raw: string): boolean {
   return neg ? !ok : ok;
 }
 
+function splitTop(expr: string): string[] {
+  const out: string[] = []; let depth = 0, cur = "";
+  for (const ch of expr) {
+    if (ch === "(") depth++;
+    if (ch === ")") depth--;
+    if (ch === "," && depth === 0) { out.push(cur); cur = ""; } else cur += ch;
+  }
+  if (cur) out.push(cur);
+  return out;
+}
+
+function matchesOr(row: any, raw: string): boolean {
+  return splitTop(raw.replace(/^\(|\)$/g, "")).some((cond) => {
+    const dot = cond.indexOf(".");
+    return matches(row, cond.slice(0, dot), cond.slice(dot + 1));
+  });
+}
+
 const RESERVED = new Set(["select", "order", "limit", "offset", "on_conflict", "columns"]);
 
 function handleRest(url: URL, init: RequestInit | undefined, req: Request | null): Response {
@@ -67,7 +85,8 @@ function handleRest(url: URL, init: RequestInit | undefined, req: Request | null
 
   let rows = [...(TABLES[path] ?? [])];
   url.searchParams.forEach((raw, key) => {
-    if (RESERVED.has(key) || key === "or" || key === "and") return;
+    if (key === "or") { rows = rows.filter((r) => matchesOr(r, raw)); return; }
+    if (RESERVED.has(key) || key === "and") return;
     rows = rows.filter((r) => matches(r, key, raw));
   });
   const order = url.searchParams.get("order");
