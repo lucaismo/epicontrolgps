@@ -1,21 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState, type ComponentType } from "react";
+import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  Package, AlertTriangle, DollarSign, Users, ArrowDownRight, Boxes,
-  ArrowLeftRight, ChevronRight, CalendarClock, ClipboardList, XCircle, CheckCircle2, ShoppingCart,
-} from "lucide-react";
-import {
-  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
-  Line, ComposedChart, Area,
-} from "recharts";
+import { ChevronRight, CheckCircle2 } from "lucide-react";
+import { ResponsiveContainer, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Line, ComposedChart } from "recharts";
 import { useEpiMetrics } from "@/hooks/use-epi-metrics";
 import { DIA_MS } from "@/lib/estoque-calc";
 import { fetchPaginado } from "@/lib/consumo";
-import { StockBadge } from "@/components/StockBadge";
 import { PageHeader } from "@/components/PageHeader";
 import { LayoutDashboard } from "lucide-react";
 
@@ -35,7 +27,6 @@ const ENTRADA_TIPOS = new Set(["entrada_estoque", "ajuste_entrada", "devolucao_n
 const SAIDA_TIPOS = new Set(["entrega", "ajuste_saida"]);
 const COR_ENTRADA = "oklch(0.72 0.17 155)";
 const COR_SAIDA = "oklch(0.623 0.188 259)";
-const COR_SALDO = "oklch(0.32 0.026 264)";
 
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const fmtData = (d: Date) => d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
@@ -215,16 +206,62 @@ function Dashboard() {
   const anos = useMemo(() => { const y = now.getFullYear(); return [y - 2, y - 1, y, y + 1]; }, [now]);
   const periodoLabel = `${MESES[mes]}/${ano}`;
   const inventariosPendentes = base?.inventariosPendentes ?? [];
-  const temAlertas = estoque.zerados.length + estoque.criticos.length + estoque.ruptura.length + estoque.abaixoMin.length
-    + inventariosPendentes.length + pedidosInfo.abertos.length > 0;
+
+  // Compras necessárias: EPIs com compra sugerida > 0 (mesma fórmula de Compras)
+  const compras = useMemo(() => {
+    const itens = epis.map((e) => ({ e, m: metricaDe(e) })).filter(({ m }) => m.sugerido > 0);
+    return { qtdEpis: itens.length, unidades: itens.reduce((s, { m }) => s + m.sugerido, 0), alta: itens.filter(({ m }) => m.prioridade === "alta").length };
+  }, [epis, metricaDe]);
+
+  // Distribuição por nível (mesmo nivel do motor)
+  const saude = useMemo(() => {
+    const cont = { normal: 0, atencao: 0, critico: 0, zerado: 0 } as Record<"normal" | "atencao" | "critico" | "zerado", number>;
+    for (const e of epis) cont[metricaDe(e).nivel] += 1;
+    return cont;
+  }, [epis, metricaDe]);
+
+  // Fila de prioridades: zerado → ruptura → crítico → abaixo do mínimo → pedido atrasado
+  const prioridades = useMemo(() => {
+    const vistos = new Set<string>();
+    const out: PrioItem[] = [];
+    const push = (e: EpiRow, motivo: string, sev: Sev, acao: PrioItem["acao"]) => {
+      if (vistos.has(e.id)) return; vistos.add(e.id);
+      const m = metricaDe(e);
+      out.push({ id: e.id, nome: e.nome, sub: e.categoria ?? "", motivo, sev, atual: e.estoque_atual, minimo: m.minimoEfetivo,
+        cobertura: Number.isFinite(m.cobertura) ? Math.floor(m.cobertura) : null, ruptura: e.estoque_atual > 0 && m.ruptura ? fmtData(m.ruptura) : null, acao });
+    };
+    estoque.zerados.forEach((e) => push(e, "Estoque zerado", "critical", "comprar"));
+    estoque.ruptura.forEach(({ epi, m }) => push(epi, `Ruptura em ${Math.floor(m.cobertura)} d, antes da reposição`, "critical", "comprar"));
+    estoque.criticos.forEach((e) => push(e, "Estoque crítico", "warning", "comprar"));
+    estoque.abaixoMin.forEach((e) => push(e, "Abaixo do mínimo", "neutral", "ver"));
+    pedidosInfo.atrasados.forEach((p) => out.push({ id: `ped-${p.id}`, nome: p.nome, sub: `${p.qtd} un`, motivo: `Pedido atrasado ${p.diasAtraso} d`, sev: "critical", atual: null, minimo: null, cobertura: null, ruptura: null, acao: "pedido" }));
+    return out;
+  }, [estoque, pedidosInfo, metricaDe]);
+
+  const entregasRecentes = useMemo(
+    () => movs.filter((m) => m.tipo === "entrega").slice(-8).reverse(),
+    [movs],
+  );
+
+  const sinais: { label: string; count: number; sev: Sev; to: LinkTo; search?: Record<string, string> }[] = [
+    { label: "Ruptura próxima", count: estoque.ruptura.length, sev: "critical", to: "/compras", search: { prioridade: "alta" } },
+    { label: "Estoque zerado", count: estoque.zerados.length, sev: "critical", to: "/epis", search: { nivel: "zerado" } },
+    { label: "Estoque crítico", count: estoque.criticos.length, sev: "warning", to: "/epis", search: { nivel: "critico" } },
+    { label: "Pedido atrasado", count: pedidosInfo.atrasados.length, sev: "critical", to: "/compras" },
+    { label: "Pedidos em aberto", count: pedidosInfo.abertos.length, sev: "neutral", to: "/compras" },
+    { label: "Inventário em andamento", count: inventariosPendentes.length, sev: "neutral", to: "/inventario" },
+  ];
+
+  const totalNiveis = epis.length || 1;
+  const maxCat = Math.max(1, ...periodoStats.consumoCategoria.map((c) => c.qtd));
 
   return (
-    <div className="p-4 md:p-8 space-y-8">
+    <div className="p-4 md:p-6 xl:p-8 space-y-6">
       <PageHeader
         icon={LayoutDashboard}
         title="Central de Controle"
-        subtitle="Visão geral do estoque, consumo e necessidades de reposição."
-        meta={`Período de referência: ${periodoLabel}`}
+        subtitle="Visão operacional de estoque, entregas e reposição."
+        meta={`Período de referência: ${periodoLabel} · ${epis.length} EPIs ativos · ${base?.colaboradores ?? 0} colaboradores`}
         actions={
           <>
             <Select value={String(mes)} onValueChange={(v) => setMes(Number(v))}>
@@ -239,313 +276,212 @@ function Dashboard() {
         }
       />
 
-      {/* Indicadores principais */}
-      <section className="space-y-3">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-          <KPI icon={Boxes} label="EPIs cadastrados" value={epis.length} tone="neutral" />
-          <KPI icon={Package} label="Estoque total" value={estoque.estoqueTotal} hint="unidades em estoque" tone="neutral" />
-          <KPI icon={DollarSign} label="Valor total do estoque" value={brl(estoque.valorTotal)} hint="estoque × custo unitário" tone="neutral" />
-          <KPI
-            icon={AlertTriangle} label="EPIs críticos" value={estoque.criticos.length}
-            hint="abaixo do mínimo, com estoque"
-            tone={estoque.criticos.length > 0 ? "warning" : "ok"}
-            to="/epis" search={{ nivel: "critico" }}
-          />
-        </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-          <KPI
-            icon={XCircle} label="EPIs zerados" value={estoque.zerados.length}
-            hint="sem estoque disponível"
-            tone={estoque.zerados.length > 0 ? "danger" : "ok"}
-            to="/epis" search={{ nivel: "zerado" }}
-          />
-          <KPI icon={ArrowDownRight} label="Entregas no mês" value={periodoStats.totalEntregas} hint={`${periodoLabel} · ${brl(periodoStats.custo)}`} tone="info" />
-          <KPI icon={Users} label="Colaboradores ativos" value={base?.colaboradores ?? 0} tone="info" to="/colaboradores" />
-          <KPI icon={ArrowLeftRight} label="Movimentações no período" value={periodoStats.totalMovs} hint={periodoLabel} tone="info" />
-        </div>
+      {/* Faixa de indicadores */}
+      <section className="grid grid-cols-2 lg:grid-cols-4 rounded-lg border bg-card divide-x divide-y lg:divide-y-0 overflow-hidden">
+        <Stat label="Estoque total" value={estoque.estoqueTotal.toLocaleString("pt-BR")} unit="un" hint={`Valor ${brl(estoque.valorTotal)}`} />
+        <Stat label="Entregas no período" value={periodoStats.totalEntregas.toLocaleString("pt-BR")} unit="un" hint={`${periodoLabel} · ${brl(periodoStats.custo)}`} />
+        <Stat label="EPIs críticos" value={String(estoque.criticos.length)} unit="EPIs" sev={estoque.criticos.length ? "warning" : undefined}
+          hint={`+ ${estoque.zerados.length} zerados`} to="/epis" search={{ nivel: "critico" }} />
+        <Stat label="Compras necessárias" value={String(compras.qtdEpis)} unit="EPIs" sev={compras.alta ? "critical" : undefined}
+          hint={`${compras.unidades.toLocaleString("pt-BR")} un sugeridas · ${compras.alta} alta prioridade`} to="/compras" />
       </section>
 
-      {/* Atenção necessária */}
-      <section>
-        <div className="flex items-center gap-2 mb-3">
-          <AlertTriangle className={`h-4 w-4 ${temAlertas ? "text-warning" : "text-muted-foreground"}`} />
-          <h2 className="font-semibold text-base">Atenção necessária</h2>
-        </div>
-        {!temAlertas ? (
-          <Card className="p-6 flex items-center gap-3 text-sm text-muted-foreground border-success/30 bg-success/5">
-            <CheckCircle2 className="h-5 w-5 text-success" /> Nenhum item exige ação no momento. Estoque dentro dos parâmetros.
-          </Card>
-        ) : (
-          <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {estoque.zerados.length > 0 && (
-              <AlertaCard
-                titulo="EPIs zerados" tone="danger" count={estoque.zerados.length}
-                to="/epis" search={{ nivel: "zerado" }}
-                itens={estoque.zerados.slice(0, 5).map((e) => ({ id: e.id, nome: e.nome, sub: e.categoria ?? "", right: `mín ${e.estoque_minimo}` }))}
-              />
-            )}
-            {estoque.criticos.length > 0 && (
-              <AlertaCard
-                titulo="EPIs críticos" tone="warning" count={estoque.criticos.length}
-                to="/epis" search={{ nivel: "critico" }}
-                itens={estoque.criticos.slice(0, 5).map((e) => ({ id: e.id, nome: e.nome, sub: e.categoria ?? "", right: `${e.estoque_atual} / mín ${e.estoque_minimo}` }))}
-              />
-            )}
-            {estoque.ruptura.length > 0 && (
-              <AlertaCard
-                titulo="Ruptura prevista no ciclo" tone="warning" count={estoque.ruptura.length}
-                descricao={`Acaba antes da próxima reposição (${lead.dias} dias).`}
-                to="/compras" search={{ prioridade: "alta" }}
-                itens={estoque.ruptura.slice(0, 5).map(({ epi, m }) => ({
-                  id: epi.id, nome: epi.nome,
-                  sub: `${Math.floor(m.cobertura)} dias de cobertura`,
-                  right: m.ruptura ? fmtData(m.ruptura) : "—",
-                }))}
-              />
-            )}
-            {estoque.abaixoMin.length > 0 && (
-              <AlertaCard
-                titulo="Abaixo do mínimo" tone="muted" count={estoque.abaixoMin.length}
-                descricao="Inclui zerados e críticos."
-                to="/epis" search={{ nivel: "abaixo" }}
-                itens={estoque.abaixoMin.slice(0, 5).map((e) => ({ id: e.id, nome: e.nome, sub: e.categoria ?? "", right: `${e.estoque_atual} / ${e.estoque_minimo}` }))}
-              />
-            )}
-            {pedidosInfo.atrasados.length > 0 && (
-              <AlertaCard
-                titulo="Pedidos de compra atrasados" tone="danger" count={pedidosInfo.atrasados.length}
-                descricao="Previsão de recebimento já passou."
-                icon={CalendarClock}
-                to="/compras"
-                itens={pedidosInfo.atrasados.slice(0, 5).map((p) => ({ id: p.id, nome: p.nome, sub: `${p.qtd} un`, right: `${p.diasAtraso} d de atraso` }))}
-              />
-            )}
-            {pedidosInfo.abertos.length > 0 && (
-              <AlertaCard
-                titulo="Pedidos em aberto" tone="info" count={pedidosInfo.abertos.length}
-                descricao="Aguardando recebimento (em trânsito)."
-                icon={ShoppingCart}
-                to="/compras"
-                itens={pedidosInfo.abertos.slice(0, 5).map((p) => ({ id: p.id, nome: p.nome, sub: `${p.qtd} un`, right: `prev. ${p.prevista}` }))}
-              />
-            )}
-            {inventariosPendentes.length > 0 && (
-              <AlertaCard
-                titulo="Inventários em andamento" tone="info" count={inventariosPendentes.length}
-                icon={ClipboardList}
-                to="/inventario"
-                itens={inventariosPendentes.slice(0, 5).map((i: any) => ({
-                  id: i.id, nome: i.local, sub: `iniciado em ${new Date(i.data_inicio).toLocaleDateString("pt-BR")}`,
-                  right: `${Math.floor((Date.now() - new Date(i.data_inicio).getTime()) / DIA_MS)} d`,
-                }))}
-              />
-            )}
+      {/* Prioridades + Sinais */}
+      <section className="grid gap-6 xl:grid-cols-[1fr_300px]">
+        <div className="rounded-lg border bg-card">
+          <div className="flex items-center justify-between px-4 py-3 border-b">
+            <div className="flex items-center gap-2">
+              <h2 className="type-section">Prioridades</h2>
+              <span className="type-label num rounded bg-muted px-1.5 py-0.5">{prioridades.length}</span>
+            </div>
+            <span className="type-aux hidden sm:block">Reposição a cada {lead.dias} dias</span>
           </div>
-        )}
-      </section>
-
-      {/* Gráficos */}
-      <section className="grid lg:grid-cols-2 gap-4">
-        <Card className="p-5">
-          <div className="mb-4">
-            <h3 className="font-semibold">Consumo por categoria</h3>
-            <p className="text-xs text-muted-foreground">Unidades entregues em {periodoLabel}</p>
-          </div>
-          {periodoStats.consumoCategoria.length ? (
-            <ResponsiveContainer width="100%" height={Math.max(200, periodoStats.consumoCategoria.length * 34)}>
-              <BarChart data={periodoStats.consumoCategoria} layout="vertical" margin={{ left: 8, right: 24 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border)" />
-                <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
-                <YAxis type="category" dataKey="categoria" width={130} tick={{ fontSize: 11 }} />
-                <Tooltip cursor={{ fill: "var(--muted)" }} />
-                <Bar dataKey="qtd" name="Entregues" fill={COR_SAIDA} radius={[0, 6, 6, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : <Vazio />}
-        </Card>
-
-        <Card className="p-5">
-          <div className="mb-4">
-            <h3 className="font-semibold">Evolução do estoque</h3>
-            <p className="text-xs text-muted-foreground">Saldo total ao fim de cada mês (estimado a partir das movimentações) e entradas × saídas — últimos 6 meses</p>
-          </div>
-          {evolucao.some((b) => b.entradas || b.saidas || b.saldo) ? (
-            <ResponsiveContainer width="100%" height={260}>
-              <ComposedChart data={evolucao} margin={{ left: 0, right: 16 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-                <YAxis yAxisId="saldo" tick={{ fontSize: 11 }} allowDecimals={false} />
-                <YAxis yAxisId="mov" orientation="right" tick={{ fontSize: 11 }} allowDecimals={false} />
-                <Tooltip />
-                <Legend />
-                <Area yAxisId="saldo" type="monotone" dataKey="saldo" name="Estoque (saldo)" stroke={COR_SALDO} fill={COR_SALDO} fillOpacity={0.12} strokeWidth={2} />
-                <Line yAxisId="mov" type="monotone" dataKey="entradas" name="Entradas" stroke={COR_ENTRADA} strokeWidth={2} dot={{ r: 3 }} />
-                <Line yAxisId="mov" type="monotone" dataKey="saidas" name="Saídas" stroke={COR_SAIDA} strokeWidth={2} dot={{ r: 3 }} />
-              </ComposedChart>
-            </ResponsiveContainer>
-          ) : <Vazio />}
-        </Card>
-      </section>
-
-      <Card className="p-5">
-        <div className="mb-4">
-          <h3 className="font-semibold">Movimentação mensal por EPI</h3>
-          <p className="text-xs text-muted-foreground">10 EPIs com mais movimentação em {periodoLabel}</p>
-        </div>
-        {periodoStats.movPorEpi.length ? (
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={periodoStats.movPorEpi}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-              <XAxis dataKey="nome" tick={{ fontSize: 11 }} interval={0} angle={-15} textAnchor="end" height={60} />
-              <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-              <Tooltip cursor={{ fill: "var(--muted)" }} />
-              <Legend />
-              <Bar dataKey="entradas" name="Entradas" fill={COR_ENTRADA} radius={[6, 6, 0, 0]} />
-              <Bar dataKey="saidas" name="Saídas" fill={COR_SAIDA} radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        ) : <Vazio />}
-      </Card>
-
-      <Card className="p-5 overflow-hidden">
-        <div className="mb-4">
-          <h3 className="font-semibold">Movimentação por colaborador</h3>
-          <p className="text-xs text-muted-foreground">{periodoLabel}</p>
-        </div>
-        {periodoStats.relColab.length ? (
-          <div className="overflow-x-auto -mx-5 px-5">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
-                <tr>
-                  <th className="text-left px-3 py-2">Colaborador</th>
-                  <th className="text-left px-3 py-2">Matrícula</th>
-                  <th className="text-left px-3 py-2">Turno</th>
-                  <th className="text-right px-3 py-2">Entregas</th>
-                  <th className="text-right px-3 py-2">Itens</th>
-                  <th className="text-right px-3 py-2">Devoluções/Trocas</th>
-                  <th className="text-left px-3 py-2">EPIs recebidos</th>
-                </tr>
-              </thead>
-              <tbody>
-                {periodoStats.relColab.map((c) => (
-                  <tr key={c.matricula + c.nome} className="border-t">
-                    <td className="px-3 py-2 font-medium">{c.nome}</td>
-                    <td className="px-3 py-2 text-muted-foreground">{c.matricula}</td>
-                    <td className="px-3 py-2">{c.turno}</td>
-                    <td className="px-3 py-2 text-right">{c.entregas}</td>
-                    <td className="px-3 py-2 text-right font-semibold">{c.itens}</td>
-                    <td className="px-3 py-2 text-right">{c.devolucoes}</td>
-                    <td className="px-3 py-2 text-xs text-muted-foreground">{c.episTxt || "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : <Vazio />}
-      </Card>
-
-      {estoque.criticos.length > 0 && (
-        <Card className="p-5">
-          <h3 className="font-semibold mb-4 flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-warning" /> EPIs em estado crítico
-          </h3>
-          <div className="space-y-2">
-            {estoque.criticos.slice(0, 5).map((e) => (
-              <div key={e.id} className="flex items-center justify-between rounded-md border p-3">
-                <div>
-                  <div className="font-medium">{e.nome}</div>
-                  <div className="text-xs text-muted-foreground">{e.categoria}</div>
-                </div>
-                <StockBadge atual={e.estoque_atual} minimo={e.estoque_minimo} />
+          {prioridades.length === 0 ? (
+            <div className="flex items-center gap-2 px-4 py-8 text-sm text-muted-foreground">
+              <CheckCircle2 className="h-4 w-4 text-success" /> Nenhum item exige ação. Estoque dentro dos parâmetros.
+            </div>
+          ) : (
+            <>
+              <div className="hidden md:grid grid-cols-[minmax(0,1.6fr)_minmax(0,1.4fr)_80px_80px_80px_96px] gap-3 px-4 py-2 type-label border-b bg-muted/40">
+                <span>EPI</span><span>Motivo</span><span className="text-right">Estoque</span><span className="text-right">Cobertura</span><span className="text-right">Ruptura</span><span />
               </div>
+              <ul className="divide-y">
+                {prioridades.slice(0, 10).map((p) => (
+                  <li key={p.id} className="grid grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[minmax(0,1.6fr)_minmax(0,1.4fr)_80px_80px_80px_96px] gap-x-3 gap-y-1 items-center px-4 py-2.5 hover:bg-muted/40">
+                    <div className="min-w-0 flex items-center gap-2.5">
+                      <span className={`h-2 w-2 shrink-0 rounded-full ${SEV_DOT[p.sev]}`} />
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium truncate">{p.nome}</div>
+                        <div className="type-aux truncate">{p.sub}</div>
+                      </div>
+                    </div>
+                    <div className={`text-sm truncate md:order-none order-3 col-span-1 ${SEV_TEXT[p.sev]}`}>{p.motivo}</div>
+                    <div className="hidden md:block text-right text-sm num">{p.atual === null ? "—" : <>{p.atual}<span className="text-muted-foreground"> / {p.minimo}</span></>}</div>
+                    <div className="hidden md:block text-right text-sm num">{p.cobertura === null ? "—" : `${p.cobertura} d`}</div>
+                    <div className="hidden md:block text-right text-sm num">{p.ruptura ?? "—"}</div>
+                    <div className="row-span-2 md:row-span-1 text-right">
+                      <Link to={p.acao === "ver" ? "/epis" : "/compras"} search={(p.acao === "ver" ? { nivel: "abaixo" } : undefined) as any}
+                        className="inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-medium hover:bg-accent">
+                        {p.acao === "comprar" ? "Comprar" : p.acao === "pedido" ? "Ver pedido" : "Ver EPI"} <ChevronRight className="h-3 w-3" />
+                      </Link>
+                    </div>
+                    <div className="md:hidden type-aux num order-4">
+                      {p.atual !== null && `Estoque ${p.atual}/${p.minimo}`}{p.cobertura !== null && ` · ${p.cobertura} d`}{p.ruptura && ` · ruptura ${p.ruptura}`}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              {prioridades.length > 10 && (
+                <Link to="/compras" className="block px-4 py-2.5 border-t text-xs font-medium text-primary hover:bg-muted/40">
+                  Ver mais {prioridades.length - 10} itens em Compras
+                </Link>
+              )}
+            </>
+          )}
+        </div>
+
+        <aside className="rounded-lg border bg-card h-fit">
+          <div className="px-4 py-3 border-b"><h2 className="type-section">Sinais</h2></div>
+          <ul className="divide-y">
+            {sinais.map((s) => (
+              <li key={s.label}>
+                <Link to={s.to} search={s.search as any} className="flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-muted/40">
+                  <span className="flex items-center gap-2.5 text-sm">
+                    <span className={`h-2 w-2 rounded-full ${s.count ? SEV_DOT[s.sev] : "bg-muted-foreground/30"}`} />
+                    <span className={s.count ? "" : "text-muted-foreground"}>{s.label}</span>
+                  </span>
+                  <span className={`num text-sm font-semibold ${s.count ? SEV_TEXT[s.sev] : "text-muted-foreground"}`}>{s.count}</span>
+                </Link>
+              </li>
             ))}
+          </ul>
+        </aside>
+      </section>
+
+      {/* Saúde do estoque */}
+      <section className="rounded-lg border bg-card px-4 py-4">
+        <div className="flex items-baseline justify-between mb-3">
+          <h2 className="type-section">Saúde do estoque</h2>
+          <span className="type-aux">{epis.length} EPIs ativos</span>
+        </div>
+        <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted">
+          {NIVEIS.map((n) => saude[n.key] > 0 && (
+            <div key={n.key} className={n.bar} style={{ width: `${(saude[n.key] / totalNiveis) * 100}%` }} title={`${n.label}: ${saude[n.key]}`} />
+          ))}
+        </div>
+        <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {NIVEIS.map((n) => (
+            <Link key={n.key} to="/epis" search={{ nivel: n.key } as any} className="flex items-center gap-2 rounded-md px-1 py-0.5 hover:bg-muted/40">
+              <span className={`h-2.5 w-2.5 rounded-sm ${n.bar}`} />
+              <span className="text-sm">{n.label}</span>
+              <span className="num text-sm font-semibold ml-auto sm:ml-1">{saude[n.key]}</span>
+              <span className="type-aux num">{Math.round((saude[n.key] / totalNiveis) * 100)}%</span>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* Consumo + Entregas recentes */}
+      <section className="grid gap-6 xl:grid-cols-2">
+        <div className="rounded-lg border bg-card">
+          <div className="flex items-baseline justify-between px-4 py-3 border-b">
+            <h2 className="type-section">Consumo</h2>
+            <span className="type-aux">Últimos 6 meses</span>
           </div>
-        </Card>
-      )}
+          <div className="px-2 pt-3">
+            {evolucao.some((b) => b.entradas || b.saidas) ? (
+              <ResponsiveContainer width="100%" height={180}>
+                <ComposedChart data={evolucao} margin={{ left: 0, right: 12, top: 4 }}>
+                  <CartesianGrid vertical={false} stroke="var(--border)" />
+                  <XAxis dataKey="label" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
+                  <YAxis tick={{ fontSize: 11 }} allowDecimals={false} tickLine={false} axisLine={false} width={36} />
+                  <Tooltip cursor={{ fill: "var(--muted)" }} />
+                  <Bar dataKey="saidas" name="Saídas" fill={COR_SAIDA} radius={[3, 3, 0, 0]} barSize={22} />
+                  <Line type="monotone" dataKey="entradas" name="Entradas" stroke={COR_ENTRADA} strokeWidth={2} dot={{ r: 2.5 }} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            ) : <Vazio />}
+          </div>
+          <div className="px-4 pb-4 pt-2">
+            <div className="type-label mb-2">Por categoria · {periodoLabel}</div>
+            {periodoStats.consumoCategoria.length ? (
+              <ul className="space-y-1.5">
+                {periodoStats.consumoCategoria.slice(0, 6).map((c) => (
+                  <li key={c.categoria} className="grid grid-cols-[minmax(0,140px)_1fr_48px] items-center gap-3 text-sm">
+                    <span className="truncate">{c.categoria}</span>
+                    <span className="h-1.5 rounded-full bg-muted overflow-hidden"><span className="block h-full bg-primary" style={{ width: `${(c.qtd / maxCat) * 100}%` }} /></span>
+                    <span className="num text-right">{c.qtd}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : <p className="type-aux">Sem entregas no período.</p>}
+          </div>
+        </div>
+
+        <div className="rounded-lg border bg-card">
+          <div className="flex items-baseline justify-between px-4 py-3 border-b">
+            <h2 className="type-section">Entregas recentes</h2>
+            <Link to="/entregas" className="text-xs font-medium text-primary">Nova entrega</Link>
+          </div>
+          {entregasRecentes.length ? (
+            <ul className="divide-y">
+              {entregasRecentes.map((m: any, i: number) => (
+                <li key={i} className="grid grid-cols-[64px_minmax(0,1fr)_auto] gap-3 items-center px-4 py-2.5">
+                  <span className="num type-aux">{fmtHora(m.data_movimentacao)}</span>
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium truncate">{m.colaboradores?.nome ?? "—"}</div>
+                    <div className="type-aux truncate">{m.epis?.nome ?? "—"} · {m.colaboradores?.turno ?? "—"}</div>
+                  </div>
+                  <span className="num text-sm font-semibold">{m.quantidade}<span className="type-aux font-normal"> un</span></span>
+                </li>
+              ))}
+            </ul>
+          ) : <Vazio />}
+        </div>
+      </section>
     </div>
   );
 }
 
 function Vazio() {
-  return <p className="text-sm text-muted-foreground py-12 text-center">Sem movimentações no período selecionado.</p>;
+  return <p className="text-sm text-muted-foreground py-10 text-center">Sem movimentações no período selecionado.</p>;
 }
 
-type Tone = "neutral" | "info" | "ok" | "warning" | "danger" | "muted";
-const TONE_ICON: Record<Tone, string> = {
-  neutral: "bg-muted text-foreground",
-  info: "bg-primary/10 text-primary",
-  ok: "bg-success/10 text-success",
-  warning: "bg-warning/15 text-warning",
-  danger: "bg-destructive/10 text-destructive",
-  muted: "bg-muted text-muted-foreground",
+type Sev = "critical" | "warning" | "neutral";
+const SEV_DOT: Record<Sev, string> = { critical: "bg-destructive", warning: "bg-warning", neutral: "bg-muted-foreground/50" };
+const SEV_TEXT: Record<Sev, string> = { critical: "text-destructive", warning: "text-warning-ink", neutral: "text-muted-foreground" };
+type LinkTo = "/epis" | "/compras" | "/inventario";
+type PrioItem = {
+  id: string; nome: string; sub: string; motivo: string; sev: Sev;
+  atual: number | null; minimo: number | null; cobertura: number | null; ruptura: string | null;
+  acao: "comprar" | "ver" | "pedido";
 };
-const TONE_CARD: Record<Tone, string> = {
-  neutral: "",
-  info: "",
-  ok: "",
-  warning: "border-warning/50 bg-warning/5",
-  danger: "border-destructive/50 bg-destructive/5",
-  muted: "",
+const NIVEIS = [
+  { key: "normal", label: "Normal", bar: "bg-success" },
+  { key: "atencao", label: "Atenção", bar: "bg-warning/60" },
+  { key: "critico", label: "Crítico", bar: "bg-warning" },
+  { key: "zerado", label: "Zerado", bar: "bg-destructive" },
+] as const;
+
+const fmtHora = (iso: string) => {
+  const d = new Date(iso);
+  return `${d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })} ${d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
 };
 
-type LinkTarget = { to: "/epis" | "/compras" | "/inventario" | "/colaboradores"; search?: Record<string, string> };
-
-function KPI({ icon: Icon, label, value, hint, tone, to, search }: {
-  icon: ComponentType<{ className?: string }>; label: string; value: number | string; hint?: string; tone: Tone;
-} & Partial<LinkTarget>) {
-  const destaque = tone === "warning" || tone === "danger";
+function Stat({ label, value, unit, hint, sev, to, search }: {
+  label: string; value: string; unit: string; hint: string; sev?: Sev; to?: "/epis" | "/compras"; search?: Record<string, string>;
+}) {
   const inner = (
-    <Card className={`p-4 h-full transition-all ${TONE_CARD[tone]} ${to ? "hover:shadow-md hover:border-primary/40" : ""}`}>
-      <div className="flex items-start justify-between">
-        <div className={`h-9 w-9 rounded-md grid place-items-center ${TONE_ICON[tone]}`}><Icon className="h-4 w-4" /></div>
-        {to && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+    <div className="px-4 py-3.5 h-full">
+      <div className="type-label flex items-center gap-1.5">
+        {sev && <span className={`h-1.5 w-1.5 rounded-full ${SEV_DOT[sev]}`} />}{label}
       </div>
-      <div className={`mt-3 font-bold tracking-tight ${destaque ? "text-3xl" : "text-2xl"}`}>{value}</div>
-      <div className="text-xs font-medium mt-0.5">{label}</div>
-      {hint && <div className="text-[11px] text-muted-foreground mt-0.5 truncate">{hint}</div>}
-    </Card>
+      <div className="mt-1 flex items-baseline gap-1.5">
+        <span className={`type-kpi num ${sev ? SEV_TEXT[sev] : ""}`}>{value}</span>
+        <span className="type-aux">{unit}</span>
+      </div>
+      <div className="type-aux truncate mt-0.5">{hint}</div>
+    </div>
   );
-  if (!to) return inner;
-  return (
-    <Link to={to} search={search as any} className="block text-left rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50">
-      {inner}
-    </Link>
-  );
-}
-
-function AlertaCard({ titulo, descricao, count, tone, itens, to, search, icon: Icon = AlertTriangle }: {
-  titulo: string; descricao?: string; count: number; tone: Tone;
-  itens: { id: string; nome: string; sub: string; right: string }[];
-  icon?: ComponentType<{ className?: string }>;
-} & LinkTarget) {
-  return (
-    <Link to={to} search={search as any} className="block rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50">
-      <Card className={`p-4 h-full hover:shadow-md transition-all ${TONE_CARD[tone]}`}>
-        <div className="flex items-center justify-between gap-2 mb-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className={`h-8 w-8 shrink-0 rounded-md grid place-items-center ${TONE_ICON[tone]}`}><Icon className="h-4 w-4" /></div>
-            <div className="min-w-0">
-              <div className="font-semibold text-sm truncate">{titulo}</div>
-              {descricao && <div className="text-[11px] text-muted-foreground truncate">{descricao}</div>}
-            </div>
-          </div>
-          <span className={`shrink-0 text-lg font-bold tabular-nums ${tone === "danger" ? "text-destructive" : tone === "warning" ? "text-warning" : ""}`}>{count}</span>
-        </div>
-        <ul className="space-y-1.5">
-          {itens.map((i) => (
-            <li key={i.id} className="flex items-center justify-between gap-3 text-sm">
-              <div className="min-w-0">
-                <div className="truncate">{i.nome}</div>
-                {i.sub && <div className="text-[11px] text-muted-foreground truncate">{i.sub}</div>}
-              </div>
-              <span className="text-xs text-muted-foreground whitespace-nowrap tabular-nums">{i.right}</span>
-            </li>
-          ))}
-        </ul>
-        <div className="mt-3 pt-2 border-t text-xs text-primary font-medium flex items-center gap-1">
-          {count > itens.length ? `Ver todos (${count})` : "Abrir"} <ChevronRight className="h-3 w-3" />
-        </div>
-      </Card>
-    </Link>
-  );
+  return to ? <Link to={to} search={search as any} className="block hover:bg-muted/40">{inner}</Link> : inner;
 }
