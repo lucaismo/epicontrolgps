@@ -16,6 +16,8 @@ import { useEpiMetrics } from "@/hooks/use-epi-metrics";
 import { DIA_MS } from "@/lib/estoque-calc";
 import { fetchPaginado } from "@/lib/consumo";
 import { StockBadge } from "@/components/StockBadge";
+import { PageHeader } from "@/components/PageHeader";
+import { LayoutDashboard } from "lucide-react";
 
 export const Route = createFileRoute("/_app/dashboard")({
   component: Dashboard,
