@@ -90,3 +90,20 @@ export function canManageRegistros(role: AppRole | null) {
 export function canMovimentar(role: AppRole | null) {
   return role === "admin" || role === "tecnico" || role === "almoxarife";
 }
+
+/**
+ * Contexto de identidade FICTÍCIO usado somente pelo Ambiente de Revisão (/__review).
+ * Não cria sessão, não toca no backend e não é usado pelas rotas reais —
+ * serve apenas para as telas reais renderizarem com dados fictícios.
+ */
+export function ReviewAuthProvider({ children, userId }: { children: ReactNode; userId: string }) {
+  const value: AuthState = {
+    user: { id: userId, email: "revisao@exemplo.invalid" } as User,
+    session: null,
+    role: "admin",
+    loading: false,
+    roleLoaded: true,
+    signOut: async () => {},
+  };
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
