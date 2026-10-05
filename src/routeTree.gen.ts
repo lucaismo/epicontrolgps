@@ -10,21 +10,21 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as Char91__reviewChar93RouteImport } from './routes/[__review]'
+import { Route as Char91__reviewChar93RouteRouteImport } from './routes/[__review]/route'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
-import { Route as Char91__reviewChar93IndexRouteImport } from './routes/[__review].index'
-import { Route as Char91__reviewChar93ColaboradoresRouteImport } from './routes/[__review].colaboradores'
-import { Route as Char91__reviewChar93ComprasRouteImport } from './routes/[__review].compras'
-import { Route as Char91__reviewChar93ConsumoRouteImport } from './routes/[__review].consumo'
-import { Route as Char91__reviewChar93EntregasRouteImport } from './routes/[__review].entregas'
-import { Route as Char91__reviewChar93EpisRouteImport } from './routes/[__review].epis'
-import { Route as Char91__reviewChar93InventarioRouteImport } from './routes/[__review].inventario'
-import { Route as Char91__reviewChar93RelatoriosRouteImport } from './routes/[__review].relatorios'
+import { Route as Char91__reviewChar93IndexRouteImport } from './routes/[__review]/index'
+import { Route as Char91__reviewChar93ColaboradoresRouteImport } from './routes/[__review]/colaboradores'
+import { Route as Char91__reviewChar93ComprasRouteImport } from './routes/[__review]/compras'
+import { Route as Char91__reviewChar93ConsumoRouteImport } from './routes/[__review]/consumo'
+import { Route as Char91__reviewChar93EntregasRouteImport } from './routes/[__review]/entregas'
+import { Route as Char91__reviewChar93EpisRouteImport } from './routes/[__review]/epis'
+import { Route as Char91__reviewChar93InventarioRouteImport } from './routes/[__review]/inventario'
+import { Route as Char91__reviewChar93RelatoriosRouteImport } from './routes/[__review]/relatorios'
 import { Route as AppColaboradoresRouteImport } from './routes/_app/colaboradores'
 import { Route as AppComprasRouteImport } from './routes/_app/compras'
 import { Route as AppConsumoRouteImport } from './routes/_app/consumo'
@@ -43,11 +43,12 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const Char91__reviewChar93Route = Char91__reviewChar93RouteImport.update({
-  id: '/__review',
-  path: '/__review',
-  getParentRoute: () => rootRouteImport,
-} as any)
+const Char91__reviewChar93RouteRoute =
+  Char91__reviewChar93RouteRouteImport.update({
+    id: '/__review',
+    path: '/__review',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AppRoute = AppRouteImport.update({
   id: '/_app',
   getParentRoute: () => rootRouteImport,
@@ -83,49 +84,49 @@ const Char91__reviewChar93IndexRoute =
   Char91__reviewChar93IndexRouteImport.update({
     id: '/',
     path: '/',
-    getParentRoute: () => Char91__reviewChar93Route,
+    getParentRoute: () => Char91__reviewChar93RouteRoute,
   } as any)
 const Char91__reviewChar93ColaboradoresRoute =
   Char91__reviewChar93ColaboradoresRouteImport.update({
     id: '/colaboradores',
     path: '/colaboradores',
-    getParentRoute: () => Char91__reviewChar93Route,
+    getParentRoute: () => Char91__reviewChar93RouteRoute,
   } as any)
 const Char91__reviewChar93ComprasRoute =
   Char91__reviewChar93ComprasRouteImport.update({
     id: '/compras',
     path: '/compras',
-    getParentRoute: () => Char91__reviewChar93Route,
+    getParentRoute: () => Char91__reviewChar93RouteRoute,
   } as any)
 const Char91__reviewChar93ConsumoRoute =
   Char91__reviewChar93ConsumoRouteImport.update({
     id: '/consumo',
     path: '/consumo',
-    getParentRoute: () => Char91__reviewChar93Route,
+    getParentRoute: () => Char91__reviewChar93RouteRoute,
   } as any)
 const Char91__reviewChar93EntregasRoute =
   Char91__reviewChar93EntregasRouteImport.update({
     id: '/entregas',
     path: '/entregas',
-    getParentRoute: () => Char91__reviewChar93Route,
+    getParentRoute: () => Char91__reviewChar93RouteRoute,
   } as any)
 const Char91__reviewChar93EpisRoute =
   Char91__reviewChar93EpisRouteImport.update({
     id: '/epis',
     path: '/epis',
-    getParentRoute: () => Char91__reviewChar93Route,
+    getParentRoute: () => Char91__reviewChar93RouteRoute,
   } as any)
 const Char91__reviewChar93InventarioRoute =
   Char91__reviewChar93InventarioRouteImport.update({
     id: '/inventario',
     path: '/inventario',
-    getParentRoute: () => Char91__reviewChar93Route,
+    getParentRoute: () => Char91__reviewChar93RouteRoute,
   } as any)
 const Char91__reviewChar93RelatoriosRoute =
   Char91__reviewChar93RelatoriosRouteImport.update({
     id: '/relatorios',
     path: '/relatorios',
-    getParentRoute: () => Char91__reviewChar93Route,
+    getParentRoute: () => Char91__reviewChar93RouteRoute,
   } as any)
 const AppColaboradoresRoute = AppColaboradoresRouteImport.update({
   id: '/colaboradores',
@@ -191,7 +192,7 @@ const AppColaboradoresIdRoute = AppColaboradoresIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/__review': typeof Char91__reviewChar93RouteWithChildren
+  '/__review': typeof Char91__reviewChar93RouteRouteWithChildren
   '/login': typeof LoginRoute
   '/mcp': typeof McpRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -249,7 +250,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/__review': typeof Char91__reviewChar93RouteWithChildren
+  '/__review': typeof Char91__reviewChar93RouteRouteWithChildren
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/mcp': typeof McpRoute
@@ -369,7 +370,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  Char91__reviewChar93Route: typeof Char91__reviewChar93RouteWithChildren
+  Char91__reviewChar93RouteRoute: typeof Char91__reviewChar93RouteRouteWithChildren
   AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
   McpRoute: typeof McpRoute
@@ -393,7 +394,7 @@ declare module '@tanstack/react-router' {
       id: '/__review'
       path: '/__review'
       fullPath: '/__review'
-      preLoaderRoute: typeof Char91__reviewChar93RouteImport
+      preLoaderRoute: typeof Char91__reviewChar93RouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app': {
@@ -443,56 +444,56 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/__review/'
       preLoaderRoute: typeof Char91__reviewChar93IndexRouteImport
-      parentRoute: typeof Char91__reviewChar93Route
+      parentRoute: typeof Char91__reviewChar93RouteRoute
     }
     '/__review/colaboradores': {
       id: '/__review/colaboradores'
       path: '/colaboradores'
       fullPath: '/__review/colaboradores'
       preLoaderRoute: typeof Char91__reviewChar93ColaboradoresRouteImport
-      parentRoute: typeof Char91__reviewChar93Route
+      parentRoute: typeof Char91__reviewChar93RouteRoute
     }
     '/__review/compras': {
       id: '/__review/compras'
       path: '/compras'
       fullPath: '/__review/compras'
       preLoaderRoute: typeof Char91__reviewChar93ComprasRouteImport
-      parentRoute: typeof Char91__reviewChar93Route
+      parentRoute: typeof Char91__reviewChar93RouteRoute
     }
     '/__review/consumo': {
       id: '/__review/consumo'
       path: '/consumo'
       fullPath: '/__review/consumo'
       preLoaderRoute: typeof Char91__reviewChar93ConsumoRouteImport
-      parentRoute: typeof Char91__reviewChar93Route
+      parentRoute: typeof Char91__reviewChar93RouteRoute
     }
     '/__review/entregas': {
       id: '/__review/entregas'
       path: '/entregas'
       fullPath: '/__review/entregas'
       preLoaderRoute: typeof Char91__reviewChar93EntregasRouteImport
-      parentRoute: typeof Char91__reviewChar93Route
+      parentRoute: typeof Char91__reviewChar93RouteRoute
     }
     '/__review/epis': {
       id: '/__review/epis'
       path: '/epis'
       fullPath: '/__review/epis'
       preLoaderRoute: typeof Char91__reviewChar93EpisRouteImport
-      parentRoute: typeof Char91__reviewChar93Route
+      parentRoute: typeof Char91__reviewChar93RouteRoute
     }
     '/__review/inventario': {
       id: '/__review/inventario'
       path: '/inventario'
       fullPath: '/__review/inventario'
       preLoaderRoute: typeof Char91__reviewChar93InventarioRouteImport
-      parentRoute: typeof Char91__reviewChar93Route
+      parentRoute: typeof Char91__reviewChar93RouteRoute
     }
     '/__review/relatorios': {
       id: '/__review/relatorios'
       path: '/relatorios'
       fullPath: '/__review/relatorios'
       preLoaderRoute: typeof Char91__reviewChar93RelatoriosRouteImport
-      parentRoute: typeof Char91__reviewChar93Route
+      parentRoute: typeof Char91__reviewChar93RouteRoute
     }
     '/_app/colaboradores': {
       id: '/_app/colaboradores'
@@ -581,7 +582,7 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface Char91__reviewChar93RouteChildren {
+interface Char91__reviewChar93RouteRouteChildren {
   Char91__reviewChar93ColaboradoresRoute: typeof Char91__reviewChar93ColaboradoresRoute
   Char91__reviewChar93ComprasRoute: typeof Char91__reviewChar93ComprasRoute
   Char91__reviewChar93ConsumoRoute: typeof Char91__reviewChar93ConsumoRoute
@@ -592,20 +593,23 @@ interface Char91__reviewChar93RouteChildren {
   Char91__reviewChar93IndexRoute: typeof Char91__reviewChar93IndexRoute
 }
 
-const Char91__reviewChar93RouteChildren: Char91__reviewChar93RouteChildren = {
-  Char91__reviewChar93ColaboradoresRoute:
-    Char91__reviewChar93ColaboradoresRoute,
-  Char91__reviewChar93ComprasRoute: Char91__reviewChar93ComprasRoute,
-  Char91__reviewChar93ConsumoRoute: Char91__reviewChar93ConsumoRoute,
-  Char91__reviewChar93EntregasRoute: Char91__reviewChar93EntregasRoute,
-  Char91__reviewChar93EpisRoute: Char91__reviewChar93EpisRoute,
-  Char91__reviewChar93InventarioRoute: Char91__reviewChar93InventarioRoute,
-  Char91__reviewChar93RelatoriosRoute: Char91__reviewChar93RelatoriosRoute,
-  Char91__reviewChar93IndexRoute: Char91__reviewChar93IndexRoute,
-}
+const Char91__reviewChar93RouteRouteChildren: Char91__reviewChar93RouteRouteChildren =
+  {
+    Char91__reviewChar93ColaboradoresRoute:
+      Char91__reviewChar93ColaboradoresRoute,
+    Char91__reviewChar93ComprasRoute: Char91__reviewChar93ComprasRoute,
+    Char91__reviewChar93ConsumoRoute: Char91__reviewChar93ConsumoRoute,
+    Char91__reviewChar93EntregasRoute: Char91__reviewChar93EntregasRoute,
+    Char91__reviewChar93EpisRoute: Char91__reviewChar93EpisRoute,
+    Char91__reviewChar93InventarioRoute: Char91__reviewChar93InventarioRoute,
+    Char91__reviewChar93RelatoriosRoute: Char91__reviewChar93RelatoriosRoute,
+    Char91__reviewChar93IndexRoute: Char91__reviewChar93IndexRoute,
+  }
 
-const Char91__reviewChar93RouteWithChildren =
-  Char91__reviewChar93Route._addFileChildren(Char91__reviewChar93RouteChildren)
+const Char91__reviewChar93RouteRouteWithChildren =
+  Char91__reviewChar93RouteRoute._addFileChildren(
+    Char91__reviewChar93RouteRouteChildren,
+  )
 
 interface AppRouteChildren {
   AppColaboradoresRoute: typeof AppColaboradoresRoute
@@ -637,7 +641,7 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  Char91__reviewChar93Route: Char91__reviewChar93RouteWithChildren,
+  Char91__reviewChar93RouteRoute: Char91__reviewChar93RouteRouteWithChildren,
   AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
   McpRoute: McpRoute,
