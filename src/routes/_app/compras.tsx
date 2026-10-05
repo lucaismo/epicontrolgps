@@ -29,9 +29,9 @@ export const Route = createFileRoute("/_app/compras")({
   head: () => ({
     meta: [
       { title: "Planejamento de Compras · EPI Control" },
-      { name: "description", content: "Planejamento de reposição de EPIs com consumo médio, lead time, pedidos em trânsito e previsão de ruptura." },
+      { name: "description", content: "Planejamento de reposição de EPIs com consumo médio, período sem reposição, pedidos em trânsito e previsão de ruptura." },
       { property: "og:title", content: "Planejamento de Compras · EPI Control" },
-      { property: "og:description", content: "Planejamento de reposição de EPIs com consumo médio, lead time, pedidos em trânsito e previsão de ruptura." },
+      { property: "og:description", content: "Planejamento de reposição de EPIs com consumo médio, período sem reposição, pedidos em trânsito e previsão de ruptura." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -363,7 +363,7 @@ function ComprasPage() {
     doc.setTextColor(0);
     autoTable(doc, {
       startY: 90,
-      head: [["Código", "Nome", "Categoria", "Estoque", "Trânsito", "Cons./dia", "Cons./mês", "Cobertura", "Lead", "Seg.(d)", "Ruptura", "Sugerido", "Ajustado", "Prioridade"]],
+      head: [["Código", "Nome", "Categoria", "Estoque", "Trânsito", "Cons./dia", "Cons./mês", "Cobertura", "S/ repos.(d)", "Seg.(d)", "Ruptura", "Sugerido", "Ajustado", "Prioridade"]],
       body: rows.map((r) => [
         r["Código do produto"], r.Nome, r.Categoria, String(r["Estoque atual"]), String(r["Pedido em trânsito"]),
         String(r["Consumo médio diário"]), String(r["Consumo médio mensal"]), String(r["Cobertura (dias)"]),
@@ -385,38 +385,40 @@ function ComprasPage() {
     <div className="p-4 md:p-8 space-y-6">
       <div>
         <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Planejamento de Compras</h1>
-        <p className="text-sm text-muted-foreground mt-1">Reposição baseada em consumo, lead time total, pedidos em trânsito e previsão de ruptura</p>
+        <p className="text-sm text-muted-foreground mt-1">Reposição baseada em consumo, período sem reposição, pedidos em trânsito e previsão de ruptura</p>
       </div>
 
       <div className="grid gap-3 grid-cols-2 xl:grid-cols-4">
-        <StatCard icon={AlertTriangle} label="EPIs em ruptura" value={resumo.ruptura} tone={resumo.ruptura ? "danger" : "neutral"} hint="cobertura abaixo do lead time" />
+        <StatCard icon={AlertTriangle} label="EPIs em ruptura" value={resumo.ruptura} tone={resumo.ruptura ? "danger" : "neutral"} hint="cobertura abaixo do período sem reposição" />
         <StatCard icon={AlertTriangle} label="EPIs em atenção" value={resumo.atencao} tone={resumo.atencao ? "warning" : "neutral"} hint="dentro do estoque de segurança" />
         <StatCard icon={PackagePlus} label="Compra necessária" value={resumo.comCompra} hint="itens com sugestão maior que zero" />
         <StatCard icon={PackagePlus} label="Quantidade total" value={fmtNum(resumo.totalQtd)} tone={resumo.totalQtd ? "success" : "neutral"} hint="unidades a solicitar" />
       </div>
 
-      <Card className="p-4 space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Período sem reposição</h2>
-          <p className="text-sm">
-            <b>{lead.dias} dias</b>{" "}
-            <span className="text-muted-foreground text-xs">
-              (hoje → próximo pedido {fmtDate(lead.pedido)}: {lead.diasAtePedido}d de espera + {lead.diasEntrega}d de prazo do fornecedor → recebimento {fmtDate(lead.recebimento)}). O estoque atual + em trânsito precisa durar até esse recebimento.
-            </span>
+      <details className="group rounded-lg border bg-card text-sm">
+        <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 [&::-webkit-details-marker]:hidden">
+          <span className="type-label">Período sem reposição</span>
+          <span><b className="num">{lead.dias} dias</b> <span className="text-muted-foreground text-xs">· próximo pedido {fmtDate(lead.pedido)} · recebimento {fmtDate(lead.recebimento)}</span></span>
+          <span className="ml-auto text-xs font-medium text-primary group-open:hidden">{podeConfigurar ? "Ver detalhes e ajustar" : "Ver detalhes"}</span>
+          <span className="ml-auto hidden text-xs font-medium text-primary group-open:inline">Recolher</span>
+        </summary>
+        <div className="space-y-3 border-t px-4 py-3">
+          <p className="text-muted-foreground text-xs">
+            Hoje → próximo pedido {fmtDate(lead.pedido)}: {lead.diasAtePedido}d de espera + {lead.diasEntrega}d de prazo do fornecedor → recebimento {fmtDate(lead.recebimento)}. O estoque atual + em trânsito precisa durar até esse recebimento.
           </p>
-        </div>
-        <div className="grid md:grid-cols-3 gap-3 items-end">
-          <div className="space-y-1.5"><Label className="text-xs">Dia do envio do pedido</Label>
-            <Input type="number" min={1} max={31} value={dp} disabled={!podeConfigurar} onChange={(e) => setDiaPedido(Number(e.target.value))} />
+          <div className="grid md:grid-cols-3 gap-3 items-end">
+            <div className="space-y-1.5"><Label className="text-xs">Dia do envio do pedido</Label>
+              <Input type="number" min={1} max={31} value={dp} disabled={!podeConfigurar} onChange={(e) => setDiaPedido(Number(e.target.value))} />
+            </div>
+            <div className="space-y-1.5"><Label className="text-xs">Dia previsto de recebimento</Label>
+              <Input type="number" min={1} max={31} value={dr} disabled={!podeConfigurar} onChange={(e) => setDiaReceb(Number(e.target.value))} />
+            </div>
+            {podeConfigurar && (
+              <Button variant="outline" onClick={salvarConfig}><Save className="h-4 w-4 mr-2" /> Salvar configuração</Button>
+            )}
           </div>
-          <div className="space-y-1.5"><Label className="text-xs">Dia previsto de recebimento</Label>
-            <Input type="number" min={1} max={31} value={dr} disabled={!podeConfigurar} onChange={(e) => setDiaReceb(Number(e.target.value))} />
-          </div>
-          {podeConfigurar && (
-            <Button variant="outline" onClick={salvarConfig}><Save className="h-4 w-4 mr-2" /> Salvar configuração</Button>
-          )}
         </div>
-      </Card>
+      </details>
 
 
       <Card className="p-3 flex flex-col md:flex-row gap-2">
@@ -473,13 +475,12 @@ function ComprasPage() {
           <table className="tbl w-full">
             <thead>
               <tr>
-                <th className="text-left">EPI</th>
+                <th className="text-left min-w-[240px]">EPI</th>
                 <th className="num">Compra sugerida</th>
                 <th className="num">Quantidade adotada</th>
                 <th className="num">Estoque atual</th>
                 <th className="num">Cobertura</th>
                 <th className="num">Consumo médio</th>
-                <th className="num">Mínimo recomendado</th>
                 <th className="num">Em trânsito</th>
                 <th className="num">Necessidade</th>
                 <th className="text-left">Prioridade</th>
@@ -511,11 +512,6 @@ function ComprasPage() {
                   </td>
                   <td className="num"><CoverageIndicator cobertura={l.cobertura} ruptura={l.ruptura} leadDias={lead.dias} align="right" /></td>
                   <td className="num"><ConsumptionCell mensal={l.mensal} diario={l.diario} align="right" /></td>
-                  <td className="num">
-                    {l.minimoCalc !== null
-                      ? <MetricValue value={fmtNum(l.minimoCalc)} size="sm" align="right" sub={`${lead.dias}d s/ reposição + ${DIAS_SEGURANCA_MINIMO}d`} />
-                      : <MetricValue value="—" size="sm" tone="muted" align="right" sub={SEM_CONSUMO_LABEL} />}
-                  </td>
                   <td className="num">{l.transito > 0 ? <span className="font-semibold">+{l.transito}</span> : <span className="text-muted-foreground">0</span>}</td>
                   <td className="num">
                     <MetricValue value={fmtNum(necessidade)} size="sm" align="right" sub={`${lead.dias}d + ${l.diasSeg}d seg.`} />
@@ -524,7 +520,7 @@ function ComprasPage() {
                 </tr>
                 );
               })}
-              {filtradas.length === 0 && <tr><td colSpan={10}  className="text-center py-12 text-muted-foreground text-sm">Nenhum EPI encontrado.</td></tr>}
+              {filtradas.length === 0 && <tr><td colSpan={9} className="text-center py-12 text-muted-foreground text-sm">Nenhum EPI encontrado.</td></tr>}
             </tbody>
           </table>
         </div>

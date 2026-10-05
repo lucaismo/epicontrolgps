@@ -232,7 +232,7 @@ function Dashboard() {
     };
     estoque.zerados.forEach((e) => push(e, "Estoque zerado", "critical", "comprar"));
     estoque.ruptura.forEach(({ epi, m }) => push(epi, `Ruptura em ${Math.floor(m.cobertura)} d, antes da reposição`, "critical", "comprar"));
-    estoque.criticos.forEach((e) => push(e, "Estoque crítico", "warning", "comprar"));
+    estoque.criticos.forEach((e) => push(e, "Estoque crítico", "critical", "comprar"));
     estoque.abaixoMin.forEach((e) => push(e, "Abaixo do mínimo", "neutral", "ver"));
     pedidosInfo.atrasados.forEach((p) => out.push({ id: `ped-${p.id}`, nome: p.nome, sub: `${p.qtd} un`, motivo: `Pedido atrasado ${p.diasAtraso} d`, sev: "critical", atual: null, minimo: null, cobertura: null, ruptura: null, acao: "pedido" }));
     return out;
@@ -246,7 +246,7 @@ function Dashboard() {
   const sinais: { label: string; count: number; sev: Sev; to: LinkTo; search?: Record<string, string> }[] = [
     { label: "Ruptura próxima", count: estoque.ruptura.length, sev: "critical", to: "/compras", search: { prioridade: "alta" } },
     { label: "Estoque zerado", count: estoque.zerados.length, sev: "critical", to: "/epis", search: { nivel: "zerado" } },
-    { label: "Estoque crítico", count: estoque.criticos.length, sev: "warning", to: "/epis", search: { nivel: "critico" } },
+    { label: "Estoque crítico", count: estoque.criticos.length, sev: "critical", to: "/epis", search: { nivel: "critico" } },
     { label: "Pedido atrasado", count: pedidosInfo.atrasados.length, sev: "critical", to: "/compras" },
     { label: "Pedidos em aberto", count: pedidosInfo.abertos.length, sev: "neutral", to: "/compras" },
     { label: "Inventário em andamento", count: inventariosPendentes.length, sev: "neutral", to: "/inventario" },
@@ -280,7 +280,7 @@ function Dashboard() {
       <section className="grid grid-cols-2 lg:grid-cols-4 rounded-lg border bg-card divide-x divide-y lg:divide-y-0 overflow-hidden">
         <Stat label="Estoque total" value={estoque.estoqueTotal.toLocaleString("pt-BR")} unit="un" hint={`Valor ${brl(estoque.valorTotal)}`} />
         <Stat label="Entregas no período" value={periodoStats.totalEntregas.toLocaleString("pt-BR")} unit="un" hint={`${periodoLabel} · ${brl(periodoStats.custo)}`} />
-        <Stat label="EPIs críticos" value={String(estoque.criticos.length)} unit="EPIs" sev={estoque.criticos.length ? "warning" : undefined}
+        <Stat label="EPIs críticos" value={String(estoque.criticos.length)} unit="EPIs" sev={estoque.criticos.length ? "critical" : undefined}
           hint={`+ ${estoque.zerados.length} zerados`} to="/epis" search={{ nivel: "critico" }} />
         <Stat label="Compras necessárias" value={String(compras.qtdEpis)} unit="EPIs" sev={compras.alta ? "critical" : undefined}
           hint={`${compras.unidades.toLocaleString("pt-BR")} un sugeridas · ${compras.alta} alta prioridade`} to="/compras" />
@@ -459,7 +459,7 @@ type PrioItem = {
 const NIVEIS = [
   { key: "normal", label: "Normal", bar: "bg-success" },
   { key: "atencao", label: "Atenção", bar: "bg-warning/60" },
-  { key: "critico", label: "Crítico", bar: "bg-warning" },
+  { key: "critico", label: "Crítico", bar: "bg-destructive/60" },
   { key: "zerado", label: "Zerado", bar: "bg-destructive" },
 ] as const;
 
