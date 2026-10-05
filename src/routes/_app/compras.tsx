@@ -189,11 +189,85 @@ function ComprasPage() {
     for (const l of filtradas) {
       if (l.prioridade === "alta") ruptura++;
       else if (l.prioridade === "media") atencao++;
-      const q = ajustes[l.epi.id] ?? l.sugerido;
-      if (q > 0) { comCompra++; totalQtd += q; }
+      // Indicadores usam a compra sugerida (mesma lógica da Central), não a quantidade adotada.
+      if (l.sugerido > 0) { comCompra++; totalQtd += l.sugerido; }
     }
     return { ruptura, atencao, comCompra, totalQtd };
-  }, [filtradas, ajustes]);
+  }, [filtradas]);
+
+  const renderSugerido = (l: (typeof linhas)[number], necessidade: number) => (
+    <>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button type="button" className="inline-flex items-center gap-1 text-xl font-bold tabular-nums underline decoration-dotted underline-offset-4 hover:text-primary" title="Ver cálculo">
+                          {l.sugerido}<Info className="h-3.5 w-3.5 text-muted-foreground" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent align="end" className="w-80 text-sm">
+                        <div className="font-semibold mb-2">Compra sugerida: {l.sugerido} {l.sugerido === 1 ? "unidade" : "unidades"}</div>
+                        <dl className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 tabular-nums">
+                          <dt className="text-muted-foreground">Consumo diário</dt><dd>{fmtNum(l.diario, 2)}</dd>
+                          <dt className="text-muted-foreground">Base do consumo</dt><dd className="text-xs">{l.c.d90 > 0 ? `90d: ${l.c.d90}` : l.c.d30 > 0 ? `30d: ${l.c.d30}` : `365d: ${l.c.d365}`}</dd>
+                          <dt className="text-muted-foreground">Período sem reposição</dt><dd>{lead.dias} dias</dd>
+                          <dt className="text-muted-foreground text-xs pl-2">espera até pedido {lead.diasAtePedido}d + prazo fornecedor {lead.diasEntrega}d</dt><dd />
+                          <dt className="text-muted-foreground">Segurança</dt><dd>{l.diasSeg} dias</dd>
+                          <dt className="text-muted-foreground">Período considerado</dt><dd>{lead.dias + l.diasSeg} dias</dd>
+                          <dt className="text-muted-foreground">Necessidade calculada</dt><dd>{necessidade}</dd>
+                          <dt className="text-muted-foreground text-xs pl-2">= {fmtNum(l.diario, 2)} × ({lead.dias} + {l.diasSeg})</dt><dd />
+                          <dt className="text-muted-foreground">Estoque atual</dt><dd>{l.epi.estoque_atual}</dd>
+                          <dt className="text-muted-foreground">Em trânsito</dt><dd>{l.transito}</dd>
+                          <dt className="text-muted-foreground">Estoque disponível</dt><dd>{l.disponivel}</dd>
+                          <dt className="font-semibold border-t pt-1">Quantidade sugerida</dt><dd className="font-semibold border-t pt-1">{l.sugerido}</dd>
+                        </dl>
+                        <div className="mt-2 text-xs rounded bg-primary/10 p-2 space-y-0.5">
+                          <div>Quantidade adotada: <b>{qtdDe(l)} {qtdDe(l) === 1 ? "unidade" : "unidades"}</b></div>
+                          <div className="text-muted-foreground">{qtdDe(l) !== l.sugerido ? `Ajuste manual · sugestão automática: ${l.sugerido} unidades` : "Sem ajuste manual (= sugestão automática)"}</div>
+                        </div>
+                        {!(l.diario > 0) && <p className="mt-2 text-xs text-muted-foreground">{SEM_CONSUMO_LABEL} nos últimos 365 dias.</p>}
+                      </PopoverContent>
+                    </Popover>
+    </>
+  );
+  const renderAdotada = (l: (typeof linhas)[number]) => (
+    <>
+                    <div className="flex items-center justify-end gap-1">
+                      {(() => {
+                        const div = divergenciaDe(l);
+                        if (!div) return null;
+                        return (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="text-warning"><AlertTriangle className="h-4 w-4" /></span>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="text-xs">
+                                  A sugestão mudou de {div.registrada} para {div.atual} desde o seu ajuste.
+                                  <br />Sua quantidade foi mantida.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        );
+                      })()}
+                      {divergenciaDe(l) && (
+                        <Button size="icon" variant="ghost" className="h-7 w-7" title="Usar sugestão atual" onClick={() => restaurarSugestao(l)}>
+                          <RotateCcw className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                      <Input
+                        type="number" min={0} className="h-9 w-24 text-right"
+                        value={qtdDe(l)}
+                        onChange={(e) => {
+                          const v = Math.max(0, Number(e.target.value) || 0);
+                          setAjustes((p) => ({ ...p, [l.epi.id]: v }));
+                          persistir(l.epi.id, v, l.sugerido);
+                        }}
+                      />
+                    </div>
+                    {qtdDe(l) !== l.sugerido && <div className="text-[11px] text-primary mt-0.5">ajustada (sugestão {l.sugerido})</div>}
+    </>
+  );
 
 
 
@@ -364,7 +438,37 @@ function ComprasPage() {
         )}
       </Card>
 
-      <Card className="overflow-hidden">
+      <div className="md:hidden space-y-3">
+        {filtradas.map((l) => {
+          const necessidade = Math.ceil(l.diario * lead.dias + l.estoqueSeg);
+          return (
+            <Card key={l.epi.id} className="p-4 space-y-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="font-semibold leading-tight">{l.epi.nome}{l.epi.tamanho ? <span className="ml-1.5 text-xs font-semibold rounded bg-muted px-1.5 py-0.5">{l.epi.tamanho}</span> : null}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {l.epi.codigo_produto ? <span className="font-mono">{l.epi.codigo_produto}</span> : null}
+                    {l.epi.codigo_produto ? " · " : ""}{l.epi.categoria}
+                  </div>
+                </div>
+                <PriorityBadge prioridade={l.prioridade} />
+              </div>
+              <div className="grid grid-cols-3 gap-2 border-t pt-3 text-left">
+                <div><div className="type-label">Estoque</div><StockLevel atual={l.epi.estoque_atual} minimoCalc={l.minimoCalc} minimoCadastrado={l.epi.estoque_minimo} nivel={l.nivel} /></div>
+                <div><div className="type-label">Cobertura</div><CoverageIndicator cobertura={l.cobertura} ruptura={l.ruptura} leadDias={lead.dias} /></div>
+                <div><div className="type-label">Necessidade</div><MetricValue value={fmtNum(necessidade)} size="sm" sub={`${l.transito > 0 ? `+${l.transito} em trânsito` : "0 em trânsito"}`} /></div>
+              </div>
+              <div className="flex items-end justify-between gap-3 border-t pt-3">
+                <div><div className="type-label">Compra sugerida</div>{renderSugerido(l, necessidade)}</div>
+                <div className="text-right"><div className="type-label mb-1">Quantidade adotada</div>{renderAdotada(l)}</div>
+              </div>
+            </Card>
+          );
+        })}
+        {filtradas.length === 0 && <Card className="p-8 text-center text-sm text-muted-foreground">Nenhum EPI encontrado.</Card>}
+      </div>
+
+      <Card className="overflow-hidden hidden md:block">
         <div className="overflow-x-auto">
           <table className="tbl w-full">
             <thead>
@@ -394,73 +498,10 @@ function ComprasPage() {
                     </div>
                   </td>
                   <td className="num">
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <button type="button" className="inline-flex items-center gap-1 text-xl font-bold tabular-nums underline decoration-dotted underline-offset-4 hover:text-primary" title="Ver cálculo">
-                          {l.sugerido}<Info className="h-3.5 w-3.5 text-muted-foreground" />
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent align="end" className="w-80 text-sm">
-                        <div className="font-semibold mb-2">Compra sugerida: {l.sugerido} {l.sugerido === 1 ? "unidade" : "unidades"}</div>
-                        <dl className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 tabular-nums">
-                          <dt className="text-muted-foreground">Consumo diário</dt><dd>{fmtNum(l.diario, 2)}</dd>
-                          <dt className="text-muted-foreground">Base do consumo</dt><dd className="text-xs">{l.c.d90 > 0 ? `90d: ${l.c.d90}` : l.c.d30 > 0 ? `30d: ${l.c.d30}` : `365d: ${l.c.d365}`}</dd>
-                          <dt className="text-muted-foreground">Período sem reposição</dt><dd>{lead.dias} dias</dd>
-                          <dt className="text-muted-foreground text-xs pl-2">espera até pedido {lead.diasAtePedido}d + prazo fornecedor {lead.diasEntrega}d</dt><dd />
-                          <dt className="text-muted-foreground">Segurança</dt><dd>{l.diasSeg} dias</dd>
-                          <dt className="text-muted-foreground">Período considerado</dt><dd>{lead.dias + l.diasSeg} dias</dd>
-                          <dt className="text-muted-foreground">Necessidade calculada</dt><dd>{necessidade}</dd>
-                          <dt className="text-muted-foreground text-xs pl-2">= {fmtNum(l.diario, 2)} × ({lead.dias} + {l.diasSeg})</dt><dd />
-                          <dt className="text-muted-foreground">Estoque atual</dt><dd>{l.epi.estoque_atual}</dd>
-                          <dt className="text-muted-foreground">Em trânsito</dt><dd>{l.transito}</dd>
-                          <dt className="text-muted-foreground">Estoque disponível</dt><dd>{l.disponivel}</dd>
-                          <dt className="font-semibold border-t pt-1">Quantidade sugerida</dt><dd className="font-semibold border-t pt-1">{l.sugerido}</dd>
-                        </dl>
-                        <div className="mt-2 text-xs rounded bg-primary/10 p-2 space-y-0.5">
-                          <div>Quantidade adotada: <b>{qtdDe(l)} {qtdDe(l) === 1 ? "unidade" : "unidades"}</b></div>
-                          <div className="text-muted-foreground">{qtdDe(l) !== l.sugerido ? `Ajuste manual · sugestão automática: ${l.sugerido} unidades` : "Sem ajuste manual (= sugestão automática)"}</div>
-                        </div>
-                        {!(l.diario > 0) && <p className="mt-2 text-xs text-muted-foreground">{SEM_CONSUMO_LABEL} nos últimos 365 dias.</p>}
-                      </PopoverContent>
-                    </Popover>
+                    {renderSugerido(l, necessidade)}
                   </td>
                   <td className="num">
-                    <div className="flex items-center justify-end gap-1">
-                      {(() => {
-                        const div = divergenciaDe(l);
-                        if (!div) return null;
-                        return (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span className="text-warning"><AlertTriangle className="h-4 w-4" /></span>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="text-xs">
-                                  A sugestão mudou de {div.registrada} para {div.atual} desde o seu ajuste.
-                                  <br />Sua quantidade foi mantida.
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        );
-                      })()}
-                      {divergenciaDe(l) && (
-                        <Button size="icon" variant="ghost" className="h-7 w-7" title="Usar sugestão atual" onClick={() => restaurarSugestao(l)}>
-                          <RotateCcw className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                      <Input
-                        type="number" min={0} className="h-9 w-24 text-right"
-                        value={qtdDe(l)}
-                        onChange={(e) => {
-                          const v = Math.max(0, Number(e.target.value) || 0);
-                          setAjustes((p) => ({ ...p, [l.epi.id]: v }));
-                          persistir(l.epi.id, v, l.sugerido);
-                        }}
-                      />
-                    </div>
-                    {qtdDe(l) !== l.sugerido && <div className="text-[11px] text-primary mt-0.5">ajustada (sugestão {l.sugerido})</div>}
+                    {renderAdotada(l)}
                   </td>
                   <td className="num">
                     <StockLevel

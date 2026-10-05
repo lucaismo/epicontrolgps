@@ -145,7 +145,47 @@ function ColaboradoresPage() {
         </Select>
       </Card>
 
-      <Card className="overflow-hidden">
+      <div className="md:hidden space-y-2">
+        {filtered.map((c) => (
+          <Card key={c.id} className="p-4 space-y-2">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <div className="font-semibold leading-tight">{c.nome}</div>
+                <div className="text-xs text-muted-foreground">{c.matricula}{c.funcao ? ` · ${c.funcao}` : ""} · {c.turno ?? "—"}</div>
+              </div>
+              <StatusPill status={c.status} />
+            </div>
+            <div className="flex items-center justify-between gap-2 border-t pt-2">
+              <div className="text-xs text-muted-foreground">Tamanhos: {tamCompleto(c.id)
+                ? <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-success/15 text-success">Completo</span>
+                : <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-warning/15 text-warning">Pendente</span>}</div>
+              <div className="flex gap-0.5">
+                <Button asChild variant="ghost" size="icon" title="Histórico">
+                  <Link to="/colaboradores/$id" params={{ id: c.id }}><History className="h-4 w-4" /></Link>
+                </Button>
+                {canEdit && (
+                  <>
+                    <Button variant="ghost" size="icon" title="Editar" onClick={() => { setEditing(c); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
+                    {role === "admin" && (
+                      <>
+                        {c.status === "ativo" ? (
+                          <Button variant="ghost" size="icon" title="Inativar" onClick={() => handleInativar(c)}><UserX className="h-4 w-4 text-muted-foreground" /></Button>
+                        ) : (
+                          <Button variant="ghost" size="icon" title="Reativar" onClick={() => handleReativar(c)}><UserCheck className="h-4 w-4 text-success" /></Button>
+                        )}
+                        <Button variant="ghost" size="icon" title="Excluir" onClick={() => handleExcluir(c)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                      </>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          </Card>
+        ))}
+        {filtered.length === 0 && <Card className="p-8 text-center text-sm text-muted-foreground">Nenhum colaborador encontrado.</Card>}
+      </div>
+
+      <Card className="overflow-hidden hidden md:block">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">

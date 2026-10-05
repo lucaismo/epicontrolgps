@@ -138,7 +138,7 @@ function EntregasPage() {
     <div className="p-4 md:p-8 space-y-5">
       <div>
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Entrega de EPI</h1>
-        <p className="text-sm text-muted-foreground">Até {MAX_ITENS} EPIs por operação · a troca do EPI anterior da mesma categoria é registrada automaticamente</p>
+        <p className="text-sm text-muted-foreground">Até {MAX_ITENS} EPIs por operação · a troca baixa o EPI anterior do mesmo item (ex.: Camisa M → Camisa G), não de outro item da mesma categoria</p>
       </div>
 
       {podeEntregar ? (
@@ -173,8 +173,8 @@ function EntregasPage() {
               const tamSel = sel ? tamanhoParaEpi(tamanhosColab, sel) : null;
               const outroTam = sel && tamSel && sel.tamanho && !mesmoTamanho(sel.tamanho, tamSel.tamanho);
               return (
-                <div key={idx} className="grid md:grid-cols-[1fr_140px_44px] gap-2 items-end">
-                  <div className="space-y-1.5">
+                <div key={idx} className="grid grid-cols-[1fr_96px_40px] md:grid-cols-[1fr_140px_44px] gap-2 items-end">
+                  <div className="space-y-1.5 col-span-3 md:col-span-1">
                     <Label className="text-xs">EPI {idx + 1} *</Label>
                     <Select value={it.epiId} onValueChange={(v) => setItens(itens.map((x, i) => i === idx ? { ...x, epiId: v } : x))}>
                       <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
@@ -196,7 +196,7 @@ function EntregasPage() {
                       <p className="text-xs text-destructive">Estoque insuficiente (disponível {sel.estoque_atual})</p>
                     )}
                   </div>
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 col-span-2 md:col-span-1">
                     <Label className="text-xs">Quantidade *</Label>
                     <Input type="number" min={1} value={it.quantidade}
                       onChange={(e) => setItens(itens.map((x, i) => i === idx ? { ...x, quantidade: e.target.value === "" ? "" : Number(e.target.value) } : x))} />
@@ -235,7 +235,32 @@ function EntregasPage() {
 
       <Card className="overflow-hidden">
         <div className="p-4 border-b"><h2 className="font-semibold">Histórico de entregas</h2></div>
-        <div className="overflow-x-auto">
+        <ul className="md:hidden divide-y">
+          {ultimas.map((m: any) => (
+            <li key={m.id} className="px-4 py-3 space-y-1">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="font-semibold leading-tight">{m.epis?.nome}</div>
+                  <div className="text-sm">{m.colaboradores?.nome} <span className="text-muted-foreground text-xs">({m.colaboradores?.matricula})</span></div>
+                </div>
+                <div className="text-right shrink-0"><span className="type-kpi-sm">{m.quantidade}</span> <span className="text-xs text-muted-foreground">un</span></div>
+              </div>
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                <span className="num">{new Date(m.data_movimentacao).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}</span>
+                {m.colaboradores?.turno && <span className="font-medium px-2 py-0.5 rounded bg-primary/10 text-primary">{m.colaboradores.turno}</span>}
+                {m.responsavel?.nome && <span>Resp.: {m.responsavel.nome}</span>}
+              </div>
+              {role === "admin" && (
+                <div className="flex justify-end gap-1 pt-1">
+                  <Button variant="ghost" size="sm" className="h-8" onClick={() => setEditing(m)}><Pencil className="h-3.5 w-3.5 mr-1" />Editar</Button>
+                  <Button variant="ghost" size="sm" className="h-8 text-muted-foreground" onClick={() => excluirEntrega(m.id)}><Trash2 className="h-3.5 w-3.5 mr-1" />Excluir</Button>
+                </div>
+              )}
+            </li>
+          ))}
+          {ultimas.length === 0 && <li className="text-center py-10 text-muted-foreground text-sm">Nenhuma entrega registrada ainda.</li>}
+        </ul>
+        <div className="overflow-x-auto hidden md:block">
           <table className="w-full text-sm">
             <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
               <tr>
