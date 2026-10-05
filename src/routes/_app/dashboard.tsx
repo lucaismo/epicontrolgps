@@ -16,6 +16,8 @@ import { useEpiMetrics } from "@/hooks/use-epi-metrics";
 import { DIA_MS } from "@/lib/estoque-calc";
 import { fetchPaginado } from "@/lib/consumo";
 import { StockBadge } from "@/components/StockBadge";
+import { PageHeader } from "@/components/PageHeader";
+import { LayoutDashboard } from "lucide-react";
 
 export const Route = createFileRoute("/_app/dashboard")({
   component: Dashboard,
@@ -218,25 +220,24 @@ function Dashboard() {
 
   return (
     <div className="p-4 md:p-8 space-y-8">
-      <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Situação do estoque de EPIs e o que precisa de ação hoje.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground hidden sm:inline">Período de referência</span>
-          <Select value={String(mes)} onValueChange={(v) => setMes(Number(v))}>
-            <SelectTrigger className="w-36 h-9"><SelectValue /></SelectTrigger>
-            <SelectContent>{MESES.map((m, i) => <SelectItem key={m} value={String(i)}>{m}</SelectItem>)}</SelectContent>
-          </Select>
-          <Select value={String(ano)} onValueChange={(v) => setAno(Number(v))}>
-            <SelectTrigger className="w-24 h-9"><SelectValue /></SelectTrigger>
-            <SelectContent>{anos.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
-          </Select>
-        </div>
-      </header>
+      <PageHeader
+        icon={LayoutDashboard}
+        title="Central de Controle"
+        subtitle="Visão geral do estoque, consumo e necessidades de reposição."
+        meta={`Período de referência: ${periodoLabel}`}
+        actions={
+          <>
+            <Select value={String(mes)} onValueChange={(v) => setMes(Number(v))}>
+              <SelectTrigger className="w-36 h-9" aria-label="Mês de referência"><SelectValue /></SelectTrigger>
+              <SelectContent>{MESES.map((m, i) => <SelectItem key={m} value={String(i)}>{m}</SelectItem>)}</SelectContent>
+            </Select>
+            <Select value={String(ano)} onValueChange={(v) => setAno(Number(v))}>
+              <SelectTrigger className="w-24 h-9" aria-label="Ano de referência"><SelectValue /></SelectTrigger>
+              <SelectContent>{anos.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
+            </Select>
+          </>
+        }
+      />
 
       {/* Indicadores principais */}
       <section className="space-y-3">
