@@ -21,6 +21,7 @@ import { StatCard, StockLevel, ConsumptionCell, CoverageIndicator, PriorityBadge
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Info } from "lucide-react";
 import { fetchEntregasDesde } from "@/lib/consumo";
+import { PlanejamentoTamanho } from "@/components/PlanejamentoTamanho";
 
 
 
@@ -58,6 +59,7 @@ function ComprasPage() {
   const { role, user } = useAuth();
   const podeConfigurar = canManageRegistros(role);
   const qc = useQueryClient();
+  const [visao, setVisao] = useState<"estoque" | "tamanho">("estoque");
   const [search, setSearch] = useState("");
   const [filterCat, setFilterCat] = useState("all");
   const [ajustes, setAjustes] = useState<Record<string, number>>({});
@@ -387,6 +389,14 @@ function ComprasPage() {
         <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Planejamento de Compras</h1>
         <p className="text-sm text-muted-foreground mt-1">Reposição baseada em consumo, período sem reposição, pedidos em trânsito e previsão de ruptura</p>
       </div>
+      <div className="inline-flex rounded-lg border bg-muted/40 p-1 text-sm">
+        {([["estoque", "Planejamento de estoque"], ["tamanho", "Planejamento por tamanho"]] as const).map(([v, l]) => (
+          <button key={v} type="button" onClick={() => setVisao(v)}
+            className={`rounded-md px-3 py-1.5 font-medium transition-colors ${visao === v ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>{l}</button>
+        ))}
+      </div>
+
+      {visao === "tamanho" ? <PlanejamentoTamanho /> : <>
 
       <div className="grid gap-3 grid-cols-2 xl:grid-cols-4">
         <StatCard icon={AlertTriangle} label="EPIs em ruptura" value={resumo.ruptura} tone={resumo.ruptura ? "danger" : "neutral"} hint="acabam antes da reposição" />
@@ -600,6 +610,7 @@ function ComprasPage() {
           </table>
         </div>
       </Card>
+      </>}
     </div>
   );
 }
