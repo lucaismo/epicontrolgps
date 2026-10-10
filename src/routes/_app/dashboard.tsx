@@ -220,23 +220,19 @@ function Dashboard() {
     return cont;
   }, [epis, metricaDe]);
 
-  // Fila de prioridades: zerado → ruptura → crítico → abaixo do mínimo → pedido atrasado
+  // Fila de prioridades: sinais do motor (sinais-operacionais.ts), agrupados por EPI
   const prioridades = useMemo(() => {
-    const vistos = new Set<string>();
-    const out: PrioItem[] = [];
-    const push = (e: EpiRow, motivo: string, sev: Sev, acao: PrioItem["acao"]) => {
-      if (vistos.has(e.id)) return; vistos.add(e.id);
+    const sinaisMotor = avaliarSinais(epis.map((e) => ({ epi: e, linha: metricaDe(e), leadDias: lead.dias })));
+    return [...sinaisPorEpi(sinaisMotor).values()].map((lista) => {
+      const e = epis.find((x) => x.id === lista[0].epiId)!;
       const m = metricaDe(e);
-      out.push({ id: e.id, nome: e.nome, sub: e.categoria ?? "", motivo, sev, atual: e.estoque_atual, minimo: m.minimoEfetivo,
-        cobertura: Number.isFinite(m.cobertura) ? Math.floor(m.cobertura) : null, ruptura: e.estoque_atual > 0 && m.ruptura ? fmtData(m.ruptura) : null, acao });
-    };
-    estoque.zerados.forEach((e) => push(e, "Estoque zerado", "critical", "comprar"));
-    estoque.ruptura.forEach(({ epi, m }) => push(epi, `Ruptura em ${Math.floor(m.cobertura)} d, antes da reposição`, "critical", "comprar"));
-    estoque.criticos.forEach((e) => push(e, "Estoque crítico", "critical", "comprar"));
-    estoque.abaixoMin.forEach((e) => push(e, "Abaixo do mínimo", "neutral", "ver"));
-    pedidosInfo.atrasados.forEach((p) => out.push({ id: `ped-${p.id}`, nome: p.nome, sub: `${p.qtd} un`, motivo: `Pedido atrasado ${p.diasAtraso} d`, sev: "critical", atual: null, minimo: null, cobertura: null, ruptura: null, acao: "pedido" }));
-    return out;
-  }, [estoque, pedidosInfo, metricaDe]);
+      return {
+        id: e.id, nome: e.nome, sub: e.categoria ?? "", sinais: lista,
+        atual: e.estoque_atual, minimo: m.minimoEfetivo,
+        cobertura: Number.isFinite(m.cobertura) ? Math.floor(m.cobertura) : null,
+      };
+    }).sort((a, b) => PRIORIDADE_PESO[a.sinais[0].prioridade] - PRIORIDADE_PESO[b.sinais[0].prioridade]);
+  }, [epis, metricaDe, lead.dias]);
 
   const entregasRecentes = useMemo(
     () => movs.filter((m) => m.tipo === "entrega").slice(-8).reverse(),
@@ -302,34 +298,49 @@ function Dashboard() {
             </div>
           ) : (
             <>
-              <div className="hidden md:grid grid-cols-[minmax(0,1.6fr)_minmax(0,1.4fr)_80px_80px_80px_96px] gap-3 px-4 py-2 type-label border-b bg-muted/40">
-                <span>EPI</span><span>Motivo</span><span className="text-right">Estoque</span><span className="text-right">Cobertura</span><span className="text-right">Ruptura</span><span />
+              <div className="hidden md:grid grid-cols-[minmax(0,1.3fr)_minmax(0,2fr)_80px_80px_110px] gap-3 px-4 py-2 type-label border-b bg-muted/40">
+                <span>EPI</span><span>Sinal</span><span className="text-right">Estoque</span><span className="text-right">Cobertura</span><span />
               </div>
               <ul className="divide-y">
-                {prioridades.slice(0, 10).map((p) => (
-                  <li key={p.id} className="grid grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[minmax(0,1.6fr)_minmax(0,1.4fr)_80px_80px_80px_96px] gap-x-3 gap-y-1 items-center px-4 py-2.5 hover:bg-muted/40">
-                    <div className="min-w-0 flex items-center gap-2.5">
-                      <span className={`h-2 w-2 shrink-0 rounded-full ${SEV_DOT[p.sev]}`} />
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium truncate">{p.nome}</div>
-                        <div className="type-aux truncate">{p.sub}</div>
+                {prioridades.slice(0, 10).map((p) => {
+                  const [s, ...outros] = p.sinais;
+                  const dest = ACAO_DESTINO[s.acao];
+                  return (
+                    <li key={p.id} className="grid grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[minmax(0,1.3fr)_minmax(0,2fr)_80px_80px_110px] gap-x-3 gap-y-1 items-start md:items-center px-4 py-2.5 hover:bg-muted/40">
+                      <div className="min-w-0 flex items-center gap-2.5">
+                        <span className={`h-2 w-2 shrink-0 rounded-full ${PRIO_DOT[s.prioridade]}`} />
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium truncate">{p.nome}</div>
+                          <div className="type-aux truncate">{p.sub}</div>
+                        </div>
                       </div>
-                    </div>
-                    <div className={`text-sm truncate md:order-none order-3 col-span-1 ${SEV_TEXT[p.sev]}`}>{p.motivo}</div>
-                    <div className="hidden md:block text-right text-sm num">{p.atual === null ? "—" : <>{p.atual}<span className="text-muted-foreground"> / {p.minimo}</span></>}</div>
-                    <div className="hidden md:block text-right text-sm num">{p.cobertura === null ? "—" : `${p.cobertura} d`}</div>
-                    <div className="hidden md:block text-right text-sm num">{p.ruptura ?? "—"}</div>
-                    <div className="row-span-2 md:row-span-1 text-right">
-                      <Link to={p.acao === "ver" ? "/epis" : "/compras"} search={(p.acao === "ver" ? { nivel: "abaixo" } : undefined) as any}
-                        className="inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-medium hover:bg-accent">
-                        {p.acao === "comprar" ? "Comprar" : p.acao === "pedido" ? "Ver pedido" : "Ver EPI"} <ChevronRight className="h-3 w-3" />
-                      </Link>
-                    </div>
-                    <div className="md:hidden type-aux num order-4">
-                      {p.atual !== null && `Estoque ${p.atual}/${p.minimo}`}{p.cobertura !== null && ` · ${p.cobertura} d`}{p.ruptura && ` · ruptura ${p.ruptura}`}
-                    </div>
-                  </li>
-                ))}
+                      <div className="min-w-0 order-3 md:order-none col-span-2 md:col-span-1">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className={`status-pill ${PRIO_STATUS[s.prioridade]}`}>{PRIO_LABEL[s.prioridade]}</span>
+                          <span className={`text-sm font-medium ${PRIO_TEXT[s.prioridade]}`}>{s.mensagem}</span>
+                        </div>
+                        {s.detalhe && <div className="type-aux">{s.detalhe}</div>}
+                        {outros.length > 0 && (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {outros.map((o) => (
+                              <span key={o.tipo} className={`status-pill ${PRIO_STATUS[o.prioridade]}`} title={o.detalhe ?? undefined}>{o.mensagem}</span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div className="hidden md:block text-right text-sm num">{p.atual}<span className="text-muted-foreground"> / {p.minimo}</span></div>
+                      <div className="hidden md:block text-right text-sm num">{p.cobertura === null ? "—" : `${p.cobertura} d`}</div>
+                      <div className="text-right">
+                        <Link to={dest} className="inline-flex items-center gap-1 whitespace-nowrap rounded-md border px-2.5 py-1 text-xs font-medium hover:bg-accent">
+                          {s.acao} <ChevronRight className="h-3 w-3" />
+                        </Link>
+                      </div>
+                      <div className="md:hidden type-aux num order-4 col-span-2">
+                        Estoque {p.atual}/{p.minimo}{p.cobertura !== null && ` · ${p.cobertura} d de cobertura`}
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
               {prioridades.length > 10 && (
                 <Link to="/compras" className="block px-4 py-2.5 border-t text-xs font-medium text-primary hover:bg-muted/40">
