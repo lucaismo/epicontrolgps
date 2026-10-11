@@ -1,3 +1,4 @@
+// @ts-nocheck -- executado com "bun test" (tipos de bun:test não instalados)
 import { describe, expect, test } from "bun:test";
 import { calcularLinha, type ConsumoJanelas } from "./estoque-calc";
 import { avaliarSinais, avaliarSinaisEpi, variacaoConsumo, type TipoSinal } from "./sinais-operacionais";
