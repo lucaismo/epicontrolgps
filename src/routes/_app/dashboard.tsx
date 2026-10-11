@@ -10,6 +10,16 @@ import { DIA_MS } from "@/lib/estoque-calc";
 import { fetchPaginado } from "@/lib/consumo";
 import { PageHeader } from "@/components/PageHeader";
 import { LayoutDashboard } from "lucide-react";
+import { avaliarSinais, sinaisPorEpi, PRIORIDADE_PESO, type PrioridadeSinal, type AcaoSinal, type SinalOperacional } from "@/lib/sinais-operacionais";
+
+const ACAO_DESTINO: Record<AcaoSinal, "/compras" | "/consumo" | "/epis"> = {
+  Comprar: "/compras", "Ver compra": "/compras", "Ver consumo": "/consumo", "Ver EPI": "/epis",
+};
+const PRIO_LABEL: Record<PrioridadeSinal, string> = { CRITICA: "Crítica", ALTA: "Alta", MEDIA: "Média", BAIXA: "Baixa" };
+const PRIO_STATUS: Record<PrioridadeSinal, string> = { CRITICA: "status-critical", ALTA: "status-critical", MEDIA: "status-warning", BAIXA: "status-nodata" };
+const PRIO_DOT: Record<PrioridadeSinal, string> = { CRITICA: "bg-destructive", ALTA: "bg-destructive/60", MEDIA: "bg-warning", BAIXA: "bg-muted-foreground/50" };
+const PRIO_TEXT: Record<PrioridadeSinal, string> = { CRITICA: "text-destructive", ALTA: "text-destructive", MEDIA: "text-warning-ink", BAIXA: "text-muted-foreground" };
+export type { SinalOperacional };
 
 export const Route = createFileRoute("/_app/dashboard")({
   component: Dashboard,
