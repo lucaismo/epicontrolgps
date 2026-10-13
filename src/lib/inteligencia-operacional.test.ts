@@ -8,7 +8,7 @@ const hoje = new Date(2026, 9, 11).getTime();
 const dia = (n: number) => new Date(hoje - n * DIA_MS + 12 * 3600_000).toISOString();
 /** n entregas de q unidades distribuídas entre os dias [de, ate) atrás. */
 function serie(epi: string, de: number, ate: number, n: number, q = 1) {
-  return Array.from({ length: n }, (_, i) => ({ epi_id: epi, quantidade: q, data_movimentacao: dia(de + Math.floor(((ate - de) * i) / n)) }));
+  return Array.from({ length: n }, (_, i) => ({ epi_id: epi, quantidade: q, data_movimentacao: dia(de + 1 + Math.floor(((ate - de) * i) / n)) }));
 }
 const epi = (id: string, o: any = {}) => ({ id, nome: o.nome ?? id, codigo_produto: "C" + id, tamanho: o.tamanho ?? null, estoque_atual: o.estoque ?? 100 });
 const run = (epis, entregas, linhas = new Map(), leadDias = 36) => analisarInteligencia({ epis, entregas, linhas, leadDias, ref: REF });
