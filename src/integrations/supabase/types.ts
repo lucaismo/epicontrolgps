@@ -127,6 +127,7 @@ export type Database = {
           created_at: string
           epi_id: string
           id: string
+          justificativa: string | null
           mes: number
           quantidade: number
           sugestao_registrada: number
@@ -138,6 +139,7 @@ export type Database = {
           created_at?: string
           epi_id: string
           id?: string
+          justificativa?: string | null
           mes: number
           quantidade?: number
           sugestao_registrada?: number
@@ -149,6 +151,7 @@ export type Database = {
           created_at?: string
           epi_id?: string
           id?: string
+          justificativa?: string | null
           mes?: number
           quantidade?: number
           sugestao_registrada?: number
