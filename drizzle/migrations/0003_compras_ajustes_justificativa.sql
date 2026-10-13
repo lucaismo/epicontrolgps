@@ -1,0 +1,1 @@
+ALTER TABLE public.compras_ajustes ADD COLUMN IF NOT EXISTS justificativa text;
