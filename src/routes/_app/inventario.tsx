@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchPaginado } from "@/lib/consumo";
 import { Card } from "@/components/ui/card";
@@ -18,7 +18,10 @@ function InventarioPage() {
   const { role, user } = useAuth();
   const pode = canMovimentar(role);
   const qc = useQueryClient();
-  const [active, setActive] = useState<string | null>(null);
+  const [active, setActiveRaw] = useState<string | null>(null);
+  // Lembra o inventário aberto para reabrir após atualizar o navegador.
+  useEffect(() => { const v = localStorage.getItem("inventario-aberto"); if (v) setActiveRaw(v); }, []);
+  const setActive = (v: string | null) => { setActiveRaw(v); if (v) localStorage.setItem("inventario-aberto", v); else localStorage.removeItem("inventario-aberto"); };
   const [newOpen, setNewOpen] = useState(false);
   const [descricao, setDescricao] = useState("");
   const [creating, setCreating] = useState(false);
@@ -182,23 +185,58 @@ function InventarioDetalhe({ id, onBack }: { id: string; onBack: () => void }) {
 
   const [counts, setCounts] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState<"idle" | "pendente" | "salvando" | "salvo" | "erro">("idle");
+  const pendentes = useRef<Record<string, string>>({});
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Grava no banco apenas os itens alterados (UPDATE por id: nunca duplica itens nem gera movimentações).
+  async function gravarPendentes(): Promise<boolean> {
+    if (timer.current) { clearTimeout(timer.current); timer.current = null; }
+    const lote = pendentes.current; pendentes.current = {};
+    const entradas = Object.entries(lote);
+    if (!entradas.length) return true;
+    setStatus("salvando");
+    let ok = true;
+    for (const [itemId, val] of entradas) {
+      const { error } = await supabase.from("inventario_itens")
+        .update({ quantidade_contada: val === "" ? null : Number(val) }).eq("id", itemId);
+      if (error) { ok = false; pendentes.current[itemId] ??= val; toast.error(`Falha ao salvar contagem: ${error.message}`); }
+    }
+    setStatus(ok ? "salvo" : "erro");
+    qc.invalidateQueries({ queryKey: ["inventarios-resumo"] });
+    return ok;
+  }
+
+  function alterar(itemId: string, val: string) {
+    setCounts((c) => ({ ...c, [itemId]: val }));
+    pendentes.current[itemId] = val;
+    setStatus("pendente");
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => { void gravarPendentes(); }, 800);
+  }
+
+  // Ao sair da tela ou fechar/atualizar a página, grava o que estiver pendente.
+  useEffect(() => {
+    const aviso = (e: BeforeUnloadEvent) => {
+      if (Object.keys(pendentes.current).length) { void gravarPendentes(); e.preventDefault(); e.returnValue = ""; }
+    };
+    window.addEventListener("beforeunload", aviso);
+    return () => { window.removeEventListener("beforeunload", aviso); void gravarPendentes(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function salvar() {
     setSaving(true);
-    const updates = Object.entries(counts).map(([itemId, val]) => ({
-      id: itemId, quantidade_contada: val === "" ? null : Number(val),
-    }));
-    for (const u of updates) {
-      await supabase.from("inventario_itens").update({ quantidade_contada: u.quantidade_contada }).eq("id", u.id);
-    }
+    const ok = await gravarPendentes();
     setSaving(false);
-    qc.invalidateQueries({ queryKey: ["inv-itens", id] });
-    toast.success("Progresso salvo");
+    await qc.invalidateQueries({ queryKey: ["inv-itens", id] });
+    if (ok) toast.success("Progresso salvo");
+    return ok;
   }
 
   async function finalizar() {
     if (!confirm("Finalizar inventário? As diferenças serão aplicadas ao estoque como ajustes rastreáveis e o inventário não poderá mais ser editado.")) return;
-    await salvar();
+    if (!(await salvar())) { toast.error("Contagem não salva; o inventário não foi finalizado."); return; }
     const { error } = await supabase.rpc("finalizar_inventario", {
       p_inventario_id: id,
       p_usuario: user?.id ?? "",
@@ -216,7 +254,12 @@ function InventarioDetalhe({ id, onBack }: { id: string; onBack: () => void }) {
       <Button variant="ghost" size="sm" onClick={onBack}>← Voltar</Button>
       <div>
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{inv?.local}</h1>
-        <p className="text-sm text-muted-foreground">{itens.length} itens · {finalizado ? "Finalizado" : "Em andamento"}</p>
+        <p className="text-sm text-muted-foreground">{itens.length} itens · {itens.filter((i: any) => (counts[i.id] ?? i.quantidade_contada?.toString() ?? "") !== "").length} contados · {finalizado ? "Finalizado" : "Em andamento"}</p>
+        {!finalizado && (
+          <p role="status" className={`text-xs mt-1 ${status === "erro" ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+            {status === "pendente" ? "Alterações não salvas…" : status === "salvando" ? "Salvando…" : status === "salvo" ? "Contagem salva automaticamente" : status === "erro" ? "Erro ao salvar — tente “Salvar progresso”" : "A contagem é salva automaticamente"}
+          </p>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -245,7 +288,7 @@ function InventarioDetalhe({ id, onBack }: { id: string; onBack: () => void }) {
                   <Label className="text-xs">Contado</Label>
                   <Input type="number" min={0} disabled={finalizado} inputMode="numeric"
                     value={contado}
-                    onChange={(e) => setCounts({ ...counts, [it.id]: e.target.value })}
+                    onChange={(e) => alterar(it.id, e.target.value)}
                     className="text-center font-semibold" />
                 </div>
                 <div>
