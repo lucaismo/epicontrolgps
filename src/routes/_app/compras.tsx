@@ -73,9 +73,9 @@ function ComprasPage() {
     queryKey: ["compras-ajustes", ano, mes],
     queryFn: async () =>
       ((await supabase.from("compras_ajustes")
-        .select("epi_id,quantidade,sugestao_registrada")
+        .select("epi_id,quantidade,sugestao_registrada,justificativa")
         .eq("ano", ano).eq("mes", mes)).data ?? []) as unknown as
-        { epi_id: string; quantidade: number; sugestao_registrada: number }[],
+        { epi_id: string; quantidade: number; sugestao_registrada: number; justificativa: string | null }[],
   });
   const salvosMap = useMemo(() => new Map(salvos.map((s) => [s.epi_id, s])), [salvos]);
 
@@ -138,25 +138,28 @@ function ComprasPage() {
 
   // ajustes salvos: a quantidade informada manualmente persiste por período (mês/ano)
   const [ajustesCarregados, setAjustesCarregados] = useState(false);
+  const [justs, setJusts] = useState<Record<string, string>>({});
   useEffect(() => {
     if (ajustesCarregados || !linhas.length || salvosLoading) return;
     const map: Record<string, number> = {};
+    const js: Record<string, string> = {};
     for (const l of linhas) {
       const s = salvosMap.get(l.epi.id);
       map[l.epi.id] = s ? Number(s.quantidade) : l.sugerido;
+      if (s?.justificativa) js[l.epi.id] = s.justificativa;
     }
     setAjustes(map);
+    setJusts(js);
     setAjustesCarregados(true);
   }, [linhas, salvosMap, salvosLoading, ajustesCarregados]);
 
   const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
-  const persistir = useCallback((epiId: string, quantidade: number, sugestao: number) => {
+  const persistir = useCallback((epiId: string, quantidade: number, sugestao: number, justificativa?: string) => {
     clearTimeout(timers.current[epiId]);
     timers.current[epiId] = setTimeout(async () => {
-      const { error } = await supabase.from("compras_ajustes").upsert(
-        { epi_id: epiId, ano, mes, quantidade, sugestao_registrada: sugestao, usuario_responsavel: user?.id ?? null } as any,
-        { onConflict: "epi_id,ano,mes" },
-      );
+      const payload: Record<string, unknown> = { epi_id: epiId, ano, mes, quantidade, sugestao_registrada: sugestao, usuario_responsavel: user?.id ?? null };
+      if (justificativa !== undefined) payload.justificativa = justificativa.trim() || null;
+      const { error } = await supabase.from("compras_ajustes").upsert(payload as any, { onConflict: "epi_id,ano,mes" });
       if (error) toast.error(`Falha ao salvar quantidade: ${error.message}`);
       else qc.invalidateQueries({ queryKey: ["compras-ajustes", ano, mes] });
     }, 700);
@@ -268,6 +271,26 @@ function ComprasPage() {
                       />
                     </div>
                     {qtdDe(l) !== l.sugerido && <div className="text-[11px] text-primary mt-0.5">ajustada (sugestão {l.sugerido})</div>}
+                    {(() => {
+                      const d = qtdDe(l) - l.sugerido;
+                      return (
+                        <div className={`text-[11px] num mt-0.5 ${d === 0 ? "text-muted-foreground" : "font-semibold"}`} title="Quantidade adotada − quantidade sugerida">
+                          Diferença: {d > 0 ? `+${d}` : d < 0 ? `−${-d}` : "0"}
+                        </div>
+                      );
+                    })()}
+                    {qtdDe(l) !== l.sugerido && (
+                      <Input
+                        className="h-7 mt-1 w-full min-w-[9rem] text-xs" placeholder="Justificativa (opcional)"
+                        value={justs[l.epi.id] ?? ""}
+                        onChange={(e) => {
+                          const t = e.target.value;
+                          setJusts((p) => ({ ...p, [l.epi.id]: t }));
+                          persistir(l.epi.id, qtdDe(l), l.sugerido, t);
+                        }}
+                      />
+                    )}
+                    <div className="text-[10px] text-muted-foreground mt-0.5">será solicitada no pedido</div>
     </>
   );
 
@@ -290,6 +313,9 @@ function ComprasPage() {
       itens.map((l) => ({
         epi_id: l.epi.id,
         quantidade: qtdDe(l),
+        observacao: qtdDe(l) !== l.sugerido
+          ? `Sugerida: ${l.sugerido} · adotada: ${qtdDe(l)}${justs[l.epi.id]?.trim() ? ` · justificativa: ${justs[l.epi.id].trim()}` : ""}`
+          : `Sugerida: ${l.sugerido} · adotada: ${qtdDe(l)}`,
         data_prevista: lead.recebimento.toISOString().slice(0, 10),
         usuario_responsavel: user?.id ?? null,
       })) as any,
@@ -318,7 +344,7 @@ function ComprasPage() {
   function pedidoRows() {
     const agora = new Date().toLocaleString("pt-BR");
     return filtradas.filter((l) => qtdDe(l) > 0).map((l) => ({
-      "Código do produto": l.epi.codigo_produto ?? "",
+      "Código do produto": l.epi.codigo_produto ?? "Código não cadastrado",
       Nome: l.epi.nome,
       Categoria: l.epi.categoria,
       "Estoque atual": l.epi.estoque_atual,
@@ -330,7 +356,9 @@ function ComprasPage() {
       "Estoque de segurança (dias)": l.epi.dias_seguranca,
       "Previsão de ruptura": l.ruptura ? fmtDate(l.ruptura) : "Sem consumo suficiente para previsão",
       "Quantidade sugerida": l.sugerido,
-      "Quantidade ajustada": qtdDe(l),
+      "Quantidade adotada (solicitada)": qtdDe(l),
+      "Diferença (adotada − sugerida)": qtdDe(l) - l.sugerido,
+      "Justificativa": justs[l.epi.id]?.trim() ?? "",
       "Divergência da sugestão": (() => { const d = divergenciaDe(l); return d ? `Sugestão mudou de ${d.registrada} para ${d.atual}` : ""; })(),
       Prioridade: prioridadeLabel(l.prioridade).replace(/[^\wÀ-ÿ]/g, "").trim(),
       "Responsável pela emissão": emissor,
@@ -365,12 +393,12 @@ function ComprasPage() {
     doc.setTextColor(0);
     autoTable(doc, {
       startY: 90,
-      head: [["Código", "Nome", "Categoria", "Estoque", "Trânsito", "Cons./dia", "Cons./mês", "Cobertura", "S/ repos.(d)", "Seg.(d)", "Ruptura", "Sugerido", "Ajustado", "Prioridade"]],
+      head: [["Código", "Nome", "Categoria", "Estoque", "Trânsito", "Cons./dia", "Cons./mês", "Cobertura", "S/ repos.(d)", "Seg.(d)", "Ruptura", "Sugerido", "Adotado (pedido)", "Dif.", "Prioridade"]],
       body: rows.map((r) => [
         r["Código do produto"], r.Nome, r.Categoria, String(r["Estoque atual"]), String(r["Pedido em trânsito"]),
         String(r["Consumo médio diário"]), String(r["Consumo médio mensal"]), String(r["Cobertura (dias)"]),
         String(r["Período sem reposição (dias)"]), String(r["Estoque de segurança (dias)"]), String(r["Previsão de ruptura"]),
-        String(r["Quantidade sugerida"]), String(r["Quantidade ajustada"]), String(r.Prioridade),
+        String(r["Quantidade sugerida"]), String(r["Quantidade adotada (solicitada)"]), String(r["Diferença (adotada − sugerida)"]), String(r.Prioridade),
       ]),
       styles: { fontSize: 7, cellPadding: 3 },
       headStyles: { fillColor: [30, 64, 175], textColor: 255, fontStyle: "bold" },
@@ -459,8 +487,8 @@ function ComprasPage() {
                 <div className="min-w-0">
                   <div className="font-semibold leading-tight">{l.epi.nome}{l.epi.tamanho ? <span className="ml-1.5 text-xs font-semibold rounded bg-muted px-1.5 py-0.5">{l.epi.tamanho}</span> : null}</div>
                   <div className="text-xs text-muted-foreground">
-                    {l.epi.codigo_produto ? <span className="font-mono">{l.epi.codigo_produto}</span> : null}
-                    {l.epi.codigo_produto ? " · " : ""}{l.epi.categoria}
+                    {l.epi.codigo_produto ? <span className="font-mono">{l.epi.codigo_produto}</span> : <span className="italic">código não cadastrado</span>}
+                    {" · "}{l.epi.categoria}
                   </div>
                 </div>
                 <PriorityBadge prioridade={l.prioridade} />
@@ -487,11 +515,11 @@ function ComprasPage() {
               <tr>
                 <th className="text-left min-w-[240px]">EPI</th>
                 <th className="num">Compra sugerida</th>
-                <th className="num">Quantidade adotada</th>
+                <th className="num">Quantidade adotada <span className="block text-[10px] font-normal">vai no pedido</span></th>
                 <th className="num">Estoque atual</th>
                 <th className="num">Cobertura</th>
                 <th className="num">Consumo médio</th>
-                <th className="num">Em trânsito</th>
+                <th className="num">Em trânsito <span className="block text-[10px] font-normal">fora do estoque físico</span></th>
                 <th className="num">Necessidade</th>
                 <th className="text-left">Prioridade</th>
               </tr>
@@ -504,8 +532,8 @@ function ComprasPage() {
                   <td>
                     <div className="font-medium leading-tight">{l.epi.nome}{l.epi.tamanho ? <span className="ml-1.5 text-xs font-semibold rounded bg-muted px-1.5 py-0.5">{l.epi.tamanho}</span> : null}</div>
                     <div className="text-xs text-muted-foreground">
-                      {l.epi.codigo_produto ? <span className="font-mono">{l.epi.codigo_produto}</span> : null}
-                      {l.epi.codigo_produto ? " · " : ""}{l.epi.categoria}
+                      {l.epi.codigo_produto ? <span className="font-mono">{l.epi.codigo_produto}</span> : <span className="italic">código não cadastrado</span>}
+                      {" · "}{l.epi.categoria}
                     </div>
                   </td>
                   <td className="num">
