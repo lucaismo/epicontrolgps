@@ -73,9 +73,9 @@ function ComprasPage() {
     queryKey: ["compras-ajustes", ano, mes],
     queryFn: async () =>
       ((await supabase.from("compras_ajustes")
-        .select("epi_id,quantidade,sugestao_registrada")
+        .select("epi_id,quantidade,sugestao_registrada,justificativa")
         .eq("ano", ano).eq("mes", mes)).data ?? []) as unknown as
-        { epi_id: string; quantidade: number; sugestao_registrada: number }[],
+        { epi_id: string; quantidade: number; sugestao_registrada: number; justificativa: string | null }[],
   });
   const salvosMap = useMemo(() => new Map(salvos.map((s) => [s.epi_id, s])), [salvos]);
 
@@ -138,25 +138,28 @@ function ComprasPage() {
 
   // ajustes salvos: a quantidade informada manualmente persiste por período (mês/ano)
   const [ajustesCarregados, setAjustesCarregados] = useState(false);
+  const [justs, setJusts] = useState<Record<string, string>>({});
   useEffect(() => {
     if (ajustesCarregados || !linhas.length || salvosLoading) return;
     const map: Record<string, number> = {};
+    const js: Record<string, string> = {};
     for (const l of linhas) {
       const s = salvosMap.get(l.epi.id);
       map[l.epi.id] = s ? Number(s.quantidade) : l.sugerido;
+      if (s?.justificativa) js[l.epi.id] = s.justificativa;
     }
     setAjustes(map);
+    setJusts(js);
     setAjustesCarregados(true);
   }, [linhas, salvosMap, salvosLoading, ajustesCarregados]);
 
   const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
-  const persistir = useCallback((epiId: string, quantidade: number, sugestao: number) => {
+  const persistir = useCallback((epiId: string, quantidade: number, sugestao: number, justificativa?: string) => {
     clearTimeout(timers.current[epiId]);
     timers.current[epiId] = setTimeout(async () => {
-      const { error } = await supabase.from("compras_ajustes").upsert(
-        { epi_id: epiId, ano, mes, quantidade, sugestao_registrada: sugestao, usuario_responsavel: user?.id ?? null } as any,
-        { onConflict: "epi_id,ano,mes" },
-      );
+      const payload: Record<string, unknown> = { epi_id: epiId, ano, mes, quantidade, sugestao_registrada: sugestao, usuario_responsavel: user?.id ?? null };
+      if (justificativa !== undefined) payload.justificativa = justificativa.trim() || null;
+      const { error } = await supabase.from("compras_ajustes").upsert(payload as any, { onConflict: "epi_id,ano,mes" });
       if (error) toast.error(`Falha ao salvar quantidade: ${error.message}`);
       else qc.invalidateQueries({ queryKey: ["compras-ajustes", ano, mes] });
     }, 700);
@@ -268,6 +271,26 @@ function ComprasPage() {
                       />
                     </div>
                     {qtdDe(l) !== l.sugerido && <div className="text-[11px] text-primary mt-0.5">ajustada (sugestão {l.sugerido})</div>}
+                    {(() => {
+                      const d = qtdDe(l) - l.sugerido;
+                      return (
+                        <div className={`text-[11px] num mt-0.5 ${d === 0 ? "text-muted-foreground" : "font-semibold"}`} title="Quantidade adotada − quantidade sugerida">
+                          Diferença: {d > 0 ? `+${d}` : d < 0 ? `−${-d}` : "0"}
+                        </div>
+                      );
+                    })()}
+                    {qtdDe(l) !== l.sugerido && (
+                      <Input
+                        className="h-7 mt-1 w-full min-w-[9rem] text-xs" placeholder="Justificativa (opcional)"
+                        value={justs[l.epi.id] ?? ""}
+                        onChange={(e) => {
+                          const t = e.target.value;
+                          setJusts((p) => ({ ...p, [l.epi.id]: t }));
+                          persistir(l.epi.id, qtdDe(l), l.sugerido, t);
+                        }}
+                      />
+                    )}
+                    <div className="text-[10px] text-muted-foreground mt-0.5">será solicitada no pedido</div>
     </>
   );
 
