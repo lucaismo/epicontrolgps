@@ -11,6 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Plus, Trash2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
+import { friendlyMessage, isSessionError } from "@/lib/admin-users-core";
+import { supabase } from "@/integrations/supabase/client";
 import { listUsers, createUser, updateUserRole, deleteUser } from "@/lib/admin-users.functions";
 
 export const Route = createFileRoute("/_app/usuarios")({ component: UsuariosPage });
@@ -61,6 +63,7 @@ function UsuariosPage() {
       toast.error("Preencha nome, email e senha (mínimo 8 caracteres)");
       return;
     }
+    if (saving) return;
     setSaving(true);
     try {
       await callCreate({ data: form as any });
@@ -69,7 +72,12 @@ function UsuariosPage() {
       setOpen(false);
       qc.invalidateQueries({ queryKey: ["admin-users"] });
     } catch (e: any) {
-      toast.error(e?.message ?? "Erro ao criar");
+      if (isSessionError(e)) {
+        toast.error("Sua sessão expirou. Entre novamente para continuar.");
+        await supabase.auth.signOut();
+        return;
+      }
+      toast.error(friendlyMessage(e, "Erro ao criar usuário"));
     } finally {
       setSaving(false);
     }

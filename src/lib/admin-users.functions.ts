@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { createUserWithRole, friendlyMessage, RollbackFailedError } from "./admin-users-core";
 
 const RoleSchema = z.enum(["admin", "tecnico", "almoxarife", "lider"]);
 
@@ -22,8 +23,7 @@ function friendlyError(e: unknown, fallback = "Não foi possível concluir a ope
   if (lower.includes("not allowed") || lower.includes("permission")) {
     return new Error("Operação não permitida para o seu perfil");
   }
-  // Auditoria: devolve a mensagem real da API/banco em vez de um texto genérico.
-  return new Error(raw ? `${fallback}: ${raw}` : fallback);
+  return new Error(friendlyMessage(e, fallback));
 }
 
 function sanitizeNome(s: string): string {
@@ -74,19 +74,36 @@ export const createUser = createServerFn({ method: "POST" })
     await assertCallerIsAdmin(context.userId);
     try {
       const nome = sanitizeNome(data.nome);
-      const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
-        email: data.email.trim().toLowerCase(),
-        password: data.password,
-        email_confirm: true,
-        user_metadata: { nome },
-      });
-      if (error) throw error;
-      const uid = created.user!.id;
-      await supabaseAdmin.from("user_roles").delete().eq("user_id", uid);
-      const { error: rErr } = await supabaseAdmin.from("user_roles").insert({ user_id: uid, role: data.role });
-      if (rErr) throw rErr;
-      return { ok: true, id: uid };
+      return { ok: true, ...(await createUserWithRole(
+        {
+          createAuthUser: async (i) => {
+            const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
+              email: i.email.trim().toLowerCase(),
+              password: i.password,
+              email_confirm: true,
+              user_metadata: { nome: i.nome },
+            });
+            if (error) throw error;
+            return { id: created.user?.id ?? "" };
+          },
+          // Usuário recém-criado não tem papéis prévios; apenas insere.
+          assignRole: async (uid, role) => {
+            const { error } = await supabaseAdmin.from("user_roles").insert({ user_id: uid, role });
+            if (error) throw error;
+          },
+          // profiles é removido via ON DELETE CASCADE ao excluir o usuário do Auth.
+          deleteAuthUser: async (uid) => {
+            const { error } = await supabaseAdmin.auth.admin.deleteUser(uid);
+            if (error) throw error;
+          },
+        },
+        { email: data.email, password: data.password, nome, role: data.role },
+      )) };
     } catch (e) {
+      if (e instanceof RollbackFailedError) {
+        console.error("[admin-users] rollback falhou", { uid: e.uid, original: e.original, rollback: e.rollback });
+        throw new Error(e.message);
+      }
       throw friendlyError(e, "Erro ao criar usuário");
     }
   });

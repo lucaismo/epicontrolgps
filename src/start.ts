@@ -3,10 +3,16 @@ import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 
 import { renderErrorPage } from "./lib/error-page";
 
-const errorMiddleware = createMiddleware().server(async ({ next }) => {
+const SERVER_FN_BASE = "/_serverFn/";
+
+const errorMiddleware = createMiddleware().server(async ({ next, request }) => {
   try {
     return await next();
   } catch (error) {
+    // Chamadas RPC de server functions: deixar o TanStack Start serializar o erro
+    // no protocolo esperado pelo cliente (não converter em página HTML).
+    const base = process.env.TSS_SERVER_FN_BASE || SERVER_FN_BASE;
+    if (new URL(request.url).pathname.includes(base)) throw error;
     if (error != null && typeof error === "object" && "statusCode" in error) {
       throw error;
     }
