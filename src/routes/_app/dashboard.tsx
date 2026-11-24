@@ -8,6 +8,8 @@ import { ResponsiveContainer, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Line, C
 import { useEpiMetrics } from "@/hooks/use-epi-metrics";
 import { DIA_MS } from "@/lib/estoque-calc";
 import { fetchPaginado } from "@/lib/consumo";
+import { integrarInteligencia } from "@/lib/inteligencia-integracao";
+import { InteligenciaOperacional } from "@/components/InteligenciaOperacional";
 import { PageHeader } from "@/components/PageHeader";
 import { LayoutDashboard } from "lucide-react";
 import { avaliarSinais, sinaisPorEpi, PRIORIDADE_PESO, type PrioridadeSinal, type AcaoSinal, type SinalOperacional } from "@/lib/sinais-operacionais";
@@ -28,7 +30,7 @@ export const Route = createFileRoute("/_app/dashboard")({
 type EpiRow = {
   id: string; nome: string; estoque_atual: number; estoque_minimo: number;
   custo_unitario: number | null; categoria: string | null; codigo_produto?: string | null;
-  dias_seguranca?: number | null;
+  dias_seguranca?: number | null; tamanho?: string | null;
 };
 
 const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
@@ -45,7 +47,7 @@ function Dashboard() {
   const now = new Date();
   const [mes, setMes] = useState<number>(now.getMonth());
   const [ano, setAno] = useState<number>(now.getFullYear());
-  const { metricaDe, lead, pedidos } = useEpiMetrics();
+  const { metricaDe, lead, pedidos, entregas365, carregandoMovs, erroMovs } = useEpiMetrics();
 
   const periodo = useMemo(() => ({
     inicio: new Date(ano, mes, 1, 0, 0, 0).toISOString(),
@@ -57,7 +59,7 @@ function Dashboard() {
     queryKey: ["dashboard-base"],
     queryFn: async () => {
       const [episRes, colabRes, invRes] = await Promise.all([
-        supabase.from("epis").select("id,nome,codigo_produto,estoque_atual,estoque_minimo,custo_unitario,categoria,dias_seguranca").eq("status", "ativo"),
+        supabase.from("epis").select("id,nome,codigo_produto,estoque_atual,estoque_minimo,custo_unitario,categoria,dias_seguranca,tamanho").eq("status", "ativo"),
         supabase.from("colaboradores").select("id", { count: "exact", head: true }).eq("status", "ativo"),
         supabase.from("inventarios").select("id,local,data_inicio").eq("status", "em_andamento"),
       ]);
@@ -244,6 +246,16 @@ function Dashboard() {
     }).sort((a, b) => PRIORIDADE_PESO[a.sinais[0].prioridade] - PRIORIDADE_PESO[b.sinais[0].prioridade]);
   }, [epis, metricaDe, lead.dias]);
 
+  // Inteligência operacional: reaproveita entregas365 (cache de Compras) e linhas do motor único
+  const inteligencia = useMemo(() => {
+    if (erroMovs) return { ok: false, erro: "falha ao carregar entregas", acionaveis: [], insuficientes: [], total: 0 };
+    if (carregandoMovs || !base) return null;
+    return integrarInteligencia({
+      epis, entregas: entregas365 as any[], leadDias: lead.dias,
+      linhas: new Map(epis.map((e) => [e.id, metricaDe(e)])),
+    });
+  }, [epis, entregas365, carregandoMovs, erroMovs, base, metricaDe, lead.dias]);
+
   const entregasRecentes = useMemo(
     () => movs.filter((m) => m.tipo === "entrega").slice(-8).reverse(),
     [movs],
@@ -378,6 +390,8 @@ function Dashboard() {
           </ul>
         </aside>
       </section>
+
+      <InteligenciaOperacional resultado={inteligencia} carregando={carregandoMovs || !base} />
 
       {/* Saúde do estoque */}
       <section className="rounded-lg border bg-card px-4 py-4">

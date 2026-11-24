@@ -19,7 +19,7 @@ export function useEpiMetrics() {
     staleTime: 5 * 60_000,
   });
 
-  const { data: movs = [] } = useQuery({
+  const { data: movs = [], isLoading: carregandoMovs, isError: erroMovs } = useQuery({
     queryKey: ["compras-movs"],
     queryFn: () => fetchEntregasDesde(desde),
     staleTime: 60_000,
@@ -56,5 +56,5 @@ export function useEpiMetrics() {
     [consumo, emTransito, lead.dias],
   );
 
-  return { lead, consumo, emTransito, metricaDe, config, pedidos };
+  return { lead, consumo, emTransito, metricaDe, config, pedidos, entregas365: movs, carregandoMovs, erroMovs };
 }
