@@ -1,4 +1,6 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { deveLimparCache } from "@/lib/query-keys";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -22,6 +24,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<AppRole | null>(null);
   const [loading, setLoading] = useState(true);
   const [roleLoaded, setRoleLoaded] = useState(false);
+  const queryClient = useQueryClient();
+  const uidRef = useRef<string | null>(null);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
@@ -29,6 +33,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // podem chegar com newSession=null durante a hidratação do storage e, se aplicados,
       // sobrescrevem o usuário já carregado por getSession() — causando logout indevido.
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
+      const uidNovo = newSession?.user?.id ?? null;
+      // Isolamento: logout (qualquer origem) ou troca de usuário descarta todo o cache.
+      if (deveLimparCache(event, uidRef.current, uidNovo)) queryClient.clear();
+      uidRef.current = uidNovo;
       setSession(newSession);
       setUser(newSession?.user ?? null);
       if (newSession?.user) {
@@ -43,6 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s);
       setUser(s?.user ?? null);
+      uidRef.current = s?.user?.id ?? null;
       if (s?.user) fetchRole(s.user.id);
       else setRoleLoaded(true);
       setLoading(false);
@@ -67,6 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function signOut() {
     await supabase.auth.signOut();
+    queryClient.clear();
     setRole(null);
   }
 
