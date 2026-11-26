@@ -8,3 +8,4 @@
 - Dashboard opts into query-error reporting in useEpiMetrics and gates indicators on every source dependency; why: distinguish unavailable data from legitimate zero without changing other consumers' behavior.
 
 - C2 containment SQL stays in database/staging/c2_corrections and runs only through the hermetic local runner with a fixed Unix socket, TCP disabled and SQL target guards; why: prevent accidental writes to the connected operational database.
+- C2 table-boundary patches revoke both table and column grants, allow only the existing EPI edit payload, and abort on inherited write privileges; why: table revocation alone cannot remove independent column or inherited access.

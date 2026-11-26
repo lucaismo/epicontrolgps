@@ -66,4 +66,9 @@ python3 "$ROOT/database/staging/tests/test_c2.py" --snapshot "$DIR/before.json"
 # Reaplicação valida idempotência sem recriar funções ou mudar o contrato.
 "${PSQL[@]}" -q -f "$ROOT/database/staging/c2_corrections/01_containment_rpcs.sql"
 python3 "$ROOT/database/staging/tests/test_c2.py"
-echo 'APROVADO — somente Etapa 1 local; cluster será parado e descartado'
+python3 "$ROOT/database/staging/tests/test_c2_boundary.py" --snapshot-before
+"${PSQL[@]}" -q -f "$ROOT/database/staging/c2_corrections/02_epis_grants_movimentacoes.sql"
+python3 "$ROOT/database/staging/tests/test_c2_boundary.py" --snapshot-first
+"${PSQL[@]}" -q -f "$ROOT/database/staging/c2_corrections/02_epis_grants_movimentacoes.sql"
+python3 "$ROOT/database/staging/tests/test_c2_boundary.py"
+echo 'APROVADO — Etapas 1 e 2 somente locais; cluster será parado e descartado'

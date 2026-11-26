@@ -22,3 +22,9 @@
 - [x] Criar runner C2 com lista de permissões e validação de socket, porta, diretório e banco.
 - [x] Conter as três RPCs críticas sem alterar regras de movimentação ou grants gerais.
 - [x] Executar 20 testes locais aprovados de autorização, spoofing, contratos e triggers; registrar resultados e pendências externas em c2_corrections/RESULTS.md.
+
+## C2.4 — Etapa 2 exclusivamente local
+
+- [x] Restringir UPDATE de EPIs às colunas do payload existente e revogar INSERT direto em movimentações.
+- [x] Comprovar compatibilidade de RPCs/triggers, privilégios efetivos, reaplicação e isolamento: 26 testes novos e regressão C2.3 aprovados.
+- [x] Registrar relatório de privilégios, resultados, incompatibilidades e limitações em c2_corrections/RESULTS_C2_4.md sem alterar a operação In-Haus.
