@@ -1,0 +1,60 @@
+bun test v1.4.4 (38afee6c8)
+
+src/lib/admin-users-core.test.ts:
+(pass) createUserWithRole > cria e atribui perfil com sucesso [0.50ms]
+(pass) createUserWithRole > email duplicado: não exclui ninguém [0.38ms]
+(pass) createUserWithRole > falha na atribuição: exclui só o UID recém-criado e propaga erro original [0.20ms]
+(pass) createUserWithRole > falha no rollback: erro dedicado com os dois erros registrados [0.29ms]
+(pass) createUserWithRole > sem UID retornado: não atribui nem exclui [0.13ms]
+(pass) friendlyMessage > sessão expirada [0.06ms]
+(pass) friendlyMessage > sem autorização administrativa [0.04ms]
+(pass) friendlyMessage > não vaza erro técnico desconhecido [0.02ms]
+
+src/lib/inteligencia-integracao.test.ts:
+(pass) integração da inteligência > agrupa por EPI com a maior prioridade [0.48ms]
+(pass) integração da inteligência > insights sem epiId agrupam pelo item-base [0.04ms]
+(pass) integração da inteligência > todos os sete tipos têm destino [0.02ms]
+(pass) integração da inteligência > separa dados insuficientes [1.05ms]
+(pass) integração da inteligência > sem movimentações → vazio [0.08ms]
+(pass) integração da inteligência > falha da análise fica isolada [0.08ms]
+
+src/lib/inteligencia-operacional.test.ts:
+(pass) inteligência operacional > aumento de consumo ≥30% [0.39ms]
+(pass) inteligência operacional > queda de consumo ≥30% [1.42ms]
+(pass) inteligência operacional > variação abaixo de 30% não gera insight [0.71ms]
+(pass) inteligência operacional > sem histórico anterior → dados insuficientes, sem variação [0.17ms]
+(pass) inteligência operacional > volume insuficiente (<5 registros) → sem variação [0.07ms]
+(pass) inteligência operacional > tendência persistente vs pico isolado [4.72ms]
+(pass) inteligência operacional > estoque depende de pedido em aberto [0.60ms]
+(pass) inteligência operacional > sem pedido em aberto e cobertura curta não duplica o sinal de ruptura [0.11ms]
+(pass) inteligência operacional > cobertura excessiva (>4× período) [0.12ms]
+(pass) inteligência operacional > concentração por tamanho usa entregas reais [0.55ms]
+(pass) inteligência operacional > tamanho ausente ou que não corresponde ao nome não é inferido [1.43ms]
+(pass) inteligência operacional > poucas entregas por tamanho → dados insuficientes [0.93ms]
+(pass) inteligência operacional > dados vazios, nulos ou inválidos são seguros [0.16ms]
+
+src/lib/query-keys.test.ts:
+(pass) queryKeys > preserva chaves atuais [0.04ms]
+(pass) queryKeys > inclui parâmetros variáveis [0.29ms]
+(pass) queryKeys > sem colisões entre contratos diferentes [0.30ms]
+(pass) QueryClient e isolamento > padrões conservadores [0.03ms]
+(pass) QueryClient e isolamento > logout limpa o cache [4.48ms]
+(pass) QueryClient e isolamento > troca de usuário limpa; mesmo usuário e refresh não limpam [0.40ms]
+
+src/lib/sinais-operacionais.test.ts:
+(pass) sinais operacionais > estoque zerado gera CRITICA e não gera ruptura nem compra [0.22ms]
+(pass) sinais operacionais > cobertura menor que o período sem reposição gera risco de ruptura [0.12ms]
+(pass) sinais operacionais > cobertura igual ao período não gera risco de ruptura [0.03ms]
+(pass) sinais operacionais > compra sugerida > 0 gera compra necessária com o mesmo número [0.05ms]
+(pass) sinais operacionais > compra sugerida = 0 não gera compra necessária [0.02ms]
+(pass) sinais operacionais > consumo 30% acima da média gera sinal; abaixo de 30% não [0.05ms]
+(pass) sinais operacionais > sem histórico anterior não gera consumo acima do padrão [0.02ms]
+(pass) sinais operacionais > estoque > 0 sem entregas em 90 dias gera sem movimentação (BAIXA) [0.05ms]
+(pass) sinais operacionais > valores ausentes (sem consumo, dias_seguranca nulo) são seguros [0.05ms]
+(pass) sinais operacionais > múltiplos sinais legítimos para o mesmo EPI [0.04ms]
+(pass) sinais operacionais > ordenação: CRITICA > ALTA > MEDIA > BAIXA [0.22ms]
+
+ 44 pass
+ 0 fail
+ 95 expect() calls
+Ran 44 tests across 5 files. [88.00ms]

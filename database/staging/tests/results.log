@@ -1,0 +1,442 @@
+== Instalação limpa ==
+psql:/dev-server/supabase/migrations/20260620164814_b675a096-c536-499a-a3ba-52b18ab9af97.sql:7: NOTICE:  constraint "colaboradores_matricula_formato_chk" of relation "colaboradores" does not exist, skipping
+psql:/dev-server/supabase/migrations/20260731183738_3ba30ac2-d0e9-4912-a7b9-bdea23c07dac.sql:22: NOTICE:  policy "Admin consulta auditoria" for relation "public.auditoria" does not exist, skipping
+psql:/dev-server/supabase/migrations/20260731183738_3ba30ac2-d0e9-4912-a7b9-bdea23c07dac.sql:55: NOTICE:  trigger "trg_auditoria_epis" for relation "public.epis" does not exist, skipping
+psql:/dev-server/supabase/migrations/20260731183738_3ba30ac2-d0e9-4912-a7b9-bdea23c07dac.sql:59: NOTICE:  trigger "trg_auditoria_colaboradores" for relation "public.colaboradores" does not exist, skipping
+psql:/dev-server/supabase/migrations/20260731183738_3ba30ac2-d0e9-4912-a7b9-bdea23c07dac.sql:63: NOTICE:  trigger "trg_auditoria_movimentacoes" for relation "public.movimentacoes" does not exist, skipping
+psql:/dev-server/supabase/migrations/20260731183738_3ba30ac2-d0e9-4912-a7b9-bdea23c07dac.sql:67: NOTICE:  trigger "trg_auditoria_inventarios" for relation "public.inventarios" does not exist, skipping
+== Migrations SaaS 001–003 ==
+== Finalização deve falhar com pendências e fazer rollback ==
+== Backfill por worker, autocommit por lote ==
+== Finalização e testes de integração ==
+ eq 
+----
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ ok 
+----
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+UPDATE 1
+INSERT 0 1
+UPDATE 1
+INSERT 0 1
+DO
+ claims 
+--------
+ 
+(1 row)
+
+SET
+INSERT 0 1
+INSERT 0 1
+ eq 
+----
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+RESET
+ claims 
+--------
+ 
+(1 row)
+
+SET
+ eq 
+----
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+DO
+DO
+DO
+ eq 
+----
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ claims 
+--------
+ 
+(1 row)
+
+DO
+ claims 
+--------
+ 
+(1 row)
+
+ editar_entrega 
+----------------
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ ok 
+----
+ 
+(1 row)
+
+ excluir_entrega 
+-----------------
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ editar_entrega 
+----------------
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ excluir_entrega 
+-----------------
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ registrar_entrega_atomica 
+---------------------------
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ editar_entrega 
+----------------
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ excluir_entrega 
+-----------------
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+DO
+ eq 
+----
+ 
+(1 row)
+
+ excluir_entrega 
+-----------------
+ 
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+RESET
+       set_config        
+-------------------------
+ {"role":"service_role"}
+(1 row)
+
+SET
+DO
+UPDATE 1
+ eq 
+----
+ 
+(1 row)
+
+DO
+ eq 
+----
+ 
+(1 row)
+
+RESET
+                                set_config                                
+--------------------------------------------------------------------------
+ {"sub": "a0000000-0000-0000-0000-000000000001", "role": "authenticated"}
+(1 row)
+
+ eq 
+----
+ 
+(1 row)
+
+INSERT 0 1
+DO
+ testes_aprovados 
+------------------
+              108
+(1 row)
+
+Concorrência: 4 asserções aprovadas
+== Resumo ==
+ testes_aprovados 
+------------------
+              112
+(1 row)
+
+       relname        |                 tgname                 |            proname             | tgenabled 
+----------------------+----------------------------------------+--------------------------------+-----------
+ colaborador_tamanhos | colaborador_tamanhos_updated           | set_updated_at                 | O
+ colaborador_tamanhos | trg_tenant_insert_colaborador_tamanhos | preencher_tenant_insert        | O
+ colaboradores        | trg_auditoria_colaboradores            | registrar_auditoria            | O
+ colaboradores        | trg_colab_updated                      | set_updated_at                 | O
+ colaboradores        | trg_tenant_insert_colaboradores        | preencher_tenant_insert        | O
+ compras_ajustes      | set_compras_ajustes_updated_at         | set_updated_at                 | O
+ compras_ajustes      | trg_tenant_insert_compras_ajustes      | preencher_tenant_insert        | O
+ compras_config       | trg_compras_config_updated             | set_updated_at                 | O
+ compras_config       | trg_tenant_insert_compras_config       | preencher_tenant_insert        | O
+ epis                 | trg_auditoria_epis                     | registrar_auditoria            | O
+ epis                 | trg_epi_updated                        | set_updated_at                 | O
+ epis                 | trg_tenant_insert_epis                 | preencher_tenant_insert        | O
+ inventario_itens     | trg_tenant_insert_inventario_itens     | preencher_tenant_insert        | O
+ inventarios          | trg_auditoria_inventarios              | registrar_auditoria            | O
+ inventarios          | trg_tenant_insert_inventarios          | preencher_tenant_insert        | O
+ migration_control    | trg_migration_control_updated          | set_updated_at                 | O
+ movimentacoes        | trg_aplicar_movimentacao               | aplicar_movimentacao_estoque   | O
+ movimentacoes        | trg_auditoria_movimentacoes            | registrar_auditoria            | O
+ movimentacoes        | trg_movimentacao_vinculo               | validar_vinculo_movimentacao   | O
+ movimentacoes        | trg_tenant_insert_movimentacoes        | preencher_tenant_insert        | O
+ organization_members | trg_organization_members_transition    | guardar_membership_transicao   | O
+ organization_members | trg_organization_members_updated       | set_updated_at                 | O
+ organizations        | trg_organizations_onboarding           | guardar_onboarding_organizacao | O
+ organizations        | trg_organizations_updated              | set_updated_at                 | O
+ pedidos_compra       | trg_pedidos_compra_updated             | set_updated_at                 | O
+ pedidos_compra       | trg_tenant_insert_pedidos_compra       | preencher_tenant_insert        | O
+(26 rows)
+
+APROVADO — evidências em /tmp/epi-guard-pg/results.log

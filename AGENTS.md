@@ -2,3 +2,4 @@
 
 - Query keys live in src/lib/query-keys.ts and global QueryClient defaults in QUERY_DEFAULTS; why: one source for cache identity and conservative defaults that per-query options override.
 - AuthProvider clears the whole Query cache on SIGNED_OUT or user switch; why: prevents one user's data showing to the next on a shared terminal.
+- SaaS phase-1 SQL lives in database/staging outside auto-applied migration paths; why: protects the connected In-Haus database while isolated PostgreSQL/Supabase staging validation is pending.
