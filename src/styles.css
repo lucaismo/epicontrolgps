@@ -208,3 +208,9 @@
   .tbl tbody td.num, .tbl thead th.num { font-variant-numeric: tabular-nums; }
   .tbl thead th { color: color-mix(in oklab, var(--color-foreground) 60%, transparent); }
 }
+
+/* Dashboard-only typography; shared screens retain their existing design. */
+.dashboard-view { letter-spacing: 0; }
+.dashboard-view .type-section { font-size: 1.125rem; line-height: 1.5rem; letter-spacing: 0; }
+.dashboard-view .type-label { letter-spacing: 0; text-transform: none; font-size: 0.75rem; }
+.dashboard-view .recharts-wrapper { outline: none; }

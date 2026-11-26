@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ChevronDown, ChevronRight, Lightbulb } from "lucide-react";
@@ -20,15 +21,15 @@ function Card({ g }: { g: GrupoInsight }) {
   const [open, setOpen] = useState(false);
   return (
     <li className="border-b last:border-b-0">
-      <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open}
-        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/40">
+      <Button variant="ghost" type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open}
+        className="h-auto w-full justify-start whitespace-normal flex items-center gap-3 px-4 py-4 text-left hover:bg-muted/40">
         {open ? <ChevronDown className="h-4 w-4 shrink-0" /> : <ChevronRight className="h-4 w-4 shrink-0" />}
         <div className="min-w-0 flex-1">
-          <div className="font-medium truncate">{g.epiNome}{g.epiCodigo && <span className="type-aux ml-2">{g.epiCodigo}</span>}</div>
-          <div className="type-aux truncate">{g.insights.map((i) => TIPO_LABEL[i.tipo]).join(" · ")}</div>
+          <div className="text-sm font-medium break-words">{g.epiNome}{g.epiCodigo && <span className="type-aux ml-2">{g.epiCodigo}</span>}</div>
+          <div className="type-aux mt-1 break-words">{g.insights.map((i) => TIPO_LABEL[i.tipo]).join(" · ")}</div>
         </div>
         <span className={`status-pill ${PRIO[g.prioridade].cls}`}>{PRIO[g.prioridade].label}</span>
-      </button>
+      </Button>
       {open && (
         <div className="px-4 pb-3 pl-11 space-y-3">
           {g.insights.map((i, k) => (
@@ -50,8 +51,8 @@ function Card({ g }: { g: GrupoInsight }) {
 export function InteligenciaOperacional({ resultado, carregando }: { resultado: ResultadoIntegracao | null; carregando: boolean }) {
   const [verInsuf, setVerInsuf] = useState(false);
   return (
-    <section className="rounded-lg border bg-card">
-      <div className="flex items-center justify-between px-4 py-3 border-b">
+    <section className="border-t pt-6">
+      <div className="flex flex-wrap items-center justify-between gap-2 pb-4 border-b">
         <div className="flex items-center gap-2"><Lightbulb className="h-4 w-4" /><h2 className="type-section">Inteligência Operacional</h2></div>
         {resultado?.ok && <span className="type-aux">{resultado.acionaveis.length} EPIs com tendências</span>}
       </div>
@@ -68,9 +69,9 @@ export function InteligenciaOperacional({ resultado, carregando }: { resultado: 
             : <p className="px-4 py-4 type-aux">Nenhuma tendência acionável no momento.</p>}
           {resultado.insuficientes.length > 0 && (
             <div className="border-t">
-              <button type="button" onClick={() => setVerInsuf((v) => !v)} className="w-full px-4 py-2 text-left type-aux hover:bg-muted/40">
+              <Button variant="ghost" type="button" onClick={() => setVerInsuf((v) => !v)} className="h-auto w-full justify-start whitespace-normal px-4 py-3 text-left type-aux hover:bg-muted/40">
                 {verInsuf ? "Ocultar" : "Ver"} {resultado.insuficientes.length} itens com dados insuficientes
-              </button>
+              </Button>
               {verInsuf && <ul>{resultado.insuficientes.map((g) => <Card key={g.chave} g={g} />)}</ul>}
             </div>
           )}

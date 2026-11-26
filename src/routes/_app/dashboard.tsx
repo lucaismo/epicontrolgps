@@ -3,14 +3,14 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronRight, CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Package, ArrowUpRight, ShoppingCart, TriangleAlert, CalendarDays, ArrowUpFromLine } from "lucide-react";
 import { ResponsiveContainer, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Line, ComposedChart } from "recharts";
 import { useEpiMetrics } from "@/hooks/use-epi-metrics";
 import { DIA_MS } from "@/lib/estoque-calc";
 import { fetchPaginado } from "@/lib/consumo";
 import { integrarInteligencia } from "@/lib/inteligencia-integracao";
 import { InteligenciaOperacional } from "@/components/InteligenciaOperacional";
-import { PageHeader } from "@/components/PageHeader";
+import { Button } from "@/components/ui/button";
 import { LayoutDashboard } from "lucide-react";
 import { avaliarSinais, sinaisPorEpi, PRIORIDADE_PESO, type PrioridadeSinal, type AcaoSinal, type SinalOperacional } from "@/lib/sinais-operacionais";
 
@@ -24,6 +24,14 @@ const PRIO_TEXT: Record<PrioridadeSinal, string> = { CRITICA: "text-destructive"
 export type { SinalOperacional };
 
 export const Route = createFileRoute("/_app/dashboard")({
+  head: () => ({ meta: [
+    { title: "Central de Controle | EPI Guard" },
+    { name: "description", content: "Indicadores operacionais de estoque, reposição e entregas do EPI Guard." },
+    { property: "og:title", content: "Central de Controle | EPI Guard" },
+    { property: "og:description", content: "Acompanhe estoque, prioridades de reposição e movimentações de EPIs." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: Dashboard,
 });
 
@@ -37,8 +45,8 @@ const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Ag
 const MESES_CURTO = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 const ENTRADA_TIPOS = new Set(["entrada_estoque", "ajuste_entrada", "devolucao_normal"]);
 const SAIDA_TIPOS = new Set(["entrega", "ajuste_saida"]);
-const COR_ENTRADA = "oklch(0.72 0.17 155)";
-const COR_SAIDA = "oklch(0.623 0.188 259)";
+const COR_ENTRADA = "var(--success-ink)";
+const COR_SAIDA = "var(--primary)";
 
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const fmtData = (d: Date) => d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
@@ -274,45 +282,68 @@ function Dashboard() {
   const maxCat = Math.max(1, ...periodoStats.consumoCategoria.map((c) => c.qtd));
 
   return (
-    <div className="p-4 md:p-6 xl:p-8 space-y-6">
-      <PageHeader
-        icon={LayoutDashboard}
-        title="Central de Controle"
-        subtitle="Visão operacional de estoque, entregas e reposição."
-        meta={`Período de referência: ${periodoLabel} · ${epis.length} EPIs ativos · ${base?.colaboradores ?? 0} colaboradores`}
-        actions={
-          <>
-            <Select value={String(mes)} onValueChange={(v) => setMes(Number(v))}>
-              <SelectTrigger className="w-36 h-9" aria-label="Mês de referência"><SelectValue /></SelectTrigger>
-              <SelectContent>{MESES.map((m, i) => <SelectItem key={m} value={String(i)}>{m}</SelectItem>)}</SelectContent>
-            </Select>
-            <Select value={String(ano)} onValueChange={(v) => setAno(Number(v))}>
-              <SelectTrigger className="w-24 h-9" aria-label="Ano de referência"><SelectValue /></SelectTrigger>
-              <SelectContent>{anos.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
-            </Select>
-          </>
-        }
-      />
+    <div className="dashboard-view mx-auto w-full max-w-[1920px] px-4 py-6 md:px-8 xl:px-10 space-y-8">
+      <header className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+        <div className="min-w-0">
+          <div className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground"><LayoutDashboard className="h-4 w-4" /> EPI Guard / Operação</div>
+          <h1 className="text-3xl font-semibold leading-tight">Central de Controle</h1>
+          <p className="mt-2 text-sm text-muted-foreground">{epis.length} EPIs ativos <span className="mx-2">·</span> {base?.colaboradores ?? 0} colaboradores</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <CalendarDays className="mr-1 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+          <Select value={String(mes)} onValueChange={(v) => setMes(Number(v))}>
+            <SelectTrigger className="w-36 h-10 bg-card" aria-label="Mês de referência"><SelectValue /></SelectTrigger>
+            <SelectContent>{MESES.map((m, i) => <SelectItem key={m} value={String(i)}>{m}</SelectItem>)}</SelectContent>
+          </Select>
+          <Select value={String(ano)} onValueChange={(v) => setAno(Number(v))}>
+            <SelectTrigger className="w-24 h-10 bg-card" aria-label="Ano de referência"><SelectValue /></SelectTrigger>
+            <SelectContent>{anos.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+      </header>
 
       {/* Faixa de indicadores */}
-      <section className="grid grid-cols-2 lg:grid-cols-4 rounded-lg border bg-card divide-x divide-y lg:divide-y-0 overflow-hidden">
-        <Stat label="Estoque total" value={estoque.estoqueTotal.toLocaleString("pt-BR")} unit="un" hint={`Valor ${brl(estoque.valorTotal)}`} />
-        <Stat label="Entregas no período" value={periodoStats.totalEntregas.toLocaleString("pt-BR")} unit="un" hint={`${periodoLabel} · ${brl(periodoStats.custo)}`} />
-        <Stat label="EPIs críticos" value={String(estoque.criticos.length)} unit="EPIs" sev={estoque.criticos.length ? "critical" : undefined}
+      <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 border-y bg-card divide-y sm:divide-y-0">
+        <Stat icon={Package} label="Estoque total" value={estoque.estoqueTotal.toLocaleString("pt-BR")} unit="un" hint={`Valor ${brl(estoque.valorTotal)}`} />
+        <Stat icon={ArrowUpFromLine} label="Entregas no período" value={periodoStats.totalEntregas.toLocaleString("pt-BR")} unit="un" hint={`${periodoLabel} · ${brl(periodoStats.custo)}`} />
+        <Stat icon={TriangleAlert} label="EPIs críticos" value={String(estoque.criticos.length)} unit="EPIs" sev={estoque.criticos.length ? "critical" : undefined}
           hint={`+ ${estoque.zerados.length} zerados`} to="/epis" search={{ nivel: "critico" }} />
-        <Stat label="Compras necessárias" value={String(compras.qtdEpis)} unit="EPIs" sev={compras.alta ? "critical" : undefined}
+        <Stat icon={ShoppingCart} label="Compras necessárias" value={String(compras.qtdEpis)} unit="EPIs" sev={compras.alta ? "critical" : undefined}
           hint={`${compras.unidades.toLocaleString("pt-BR")} un sugeridas · ${compras.alta} alta prioridade`} to="/compras" />
       </section>
 
+      {/* Saúde do estoque */}
+      <section className="border-b pb-6">
+        <div className="flex flex-wrap items-baseline justify-between gap-2 mb-3">
+          <h2 className="type-section">Saúde do estoque</h2>
+          <span className="type-aux">{estoque.abaixoMin.length} EPIs abaixo do mínimo</span>
+        </div>
+        <div className="flex h-2 w-full overflow-hidden rounded-sm bg-muted">
+          {NIVEIS.map((n) => saude[n.key] > 0 && (
+            <div key={n.key} className={n.bar} style={{ width: `${(saude[n.key] / totalNiveis) * 100}%` }} title={`${n.label}: ${saude[n.key]}`} />
+          ))}
+        </div>
+        <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {NIVEIS.map((n) => (
+            <Link key={n.key} to="/epis" search={{ nivel: n.key } as any} className="flex items-center gap-2 rounded-md px-1 py-0.5 hover:bg-muted/40">
+              <span className={`h-2.5 w-2.5 rounded-sm ${n.bar}`} />
+              <span className="text-sm">{n.label}</span>
+              <span className="num text-lg font-semibold ml-auto sm:ml-1">{saude[n.key]}</span>
+              <span className="type-aux num">{Math.round((saude[n.key] / totalNiveis) * 100)}%</span>
+            </Link>
+          ))}
+        </div>
+      </section>
+
       {/* Prioridades + Sinais */}
-      <section className="grid gap-6 xl:grid-cols-[1fr_300px]">
-        <div className="rounded-lg border bg-card">
-          <div className="flex items-center justify-between px-4 py-3 border-b">
+      <section className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="min-w-0">
+          <div className="flex items-center justify-between gap-3 pb-4 border-b">
             <div className="flex items-center gap-2">
               <h2 className="type-section">Prioridades</h2>
               <span className="type-label num rounded bg-muted px-1.5 py-0.5">{prioridades.length}</span>
             </div>
-            <span className="type-aux hidden sm:block">Reposição a cada {lead.dias} dias</span>
+            <span className="type-aux hidden sm:block">Ciclo de reposição · {lead.dias} dias</span>
           </div>
           {prioridades.length === 0 ? (
             <div className="flex items-center gap-2 px-4 py-8 text-sm text-muted-foreground">
@@ -321,18 +352,18 @@ function Dashboard() {
           ) : (
             <>
               <div className="hidden md:grid grid-cols-[minmax(0,1.3fr)_minmax(0,2fr)_80px_80px_110px] gap-3 px-4 py-2 type-label border-b bg-muted/40">
-                <span>EPI</span><span>Sinal</span><span className="text-right">Estoque</span><span className="text-right">Cobertura</span><span />
+                <span>EPI</span><span>Sinal</span><span className="text-right">Atual / mín.</span><span className="text-right">Cobertura</span><span />
               </div>
               <ul className="divide-y">
                 {prioridades.slice(0, 10).map((p) => {
                   const [s, ...outros] = p.sinais;
                   const dest = ACAO_DESTINO[s.acao];
                   return (
-                    <li key={p.id} className="grid grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[minmax(0,1.3fr)_minmax(0,2fr)_80px_80px_110px] gap-x-3 gap-y-1 items-start md:items-center px-4 py-2.5 hover:bg-muted/40">
+                    <li key={p.id} className="grid grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[minmax(0,1.3fr)_minmax(0,2fr)_80px_80px_110px] gap-x-3 gap-y-1 items-start md:items-center px-4 py-4 hover:bg-muted/40">
                       <div className="min-w-0 flex items-center gap-2.5">
                         <span className={`h-2 w-2 shrink-0 rounded-full ${PRIO_DOT[s.prioridade]}`} />
                         <div className="min-w-0">
-                          <div className="text-sm font-medium truncate">{p.nome}</div>
+                          <div className="text-sm font-semibold break-words">{p.nome}</div>
                           <div className="type-aux truncate">{p.sub}</div>
                         </div>
                       </div>
@@ -353,9 +384,9 @@ function Dashboard() {
                       <div className="hidden md:block text-right text-sm num">{p.atual}<span className="text-muted-foreground"> / {p.minimo}</span></div>
                       <div className="hidden md:block text-right text-sm num">{p.cobertura === null ? "—" : `${p.cobertura} d`}</div>
                       <div className="text-right">
-                        <Link to={dest} className="inline-flex items-center gap-1 whitespace-nowrap rounded-md border px-2.5 py-1 text-xs font-medium hover:bg-accent">
-                          {s.acao} <ChevronRight className="h-3 w-3" />
-                        </Link>
+                        <Button asChild variant="ghost" size="sm" className="text-primary">
+                          <Link to={dest}>{s.acao} <ArrowUpRight className="h-3.5 w-3.5" /></Link>
+                        </Button>
                       </div>
                       <div className="md:hidden type-aux num order-4 col-span-2">
                         Estoque {p.atual}/{p.minimo}{p.cobertura !== null && ` · ${p.cobertura} d de cobertura`}
@@ -373,17 +404,17 @@ function Dashboard() {
           )}
         </div>
 
-        <aside className="rounded-lg border bg-card h-fit">
-          <div className="px-4 py-3 border-b"><h2 className="type-section">Sinais</h2></div>
+        <aside className="h-fit xl:border-l xl:pl-6">
+          <div className="pb-4 border-b"><h2 className="type-section">Sinais operacionais</h2></div>
           <ul className="divide-y">
             {sinais.map((s) => (
               <li key={s.label}>
-                <Link to={s.to} search={s.search as any} className="flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-muted/40">
+                <Link to={s.to} search={s.search as any} className="flex items-center justify-between gap-3 px-4 py-4 hover:bg-muted/40">
                   <span className="flex items-center gap-2.5 text-sm">
                     <span className={`h-2 w-2 rounded-full ${s.count ? SEV_DOT[s.sev] : "bg-muted-foreground/30"}`} />
                     <span className={s.count ? "" : "text-muted-foreground"}>{s.label}</span>
                   </span>
-                  <span className={`num text-sm font-semibold ${s.count ? SEV_TEXT[s.sev] : "text-muted-foreground"}`}>{s.count}</span>
+                  <span className={`num text-lg font-semibold ${s.count ? SEV_TEXT[s.sev] : "text-muted-foreground"}`}>{s.count}</span>
                 </Link>
               </li>
             ))}
@@ -393,57 +424,38 @@ function Dashboard() {
 
       <InteligenciaOperacional resultado={inteligencia} carregando={carregandoMovs || !base} />
 
-      {/* Saúde do estoque */}
-      <section className="rounded-lg border bg-card px-4 py-4">
-        <div className="flex items-baseline justify-between mb-3">
-          <h2 className="type-section">Saúde do estoque</h2>
-          <span className="type-aux">{epis.length} EPIs ativos</span>
-        </div>
-        <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted">
-          {NIVEIS.map((n) => saude[n.key] > 0 && (
-            <div key={n.key} className={n.bar} style={{ width: `${(saude[n.key] / totalNiveis) * 100}%` }} title={`${n.label}: ${saude[n.key]}`} />
-          ))}
-        </div>
-        <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {NIVEIS.map((n) => (
-            <Link key={n.key} to="/epis" search={{ nivel: n.key } as any} className="flex items-center gap-2 rounded-md px-1 py-0.5 hover:bg-muted/40">
-              <span className={`h-2.5 w-2.5 rounded-sm ${n.bar}`} />
-              <span className="text-sm">{n.label}</span>
-              <span className="num text-sm font-semibold ml-auto sm:ml-1">{saude[n.key]}</span>
-              <span className="type-aux num">{Math.round((saude[n.key] / totalNiveis) * 100)}%</span>
-            </Link>
-          ))}
-        </div>
-      </section>
-
       {/* Consumo + Entregas recentes */}
-      <section className="grid gap-6 xl:grid-cols-2">
-        <div className="rounded-lg border bg-card">
-          <div className="flex items-baseline justify-between px-4 py-3 border-b">
-            <h2 className="type-section">Consumo</h2>
-            <span className="type-aux">Últimos 6 meses</span>
+      <section className="grid gap-8 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] border-t pt-6">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-baseline justify-between gap-2 pb-4 border-b">
+            <h2 className="type-section">Entradas e saídas</h2>
+            <span className="type-aux">6 meses até {periodoLabel} · unidades</span>
           </div>
-          <div className="px-2 pt-3">
+          <div className="flex items-center gap-5 pt-4 text-xs text-muted-foreground">
+            <span className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm bg-primary" /> Saídas</span>
+            <span className="flex items-center gap-2"><span className="h-0.5 w-4 bg-success-ink" /> Entradas</span>
+          </div>
+          <div className="pt-4">
             {evolucao.some((b) => b.entradas || b.saidas) ? (
-              <ResponsiveContainer width="100%" height={180}>
-                <ComposedChart data={evolucao} margin={{ left: 0, right: 12, top: 4 }}>
-                  <CartesianGrid vertical={false} stroke="var(--border)" />
-                  <XAxis dataKey="label" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
-                  <YAxis tick={{ fontSize: 11 }} allowDecimals={false} tickLine={false} axisLine={false} width={36} />
-                  <Tooltip cursor={{ fill: "var(--muted)" }} />
-                  <Bar dataKey="saidas" name="Saídas" fill={COR_SAIDA} radius={[3, 3, 0, 0]} barSize={22} />
-                  <Line type="monotone" dataKey="entradas" name="Entradas" stroke={COR_ENTRADA} strokeWidth={2} dot={{ r: 2.5 }} />
+              <ResponsiveContainer width="100%" height={260}>
+                <ComposedChart data={evolucao} margin={{ left: 0, right: 12, top: 12, bottom: 8 }}>
+                  <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 5" />
+                  <XAxis dataKey="label" tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} tickLine={false} axisLine={false} />
+                  <YAxis tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} allowDecimals={false} tickLine={false} axisLine={false} width={48} />
+                  <Tooltip content={<MovementTooltip />} cursor={{ fill: "var(--muted)", fillOpacity: 0.5 }} />
+                  <Bar dataKey="saidas" name="Saídas" fill={COR_SAIDA} radius={[3, 3, 0, 0]} maxBarSize={32} isAnimationActive={false} />
+                  <Line type="monotone" dataKey="entradas" name="Entradas" stroke={COR_ENTRADA} strokeWidth={2.5} dot={{ r: 3 }} isAnimationActive={false} />
                 </ComposedChart>
               </ResponsiveContainer>
             ) : <Vazio />}
           </div>
-          <div className="px-4 pb-4 pt-2">
-            <div className="type-label mb-2">Por categoria · {periodoLabel}</div>
+          <div className="pb-4 pt-4 border-t">
+            <div className="type-label mb-2">Entregas por categoria · {periodoLabel}</div>
             {periodoStats.consumoCategoria.length ? (
-              <ul className="space-y-1.5">
+              <ul className="space-y-3">
                 {periodoStats.consumoCategoria.slice(0, 6).map((c) => (
-                  <li key={c.categoria} className="grid grid-cols-[minmax(0,140px)_1fr_48px] items-center gap-3 text-sm">
-                    <span className="truncate">{c.categoria}</span>
+                  <li key={c.categoria} className="grid grid-cols-[minmax(0,160px)_minmax(0,1fr)_56px] items-center gap-3 text-sm">
+                    <span className="break-words">{c.categoria}</span>
                     <span className="h-1.5 rounded-full bg-muted overflow-hidden"><span className="block h-full bg-primary" style={{ width: `${(c.qtd / maxCat) * 100}%` }} /></span>
                     <span className="num text-right">{c.qtd}</span>
                   </li>
@@ -453,19 +465,19 @@ function Dashboard() {
           </div>
         </div>
 
-        <div className="rounded-lg border bg-card">
-          <div className="flex items-baseline justify-between px-4 py-3 border-b">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-baseline justify-between gap-2 pb-4 border-b">
             <h2 className="type-section">Entregas recentes</h2>
-            <Link to="/entregas" className="text-xs font-medium text-primary">Nova entrega</Link>
+            <Button asChild variant="ghost" size="sm" className="text-primary"><Link to="/entregas">Nova entrega <ArrowUpRight /></Link></Button>
           </div>
           {entregasRecentes.length ? (
             <ul className="divide-y">
               {entregasRecentes.map((m: any, i: number) => (
-                <li key={i} className="grid grid-cols-[64px_minmax(0,1fr)_auto] gap-3 items-center px-4 py-2.5">
+                <li key={i} className="grid grid-cols-[76px_minmax(0,1fr)_auto] gap-3 items-center py-4">
                   <span className="num type-aux">{fmtHora(m.data_movimentacao)}</span>
                   <div className="min-w-0">
-                    <div className="text-sm font-medium truncate">{m.colaboradores?.nome ?? "—"}</div>
-                    <div className="type-aux truncate">{m.epis?.nome ?? "—"} · {m.colaboradores?.turno ?? "—"}</div>
+                    <div className="text-sm font-medium break-words">{m.colaboradores?.nome ?? "—"}</div>
+                    <div className="type-aux mt-1 break-words">{m.epis?.nome ?? "—"} · {m.colaboradores?.turno ?? "—"}</div>
                   </div>
                   <span className="num text-sm font-semibold">{m.quantidade}<span className="type-aux font-normal"> un</span></span>
                 </li>
@@ -503,20 +515,33 @@ const fmtHora = (iso: string) => {
   return `${d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })} ${d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
 };
 
-function Stat({ label, value, unit, hint, sev, to, search }: {
-  label: string; value: string; unit: string; hint: string; sev?: Sev; to?: "/epis" | "/compras"; search?: Record<string, string>;
+function MovementTooltip({ active, payload, label }: {
+  active?: boolean; payload?: { name?: string; value?: number | string; dataKey?: string | number }[]; label?: string | number;
+}) {
+  if (!active || !payload?.length) return null;
+  return <div className="min-w-40 rounded-md border bg-popover p-3 text-popover-foreground shadow-sm">
+    <div className="mb-2 text-xs font-semibold">{label}</div>
+    {payload.map((entry) => <div key={entry.dataKey} className="flex items-center justify-between gap-5 py-1 text-sm">
+      <span className="flex items-center gap-2"><span className={`h-2 w-2 rounded-sm ${entry.dataKey === "saidas" ? "bg-primary" : "bg-success-ink"}`} />{entry.name}</span>
+      <span className="num font-semibold">{Number(entry.value ?? 0).toLocaleString("pt-BR")} un</span>
+    </div>)}
+  </div>;
+}
+
+function Stat({ icon: Icon, label, value, unit, hint, sev, to, search }: {
+  icon: typeof Package; label: string; value: string; unit: string; hint: string; sev?: Sev; to?: "/epis" | "/compras"; search?: Record<string, string>;
 }) {
   const inner = (
-    <div className="px-4 py-3.5 h-full">
-      <div className="type-label flex items-center gap-1.5">
-        {sev && <span className={`h-1.5 w-1.5 rounded-full ${SEV_DOT[sev]}`} />}{label}
+    <div className="px-5 py-6 h-full sm:border-l sm:border-border">
+      <div className="flex items-center justify-between gap-3 text-sm font-medium text-muted-foreground">
+        <span>{label}</span><Icon className={`h-4 w-4 shrink-0 ${sev ? SEV_TEXT[sev] : "text-muted-foreground"}`} />
       </div>
-      <div className="mt-1 flex items-baseline gap-1.5">
-        <span className={`type-kpi num ${sev ? SEV_TEXT[sev] : ""}`}>{value}</span>
-        <span className="type-aux">{unit}</span>
+      <div className="my-3 flex flex-wrap items-baseline gap-2">
+        <span className={`text-4xl leading-tight font-semibold num break-all ${sev ? SEV_TEXT[sev] : ""}`}>{value}</span>
+        <span className="text-xs text-muted-foreground">{unit}</span>
       </div>
-      <div className="type-aux truncate mt-0.5">{hint}</div>
+      <div className="text-xs leading-5 text-muted-foreground">{hint}</div>
     </div>
   );
-  return to ? <Link to={to} search={search as any} className="block hover:bg-muted/40">{inner}</Link> : inner;
+  return to ? <Link to={to} search={search as any} className="block hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{inner}</Link> : inner;
 }
