@@ -56,7 +56,7 @@ function Dashboard() {
   const now = new Date();
   const [mes, setMes] = useState<number>(now.getMonth());
   const [ano, setAno] = useState<number>(now.getFullYear());
-  const { metricaDe, lead, pedidos, entregas365, carregandoMovs, erroMovs } = useEpiMetrics();
+  const { metricaDe, lead, pedidos, entregas365, erroMovs, consultandoMovs, carregandoConfig, erroConfig, carregandoPedidos, erroPedidos } = useEpiMetrics(true);
 
   const periodo = useMemo(() => ({
     inicio: new Date(ano, mes, 1, 0, 0, 0).toISOString(),
@@ -64,7 +64,7 @@ function Dashboard() {
   }), [ano, mes]);
 
   // Cadastros (independentes do período)
-  const { data: base, isLoading: carregandoBase, isError: erroBase } = useQuery({
+  const { data: base, isFetching: carregandoBase, isError: erroBase } = useQuery({
     queryKey: ["dashboard-base"],
     queryFn: async () => {
       const [episRes, colabRes, invRes] = await Promise.all([
@@ -84,7 +84,7 @@ function Dashboard() {
   });
 
   // Movimentações do período selecionado (paginado em lotes de 1.000)
-  const { data: movs = [], isLoading: carregandoPeriodo, isError: erroPeriodo } = useQuery({
+  const { data: movs = [], isFetching: carregandoPeriodo, isError: erroPeriodo } = useQuery({
     queryKey: ["dashboard-movs", ano, mes],
     queryFn: () => fetchPaginado<any>((from, to) => supabase
       .from("movimentacoes")
@@ -98,7 +98,7 @@ function Dashboard() {
 
   // Evolução: últimos 6 meses até o período selecionado (+ movimentações posteriores
   // até hoje, para reconstruir o saldo histórico a partir do estoque atual)
-  const { data: evolucaoRaw } = useQuery({
+  const { data: evolucaoRaw, isFetching: carregandoEvolucao, isError: erroEvolucao } = useQuery({
     queryKey: ["dashboard-evolucao", ano, mes],
     queryFn: async () => {
       const inicio6 = new Date(ano, mes - 5, 1, 0, 0, 0);
@@ -134,6 +134,8 @@ function Dashboard() {
     },
   });
 
+  const carregandoMetricas = carregandoBase || consultandoMovs || carregandoConfig || carregandoPedidos;
+  const erroMetricas = erroBase || erroMovs || erroConfig || erroPedidos;
   const epis = base?.epis ?? [];
 
   const estoque = useMemo(() => {
@@ -260,26 +262,26 @@ function Dashboard() {
 
   // Inteligência operacional: reaproveita entregas365 (cache de Compras) e linhas do motor único
   const inteligencia = useMemo(() => {
-    if (erroMovs) return { ok: false, erro: "falha ao carregar entregas", acionaveis: [], insuficientes: [], total: 0 };
-    if (carregandoMovs || !base) return null;
+    if (erroMetricas) return { ok: false, erro: "falha ao carregar entregas", acionaveis: [], insuficientes: [], total: 0 };
+    if (carregandoMetricas || !base) return null;
     return integrarInteligencia({
       epis, entregas: entregas365 as any[], leadDias: lead.dias,
       linhas: new Map(epis.map((e) => [e.id, metricaDe(e)])),
     });
-  }, [epis, entregas365, carregandoMovs, erroMovs, base, metricaDe, lead.dias]);
+  }, [epis, entregas365, carregandoMetricas, erroMetricas, base, metricaDe, lead.dias]);
 
   const entregasRecentes = useMemo(
     () => movs.filter((m) => m.tipo === "entrega").slice(-8).reverse(),
     [movs],
   );
 
-  const sinais: { label: string; count: number; sev: Sev; to: LinkTo; search?: Record<string, string> }[] = [
-    { label: "Ruptura próxima", count: estoque.ruptura.length, sev: "critical", to: "/compras", search: { prioridade: "alta" } },
-    { label: "Estoque zerado", count: estoque.zerados.length, sev: "critical", to: "/epis", search: { nivel: "zerado" } },
-    { label: "Estoque crítico", count: estoque.criticos.length, sev: "critical", to: "/epis", search: { nivel: "critico" } },
-    { label: "Pedido atrasado", count: pedidosInfo.atrasados.length, sev: "critical", to: "/compras" },
-    { label: "Pedidos em aberto", count: pedidosInfo.abertos.length, sev: "neutral", to: "/compras" },
-    { label: "Inventário em andamento", count: inventariosPendentes.length, sev: "neutral", to: "/inventario" },
+  const sinais: { label: string; count: number; sev: Sev; to: LinkTo; search?: Record<string, string>; loading: boolean; error: boolean }[] = [
+    { label: "Ruptura próxima", count: estoque.ruptura.length, sev: "critical", to: "/compras", search: { prioridade: "alta" }, loading: carregandoMetricas, error: erroMetricas },
+    { label: "Estoque zerado", count: estoque.zerados.length, sev: "critical", to: "/epis", search: { nivel: "zerado" }, loading: carregandoMetricas, error: erroMetricas },
+    { label: "Estoque crítico", count: estoque.criticos.length, sev: "critical", to: "/epis", search: { nivel: "critico" }, loading: carregandoMetricas, error: erroMetricas },
+    { label: "Pedido atrasado", count: pedidosInfo.atrasados.length, sev: "critical", to: "/compras", loading: carregandoBase || carregandoPedidos, error: erroBase || erroPedidos },
+    { label: "Pedidos em aberto", count: pedidosInfo.abertos.length, sev: "neutral", to: "/compras", loading: carregandoBase || carregandoPedidos, error: erroBase || erroPedidos },
+    { label: "Inventário em andamento", count: inventariosPendentes.length, sev: "neutral", to: "/inventario", loading: carregandoBase, error: erroBase },
   ];
 
   const totalNiveis = epis.length || 1;
@@ -291,10 +293,10 @@ function Dashboard() {
         <div className="min-w-0">
           <div className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground"><LayoutDashboard className="h-4 w-4" /> EPI Guard / Operação</div>
           <h1 className="text-3xl font-semibold leading-tight">Central de Controle</h1>
-          {carregandoBase ? (
-            <Skeleton className="mt-3 h-4 w-56" aria-label="Carregando totais" />
-          ) : erroBase ? (
+          {erroBase ? (
             <p className="mt-2 text-sm text-destructive" role="alert">Não foi possível carregar os totais cadastrais.</p>
+          ) : carregandoBase ? (
+            <Skeleton className="mt-3 h-4 w-56" aria-label="Carregando totais" />
           ) : (
             <p className="mt-2 text-sm text-muted-foreground">{epis.length} EPIs ativos <span className="mx-2">·</span> {base?.colaboradores ?? 0} colaboradores</p>
           )}
@@ -317,19 +319,19 @@ function Dashboard() {
         <Stat icon={Package} label="Estoque total" value={estoque.estoqueTotal.toLocaleString("pt-BR")} unit="un" hint={`Valor ${brl(estoque.valorTotal)}`} loading={carregandoBase} error={erroBase} />
         <Stat icon={ArrowUpFromLine} label="Entregas no período" value={periodoStats.totalEntregas.toLocaleString("pt-BR")} unit="un" hint={`${periodoLabel} · ${brl(periodoStats.custo)}`} loading={carregandoPeriodo} error={erroPeriodo} />
         <Stat icon={TriangleAlert} label="EPIs críticos" value={String(estoque.criticos.length)} unit="EPIs" sev={estoque.criticos.length ? "critical" : undefined}
-          hint={`+ ${estoque.zerados.length} zerados`} loading={carregandoBase || carregandoMovs} error={erroBase || erroMovs} to="/epis" search={{ nivel: "critico" }} />
+          hint={`+ ${estoque.zerados.length} zerados`} loading={carregandoMetricas} error={erroMetricas} to="/epis" search={{ nivel: "critico" }} />
         <Stat icon={ShoppingCart} label="Compras necessárias" value={String(compras.qtdEpis)} unit="EPIs" sev={compras.alta ? "critical" : undefined}
-          hint={`${compras.unidades.toLocaleString("pt-BR")} un sugeridas · ${compras.alta} alta prioridade`} loading={carregandoBase || carregandoMovs} error={erroBase || erroMovs} to="/compras" />
+          hint={`${compras.unidades.toLocaleString("pt-BR")} un sugeridas · ${compras.alta} alta prioridade`} loading={carregandoMetricas} error={erroMetricas} to="/compras" />
       </section>
 
       {/* Saúde do estoque */}
       <section className="border-b pb-6">
         <div className="flex flex-wrap items-baseline justify-between gap-2 mb-3">
           <h2 className="type-section">Saúde do estoque</h2>
-          <span className="type-aux">{estoque.abaixoMin.length} EPIs abaixo do mínimo</span>
+          <span className="type-aux">{erroMetricas ? "Indisponível" : carregandoMetricas ? "Carregando…" : `${estoque.abaixoMin.length} EPIs abaixo do mínimo`}</span>
         </div>
         <div className="flex h-2 w-full overflow-hidden rounded-sm bg-muted">
-          {NIVEIS.map((n) => saude[n.key] > 0 && (
+          {!carregandoMetricas && !erroMetricas && NIVEIS.map((n) => saude[n.key] > 0 && (
             <div key={n.key} className={n.bar} style={{ width: `${(saude[n.key] / totalNiveis) * 100}%` }} title={`${n.label}: ${saude[n.key]}`} />
           ))}
         </div>
@@ -338,8 +340,8 @@ function Dashboard() {
             <Link key={n.key} to="/epis" search={{ nivel: n.key } as any} className="flex items-center gap-2 rounded-md px-1 py-0.5 hover:bg-muted/40">
               <span className={`h-2.5 w-2.5 rounded-sm ${n.bar}`} />
               <span className="text-sm">{n.label}</span>
-              <span className="num text-lg font-semibold ml-auto sm:ml-1">{saude[n.key]}</span>
-              <span className="type-aux num">{Math.round((saude[n.key] / totalNiveis) * 100)}%</span>
+              <span className="num text-lg font-semibold ml-auto sm:ml-1">{erroMetricas ? "—" : carregandoMetricas ? <Skeleton className="h-5 w-8" /> : saude[n.key]}</span>
+              <span className="type-aux num">{!erroMetricas && !carregandoMetricas ? `${Math.round((saude[n.key] / totalNiveis) * 100)}%` : ""}</span>
             </Link>
           ))}
         </div>
@@ -351,11 +353,11 @@ function Dashboard() {
           <div className="flex items-center justify-between gap-3 pb-4 border-b">
             <div className="flex items-center gap-2">
               <h2 className="type-section">Prioridades</h2>
-              <span className="type-label num rounded bg-muted px-1.5 py-0.5">{prioridades.length}</span>
+              <span className="type-label num rounded bg-muted px-1.5 py-0.5">{erroMetricas ? "—" : carregandoMetricas ? <Skeleton className="h-4 w-6" /> : prioridades.length}</span>
             </div>
-            <span className="type-aux hidden sm:block">Ciclo de reposição · {lead.dias} dias</span>
+            <span className="type-aux hidden sm:block">{erroConfig ? "Ciclo indisponível" : carregandoConfig ? "Carregando…" : `Ciclo de reposição · ${lead.dias} dias`}</span>
           </div>
-          {prioridades.length === 0 ? (
+          {erroMetricas ? <FalhaIndicador /> : carregandoMetricas ? <Skeleton className="my-6 h-20 w-full" aria-label="Carregando prioridades" /> : prioridades.length === 0 ? (
             <div className="flex items-center gap-2 px-4 py-8 text-sm text-muted-foreground">
               <CheckCircle2 className="h-4 w-4 text-success" /> Nenhum item exige ação. Estoque dentro dos parâmetros.
             </div>
@@ -424,7 +426,7 @@ function Dashboard() {
                     <span className={`h-2 w-2 rounded-full ${s.count ? SEV_DOT[s.sev] : "bg-muted-foreground/30"}`} />
                     <span className={s.count ? "" : "text-muted-foreground"}>{s.label}</span>
                   </span>
-                  <span className={`num text-lg font-semibold ${s.count ? SEV_TEXT[s.sev] : "text-muted-foreground"}`}>{s.count}</span>
+                  <span className={`num text-lg font-semibold ${s.count ? SEV_TEXT[s.sev] : "text-muted-foreground"}`}>{s.error ? "Indisponível" : s.loading ? <Skeleton className="h-5 w-8" aria-label={`Carregando ${s.label}`} /> : s.count}</span>
                 </Link>
               </li>
             ))}
@@ -432,7 +434,7 @@ function Dashboard() {
         </aside>
       </section>
 
-      <InteligenciaOperacional resultado={inteligencia} carregando={carregandoMovs || !base} />
+      <InteligenciaOperacional resultado={inteligencia} carregando={!erroMetricas && (carregandoMetricas || !base)} />
 
       {/* Consumo + Entregas recentes */}
       <section className="grid gap-8 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] border-t pt-6">
@@ -446,7 +448,7 @@ function Dashboard() {
             <span className="flex items-center gap-2"><span className="h-0.5 w-4 bg-success-ink" /> Entradas</span>
           </div>
           <div className="pt-4">
-            {evolucao.some((b) => b.entradas || b.saidas) ? (
+            {erroEvolucao || erroBase ? <FalhaIndicador /> : carregandoEvolucao || carregandoBase ? <Skeleton className="h-[260px] w-full" aria-label="Carregando evolução" /> : evolucao.some((b) => b.entradas || b.saidas) ? (
               <ResponsiveContainer width="100%" height={260}>
                 <ComposedChart data={evolucao} margin={{ left: 0, right: 12, top: 12, bottom: 8 }}>
                   <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 5" />
@@ -461,7 +463,7 @@ function Dashboard() {
           </div>
           <div className="pb-4 pt-4 border-t">
             <div className="type-label mb-2">Entregas por categoria · {periodoLabel}</div>
-            {periodoStats.consumoCategoria.length ? (
+            {erroPeriodo ? <FalhaIndicador /> : carregandoPeriodo ? <Skeleton className="h-20 w-full" aria-label="Carregando categorias" /> : periodoStats.consumoCategoria.length ? (
               <ul className="space-y-3">
                 {periodoStats.consumoCategoria.slice(0, 6).map((c) => (
                   <li key={c.categoria} className="grid grid-cols-[minmax(0,160px)_minmax(0,1fr)_56px] items-center gap-3 text-sm">
@@ -480,7 +482,7 @@ function Dashboard() {
             <h2 className="type-section">Entregas recentes</h2>
             <Button asChild variant="ghost" size="sm" className="text-primary"><Link to="/entregas">Nova entrega <ArrowUpRight /></Link></Button>
           </div>
-          {entregasRecentes.length ? (
+          {erroPeriodo ? <FalhaIndicador /> : carregandoPeriodo ? <Skeleton className="my-4 h-20 w-full" aria-label="Carregando entregas recentes" /> : entregasRecentes.length ? (
             <ul className="divide-y">
               {entregasRecentes.map((m: any, i: number) => (
                 <li key={i} className="grid grid-cols-[76px_minmax(0,1fr)_auto] gap-3 items-center py-4">
@@ -498,6 +500,10 @@ function Dashboard() {
       </section>
     </div>
   );
+}
+
+function FalhaIndicador() {
+  return <p role="alert" className="py-10 text-sm text-destructive">Falha ao consultar os indicadores.</p>;
 }
 
 function Vazio() {
@@ -546,15 +552,15 @@ function Stat({ icon: Icon, label, value, unit, hint, sev, to, search, loading, 
       <div className="flex items-center justify-between gap-3 text-sm font-medium text-muted-foreground">
         <span>{label}</span><Icon className={`h-4 w-4 shrink-0 ${sev ? SEV_TEXT[sev] : "text-muted-foreground"}`} />
       </div>
-      {loading ? (
-        <div aria-busy="true" aria-label={`Carregando ${label}`}>
-          <Skeleton className="my-4 h-9 w-28" />
-          <Skeleton className="h-3 w-40" />
-        </div>
-      ) : error ? (
+      {error ? (
         <div role="alert">
           <div className="my-3 flex items-baseline gap-2"><span className="text-2xl leading-[2.75rem] font-semibold text-destructive">Indisponível</span></div>
           <div className="text-xs leading-5 text-destructive">Falha ao consultar este indicador.</div>
+        </div>
+      ) : loading ? (
+        <div aria-busy="true" aria-label={`Carregando ${label}`}>
+          <div className="my-3 flex h-11 items-center"><Skeleton className="h-9 w-28" /></div>
+          <div className="flex h-5 items-center"><Skeleton className="h-3 w-40" /></div>
         </div>
       ) : (<>
       <div className="my-3 flex flex-wrap items-baseline gap-2">

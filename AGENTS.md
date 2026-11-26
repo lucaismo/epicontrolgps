@@ -5,3 +5,4 @@
 - SaaS phase-1 SQL lives in database/staging outside auto-applied migration paths; why: protects the connected In-Haus database while isolated PostgreSQL/Supabase staging validation is pending.
 
 - Dashboard-specific visual refinements use `.dashboard-view` scoped typography and existing semantic tokens; why: preserve presentation on other operational screens.
+- Dashboard opts into query-error reporting in useEpiMetrics and gates indicators on every source dependency; why: distinguish unavailable data from legitimate zero without changing other consumers' behavior.

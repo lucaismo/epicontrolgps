@@ -11,3 +11,8 @@
 - [x] Refinar hierarquia, indicadores, prioridades e gráficos sem mudar cálculos ou consultas.
 - [x] Executar testes aplicáveis: 44 testes aprovados; compilação de módulos verificada pelo Vite e build automático aprovado às 10:05:08 UTC.
 - [x] Verificar Dashboard autenticado com dados reais em desktop, notebook e mobile (conta do Lucas, sem erros).
+
+## Estados dos indicadores do Dashboard
+
+- [x] Substituir valores transitórios por carregamento e diferenciar falhas, sem mudar fórmulas ou consultas.
+- [x] Validar carregamento, sucesso com dados reais, zero e falhas controladas em desktop (1440), notebook (1024) e celular (375); 36 testes de regressão aprovados.
