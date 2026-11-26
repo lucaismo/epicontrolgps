@@ -10,4 +10,4 @@
 
 - [x] Refinar hierarquia, indicadores, prioridades e gráficos sem mudar cálculos ou consultas.
 - [x] Executar testes aplicáveis: 44 testes aprovados; compilação de módulos verificada pelo Vite e build automático aprovado às 10:05:08 UTC.
-- [ ] Verificar Dashboard autenticado com dados reais em desktop/notebook e mobile — bloqueado pela ausência de sessão autorizada; nenhum usuário ou dado fictício criado.
+- [x] Verificar Dashboard autenticado com dados reais em desktop, notebook e mobile (conta do Lucas, sem erros).
