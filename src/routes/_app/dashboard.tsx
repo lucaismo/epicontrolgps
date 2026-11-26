@@ -56,7 +56,7 @@ function Dashboard() {
   const now = new Date();
   const [mes, setMes] = useState<number>(now.getMonth());
   const [ano, setAno] = useState<number>(now.getFullYear());
-  const { metricaDe, lead, pedidos, entregas365, erroMovs, consultandoMovs, carregandoConfig, erroConfig, carregandoPedidos, erroPedidos } = useEpiMetrics(true);
+  const { metricaDe, lead, pedidos, entregas365, erroMovs, carregandoMovs, carregandoConfigInicial: carregandoConfig, erroConfig, carregandoPedidosInicial: carregandoPedidos, erroPedidos } = useEpiMetrics(true);
 
   const periodo = useMemo(() => ({
     inicio: new Date(ano, mes, 1, 0, 0, 0).toISOString(),
@@ -64,7 +64,7 @@ function Dashboard() {
   }), [ano, mes]);
 
   // Cadastros (independentes do período)
-  const { data: base, isFetching: carregandoBase, isError: erroBase } = useQuery({
+  const { data: base, isLoading: carregandoBase, isError: erroBase } = useQuery({
     queryKey: ["dashboard-base"],
     queryFn: async () => {
       const [episRes, colabRes, invRes] = await Promise.all([
@@ -84,7 +84,7 @@ function Dashboard() {
   });
 
   // Movimentações do período selecionado (paginado em lotes de 1.000)
-  const { data: movs = [], isFetching: carregandoPeriodo, isError: erroPeriodo } = useQuery({
+  const { data: movs = [], isLoading: carregandoPeriodo, isError: erroPeriodo } = useQuery({
     queryKey: ["dashboard-movs", ano, mes],
     queryFn: () => fetchPaginado<any>((from, to) => supabase
       .from("movimentacoes")
@@ -98,7 +98,7 @@ function Dashboard() {
 
   // Evolução: últimos 6 meses até o período selecionado (+ movimentações posteriores
   // até hoje, para reconstruir o saldo histórico a partir do estoque atual)
-  const { data: evolucaoRaw, isFetching: carregandoEvolucao, isError: erroEvolucao } = useQuery({
+  const { data: evolucaoRaw, isLoading: carregandoEvolucao, isError: erroEvolucao } = useQuery({
     queryKey: ["dashboard-evolucao", ano, mes],
     queryFn: async () => {
       const inicio6 = new Date(ano, mes - 5, 1, 0, 0, 0);
@@ -134,7 +134,8 @@ function Dashboard() {
     },
   });
 
-  const carregandoMetricas = carregandoBase || consultandoMovs || carregandoConfig || carregandoPedidos;
+  // isLoading identifica a consulta inicial; refetch mantém os dados em cache visíveis, inclusive [].
+  const carregandoMetricas = carregandoBase || carregandoMovs || carregandoConfig || carregandoPedidos;
   const erroMetricas = erroBase || erroMovs || erroConfig || erroPedidos;
   const epis = base?.epis ?? [];
 

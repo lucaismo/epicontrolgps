@@ -13,7 +13,7 @@ import { fetchEntregasDesde } from "@/lib/consumo";
 export function useEpiMetrics(reportQueryErrors = false) {
   const desde = useMemo(() => new Date(Date.now() - 365 * DIA_MS).toISOString(), []);
 
-  const { data: config, isFetching: carregandoConfig, isError: erroConfig } = useQuery({
+  const { data: config, isLoading: carregandoConfigInicial, isFetching: carregandoConfig, isError: erroConfig } = useQuery({
     queryKey: ["compras-config"],
     queryFn: async () => {
       const result = await supabase.from("compras_config").select("*").limit(1).maybeSingle();
@@ -29,7 +29,7 @@ export function useEpiMetrics(reportQueryErrors = false) {
     staleTime: 60_000,
   });
 
-  const { data: pedidos = [], isFetching: carregandoPedidos, isError: erroPedidos } = useQuery({
+  const { data: pedidos = [], isLoading: carregandoPedidosInicial, isFetching: carregandoPedidos, isError: erroPedidos } = useQuery({
     queryKey: ["compras-pedidos"],
     queryFn: async () => {
       const result = await supabase.from("pedidos_compra")
@@ -64,5 +64,6 @@ export function useEpiMetrics(reportQueryErrors = false) {
   );
 
   return { lead, consumo, emTransito, metricaDe, config, pedidos, entregas365: movs, carregandoMovs, erroMovs,
-    consultandoMovs, carregandoConfig, erroConfig, carregandoPedidos, erroPedidos };
+    consultandoMovs, carregandoConfig, erroConfig, carregandoPedidos, erroPedidos,
+    carregandoConfigInicial, carregandoPedidosInicial };
 }
