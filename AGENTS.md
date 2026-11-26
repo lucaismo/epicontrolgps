@@ -6,3 +6,5 @@
 
 - Dashboard-specific visual refinements use `.dashboard-view` scoped typography and existing semantic tokens; why: preserve presentation on other operational screens.
 - Dashboard opts into query-error reporting in useEpiMetrics and gates indicators on every source dependency; why: distinguish unavailable data from legitimate zero without changing other consumers' behavior.
+
+- C2 containment SQL stays in database/staging/c2_corrections and runs only through the hermetic local runner with a fixed Unix socket, TCP disabled and SQL target guards; why: prevent accidental writes to the connected operational database.

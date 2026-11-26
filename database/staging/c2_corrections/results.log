@@ -1,0 +1,38 @@
+waiting for server to start.... done
+server started
+ISOLAMENTO VALIDADO: /tmp/epi-c2-pg | 55433 | epi_c2_staging | TCP desativado
+psql:/dev-server/supabase/migrations/20260620164814_b675a096-c536-499a-a3ba-52b18ab9af97.sql:7: NOTICE:  constraint "colaboradores_matricula_formato_chk" of relation "colaboradores" does not exist, skipping
+psql:/dev-server/supabase/migrations/20260731183738_3ba30ac2-d0e9-4912-a7b9-bdea23c07dac.sql:22: NOTICE:  policy "Admin consulta auditoria" for relation "public.auditoria" does not exist, skipping
+psql:/dev-server/supabase/migrations/20260731183738_3ba30ac2-d0e9-4912-a7b9-bdea23c07dac.sql:55: NOTICE:  trigger "trg_auditoria_epis" for relation "public.epis" does not exist, skipping
+psql:/dev-server/supabase/migrations/20260731183738_3ba30ac2-d0e9-4912-a7b9-bdea23c07dac.sql:59: NOTICE:  trigger "trg_auditoria_colaboradores" for relation "public.colaboradores" does not exist, skipping
+psql:/dev-server/supabase/migrations/20260731183738_3ba30ac2-d0e9-4912-a7b9-bdea23c07dac.sql:63: NOTICE:  trigger "trg_auditoria_movimentacoes" for relation "public.movimentacoes" does not exist, skipping
+psql:/dev-server/supabase/migrations/20260731183738_3ba30ac2-d0e9-4912-a7b9-bdea23c07dac.sql:67: NOTICE:  trigger "trg_auditoria_inventarios" for relation "public.inventarios" does not exist, skipping
+Snapshot local registrado antes da contenção
+test_01_isolation (__main__.C2Tests.test_01_isolation) ... ok
+test_02_contracts_and_unchanged_objects (__main__.C2Tests.test_02_contracts_and_unchanged_objects) ... ok
+test_03_atomic_execute_revoked (__main__.C2Tests.test_03_atomic_execute_revoked) ... ok
+test_04_entry_denies_unauthorized_and_spoofing (__main__.C2Tests.test_04_entry_denies_unauthorized_and_spoofing) ... ok
+test_05_delete_denies_unauthorized_and_spoofing (__main__.C2Tests.test_05_delete_denies_unauthorized_and_spoofing) ... ok
+test_06_anon_cannot_call_protected_rpcs_even_with_admin_claim (__main__.C2Tests.test_06_anon_cannot_call_protected_rpcs_even_with_admin_claim) ... ok
+test_07_user_metadata_cannot_grant_admin (__main__.C2Tests.test_07_user_metadata_cannot_grant_admin) ... ok
+test_08_entry_legitimate_roles_stock_and_audit (__main__.C2Tests.test_08_entry_legitimate_roles_stock_and_audit) ... ok
+test_09_entry_ignores_forged_and_null_p_usuario (__main__.C2Tests.test_09_entry_ignores_forged_and_null_p_usuario) ... ok
+test_10_entry_quantity_validation_preserved (__main__.C2Tests.test_10_entry_quantity_validation_preserved) ... ok
+test_11_delete_legitimate_admin_restores_stock_and_audits (__main__.C2Tests.test_11_delete_legitimate_admin_restores_stock_and_audits) ... ok
+test_12_delete_preserves_existing_single_pair_behavior (__main__.C2Tests.test_12_delete_preserves_existing_single_pair_behavior) ... ok
+test_13_delete_missing_or_non_delivery_preserved (__main__.C2Tests.test_13_delete_missing_or_non_delivery_preserved) ... ok
+test_14_entry_invalid_epi_rolls_back (__main__.C2Tests.test_14_entry_invalid_epi_rolls_back) ... ok
+test_15_existing_multiple_delivery_and_triggers (__main__.C2Tests.test_15_existing_multiple_delivery_and_triggers) ... ok
+test_16_service_without_user_cannot_bypass_identity (__main__.C2Tests.test_16_service_without_user_cannot_bypass_identity) ... ok
+test_17_runner_rejects_external_arguments (__main__.C2Tests.test_17_runner_rejects_external_arguments) ... ok
+test_18_runner_discards_ambient_pg_settings (__main__.C2Tests.test_18_runner_discards_ambient_pg_settings) ... ok
+test_19_no_legacy_data_changed_after_tests (__main__.C2Tests.test_19_no_legacy_data_changed_after_tests) ... ok
+test_20_sql_patch_rejects_wrong_local_database (__main__.C2Tests.test_20_sql_patch_rejects_wrong_local_database) ... ok
+
+----------------------------------------------------------------------
+Ran 20 tests in 1.707s
+
+OK
+APROVADO — somente Etapa 1 local; cluster será parado e descartado
+waiting for server to shut down.... done
+server stopped

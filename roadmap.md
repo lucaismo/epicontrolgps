@@ -16,3 +16,9 @@
 
 - [x] Substituir valores transitórios por carregamento e diferenciar falhas, sem mudar fórmulas ou consultas.
 - [x] Validar carregamento, sucesso com dados reais, zero e falhas controladas em desktop (1440), notebook (1024) e celular (375); 36 testes de regressão aprovados.
+
+## C2.3 — Etapa 1 exclusivamente local
+
+- [x] Criar runner C2 com lista de permissões e validação de socket, porta, diretório e banco.
+- [x] Conter as três RPCs críticas sem alterar regras de movimentação ou grants gerais.
+- [x] Executar 20 testes locais aprovados de autorização, spoofing, contratos e triggers; registrar resultados e pendências externas em c2_corrections/RESULTS.md.
