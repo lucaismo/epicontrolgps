@@ -1,0 +1,91 @@
+waiting for server to start.... done
+server started
+ISOLAMENTO VALIDADO: /tmp/epi-c2-pg | 55433 | epi_c2_staging | TCP desativado
+psql:/dev-server/supabase/migrations/20260620164814_b675a096-c536-499a-a3ba-52b18ab9af97.sql:7: NOTICE:  constraint "colaboradores_matricula_formato_chk" of relation "colaboradores" does not exist, skipping
+psql:/dev-server/supabase/migrations/20260731183738_3ba30ac2-d0e9-4912-a7b9-bdea23c07dac.sql:22: NOTICE:  policy "Admin consulta auditoria" for relation "public.auditoria" does not exist, skipping
+psql:/dev-server/supabase/migrations/20260731183738_3ba30ac2-d0e9-4912-a7b9-bdea23c07dac.sql:55: NOTICE:  trigger "trg_auditoria_epis" for relation "public.epis" does not exist, skipping
+psql:/dev-server/supabase/migrations/20260731183738_3ba30ac2-d0e9-4912-a7b9-bdea23c07dac.sql:59: NOTICE:  trigger "trg_auditoria_colaboradores" for relation "public.colaboradores" does not exist, skipping
+psql:/dev-server/supabase/migrations/20260731183738_3ba30ac2-d0e9-4912-a7b9-bdea23c07dac.sql:63: NOTICE:  trigger "trg_auditoria_movimentacoes" for relation "public.movimentacoes" does not exist, skipping
+psql:/dev-server/supabase/migrations/20260731183738_3ba30ac2-d0e9-4912-a7b9-bdea23c07dac.sql:67: NOTICE:  trigger "trg_auditoria_inventarios" for relation "public.inventarios" does not exist, skipping
+Snapshot local registrado antes da contenção
+test_01_isolation (__main__.C2Tests.test_01_isolation) ... ok
+test_02_contracts_and_unchanged_objects (__main__.C2Tests.test_02_contracts_and_unchanged_objects) ... ok
+test_03_atomic_execute_revoked (__main__.C2Tests.test_03_atomic_execute_revoked) ... ok
+test_04_entry_denies_unauthorized_and_spoofing (__main__.C2Tests.test_04_entry_denies_unauthorized_and_spoofing) ... ok
+test_05_delete_denies_unauthorized_and_spoofing (__main__.C2Tests.test_05_delete_denies_unauthorized_and_spoofing) ... ok
+test_06_anon_cannot_call_protected_rpcs_even_with_admin_claim (__main__.C2Tests.test_06_anon_cannot_call_protected_rpcs_even_with_admin_claim) ... ok
+test_07_user_metadata_cannot_grant_admin (__main__.C2Tests.test_07_user_metadata_cannot_grant_admin) ... ok
+test_08_entry_legitimate_roles_stock_and_audit (__main__.C2Tests.test_08_entry_legitimate_roles_stock_and_audit) ... ok
+test_09_entry_ignores_forged_and_null_p_usuario (__main__.C2Tests.test_09_entry_ignores_forged_and_null_p_usuario) ... ok
+test_10_entry_quantity_validation_preserved (__main__.C2Tests.test_10_entry_quantity_validation_preserved) ... ok
+test_11_delete_legitimate_admin_restores_stock_and_audits (__main__.C2Tests.test_11_delete_legitimate_admin_restores_stock_and_audits) ... ok
+test_12_delete_preserves_existing_single_pair_behavior (__main__.C2Tests.test_12_delete_preserves_existing_single_pair_behavior) ... ok
+test_13_delete_missing_or_non_delivery_preserved (__main__.C2Tests.test_13_delete_missing_or_non_delivery_preserved) ... ok
+test_14_entry_invalid_epi_rolls_back (__main__.C2Tests.test_14_entry_invalid_epi_rolls_back) ... ok
+test_15_existing_multiple_delivery_and_triggers (__main__.C2Tests.test_15_existing_multiple_delivery_and_triggers) ... ok
+test_16_service_without_user_cannot_bypass_identity (__main__.C2Tests.test_16_service_without_user_cannot_bypass_identity) ... ok
+test_17_runner_rejects_external_arguments (__main__.C2Tests.test_17_runner_rejects_external_arguments) ... ok
+test_18_runner_discards_ambient_pg_settings (__main__.C2Tests.test_18_runner_discards_ambient_pg_settings) ... ok
+test_19_no_legacy_data_changed_after_tests (__main__.C2Tests.test_19_no_legacy_data_changed_after_tests) ... ok
+test_20_sql_patch_rejects_wrong_local_database (__main__.C2Tests.test_20_sql_patch_rejects_wrong_local_database) ... ok
+
+----------------------------------------------------------------------
+Ran 20 tests in 1.605s
+
+OK
+Snapshot Etapa 2: before
+Snapshot Etapa 2: first
+test_01_authenticated_stock_update_42501 (__main__.BoundaryTests.test_01_authenticated_stock_update_42501) ... ok
+test_02_anon_stock_update_42501 (__main__.BoundaryTests.test_02_anon_stock_update_42501) ... ok
+test_03_authenticated_mov_insert_all_existing_types (__main__.BoundaryTests.test_03_authenticated_mov_insert_all_existing_types) ... ok
+test_04_anon_mov_insert (__main__.BoundaryTests.test_04_anon_mov_insert) ... ok
+test_05_identity_metadata_and_flags_do_not_grant_privilege (__main__.BoundaryTests.test_05_identity_metadata_and_flags_do_not_grant_privilege) ... ok
+test_06_each_non_allowed_epi_column_denied (__main__.BoundaryTests.test_06_each_non_allowed_epi_column_denied) ... ok
+test_07_exact_effective_column_allowlist (__main__.BoundaryTests.test_07_exact_effective_column_allowlist) ... ok
+test_08_epi_create_exact_frontend_payload_and_initial_entry (__main__.BoundaryTests.test_08_epi_create_exact_frontend_payload_and_initial_entry) ... ok
+test_09_update_exact_frontend_payload_all_allowed_columns (__main__.BoundaryTests.test_09_update_exact_frontend_payload_all_allowed_columns) ... ok
+test_10_mixed_payload_no_partial_update_or_audit (__main__.BoundaryTests.test_10_mixed_payload_no_partial_update_or_audit) ... ok
+test_11_entry_rpc_stock_and_audit (__main__.BoundaryTests.test_11_entry_rpc_stock_and_audit) ... ok
+test_12_multi_delivery_two_items_and_audit (__main__.BoundaryTests.test_12_multi_delivery_two_items_and_audit) ... ok
+test_13_automatic_swap_existing_delivery_path (__main__.BoundaryTests.test_13_automatic_swap_existing_delivery_path) ... ok
+test_14_delete_rpc_reversal_and_audit (__main__.BoundaryTests.test_14_delete_rpc_reversal_and_audit) ... ok
+test_15_edit_delivery_definer_direct_stock_update (__main__.BoundaryTests.test_15_edit_delivery_definer_direct_stock_update) ... ok
+test_16_inventory_existing_adjustments_and_partial_count (__main__.BoundaryTests.test_16_inventory_existing_adjustments_and_partial_count) ... ok
+test_17_partial_rpc_failure_rolls_back_first_item (__main__.BoundaryTests.test_17_partial_rpc_failure_rolls_back_first_item) ... ok
+test_18_function_owner_privileges_and_writer_inventory (__main__.BoundaryTests.test_18_function_owner_privileges_and_writer_inventory) ... ok
+test_19_catalog_contracts_policies_triggers_unchanged (__main__.BoundaryTests.test_19_catalog_contracts_policies_triggers_unchanged) ... ok
+test_20_idempotent_reapplication (__main__.BoundaryTests.test_20_idempotent_reapplication) ... ok
+test_21_patch_rejects_wrong_local_database (__main__.BoundaryTests.test_21_patch_rejects_wrong_local_database) ... ok
+test_22_column_grants_and_public_cannot_bypass (__main__.BoundaryTests.test_22_column_grants_and_public_cannot_bypass) ... ok
+test_23_reads_preserved_for_all_authenticated_profiles (__main__.BoundaryTests.test_23_reads_preserved_for_all_authenticated_profiles) ... ok
+test_24_rls_still_limits_allowed_cadastral_columns (__main__.BoundaryTests.test_24_rls_still_limits_allowed_cadastral_columns) ... ok
+test_25_inherited_permissions_abort_patch_atomically (__main__.BoundaryTests.test_25_inherited_permissions_abort_patch_atomically) ... ok
+test_26_existing_loss_types_via_privileged_legacy_operation (__main__.BoundaryTests.test_26_existing_loss_types_via_privileged_legacy_operation) ... ok
+test_01_isolation (test_c2.C2Tests.test_01_isolation) ... ok
+test_03_atomic_execute_revoked (test_c2.C2Tests.test_03_atomic_execute_revoked) ... ok
+test_04_entry_denies_unauthorized_and_spoofing (test_c2.C2Tests.test_04_entry_denies_unauthorized_and_spoofing) ... ok
+test_05_delete_denies_unauthorized_and_spoofing (test_c2.C2Tests.test_05_delete_denies_unauthorized_and_spoofing) ... ok
+test_06_anon_cannot_call_protected_rpcs_even_with_admin_claim (test_c2.C2Tests.test_06_anon_cannot_call_protected_rpcs_even_with_admin_claim) ... ok
+test_07_user_metadata_cannot_grant_admin (test_c2.C2Tests.test_07_user_metadata_cannot_grant_admin) ... ok
+test_08_entry_legitimate_roles_stock_and_audit (test_c2.C2Tests.test_08_entry_legitimate_roles_stock_and_audit) ... ok
+test_09_entry_ignores_forged_and_null_p_usuario (test_c2.C2Tests.test_09_entry_ignores_forged_and_null_p_usuario) ... ok
+test_10_entry_quantity_validation_preserved (test_c2.C2Tests.test_10_entry_quantity_validation_preserved) ... ok
+test_11_delete_legitimate_admin_restores_stock_and_audits (test_c2.C2Tests.test_11_delete_legitimate_admin_restores_stock_and_audits) ... ok
+test_12_delete_preserves_existing_single_pair_behavior (test_c2.C2Tests.test_12_delete_preserves_existing_single_pair_behavior) ... ok
+test_13_delete_missing_or_non_delivery_preserved (test_c2.C2Tests.test_13_delete_missing_or_non_delivery_preserved) ... ok
+test_14_entry_invalid_epi_rolls_back (test_c2.C2Tests.test_14_entry_invalid_epi_rolls_back) ... ok
+test_15_existing_multiple_delivery_and_triggers (test_c2.C2Tests.test_15_existing_multiple_delivery_and_triggers) ... ok
+test_16_service_without_user_cannot_bypass_identity (test_c2.C2Tests.test_16_service_without_user_cannot_bypass_identity) ... ok
+test_17_runner_rejects_external_arguments (test_c2.C2Tests.test_17_runner_rejects_external_arguments) ... ok
+test_18_runner_discards_ambient_pg_settings (test_c2.C2Tests.test_18_runner_discards_ambient_pg_settings) ... ok
+test_19_no_legacy_data_changed_after_tests (test_c2.C2Tests.test_19_no_legacy_data_changed_after_tests) ... ok
+test_20_sql_patch_rejects_wrong_local_database (test_c2.C2Tests.test_20_sql_patch_rejects_wrong_local_database) ... ok
+
+----------------------------------------------------------------------
+Ran 45 tests in 6.000s
+
+OK
+WRITERS LOCAIS: [{"proname": "finalizar_inventario", "owner": "lovable", "prosecdef": true, "ins": true, "stock": true}, {"proname": "registrar_entrada_estoque", "owner": "lovable", "prosecdef": true, "ins": true, "stock": true}, {"proname": "registrar_entrega_atomica", "owner": "lovable", "prosecdef": true, "ins": true, "stock": true}, {"proname": "registrar_entrega_multipla", "owner": "lovable", "prosecdef": true, "ins": true, "stock": true}]
+APROVADO — Etapas 1 e 2 somente locais; cluster será parado e descartado
+waiting for server to shut down.... done
+server stopped
