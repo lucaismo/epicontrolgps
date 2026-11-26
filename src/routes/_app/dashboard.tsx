@@ -11,6 +11,7 @@ import { fetchPaginado } from "@/lib/consumo";
 import { integrarInteligencia } from "@/lib/inteligencia-integracao";
 import { InteligenciaOperacional } from "@/components/InteligenciaOperacional";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { LayoutDashboard } from "lucide-react";
 import { avaliarSinais, sinaisPorEpi, PRIORIDADE_PESO, type PrioridadeSinal, type AcaoSinal, type SinalOperacional } from "@/lib/sinais-operacionais";
 
@@ -63,7 +64,7 @@ function Dashboard() {
   }), [ano, mes]);
 
   // Cadastros (independentes do período)
-  const { data: base } = useQuery({
+  const { data: base, isLoading: carregandoBase, isError: erroBase } = useQuery({
     queryKey: ["dashboard-base"],
     queryFn: async () => {
       const [episRes, colabRes, invRes] = await Promise.all([
@@ -71,6 +72,9 @@ function Dashboard() {
         supabase.from("colaboradores").select("id", { count: "exact", head: true }).eq("status", "ativo"),
         supabase.from("inventarios").select("id,local,data_inicio").eq("status", "em_andamento"),
       ]);
+      if (episRes.error) throw episRes.error;
+      if (colabRes.error) throw colabRes.error;
+      if (invRes.error) throw invRes.error;
       return {
         epis: (episRes.data ?? []) as EpiRow[],
         colaboradores: colabRes.count ?? 0,
@@ -80,7 +84,7 @@ function Dashboard() {
   });
 
   // Movimentações do período selecionado (paginado em lotes de 1.000)
-  const { data: movs = [] } = useQuery({
+  const { data: movs = [], isLoading: carregandoPeriodo, isError: erroPeriodo } = useQuery({
     queryKey: ["dashboard-movs", ano, mes],
     queryFn: () => fetchPaginado<any>((from, to) => supabase
       .from("movimentacoes")
@@ -287,7 +291,13 @@ function Dashboard() {
         <div className="min-w-0">
           <div className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground"><LayoutDashboard className="h-4 w-4" /> EPI Guard / Operação</div>
           <h1 className="text-3xl font-semibold leading-tight">Central de Controle</h1>
-          <p className="mt-2 text-sm text-muted-foreground">{epis.length} EPIs ativos <span className="mx-2">·</span> {base?.colaboradores ?? 0} colaboradores</p>
+          {carregandoBase ? (
+            <Skeleton className="mt-3 h-4 w-56" aria-label="Carregando totais" />
+          ) : erroBase ? (
+            <p className="mt-2 text-sm text-destructive" role="alert">Não foi possível carregar os totais cadastrais.</p>
+          ) : (
+            <p className="mt-2 text-sm text-muted-foreground">{epis.length} EPIs ativos <span className="mx-2">·</span> {base?.colaboradores ?? 0} colaboradores</p>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <CalendarDays className="mr-1 h-4 w-4 text-muted-foreground" aria-hidden="true" />
@@ -304,12 +314,12 @@ function Dashboard() {
 
       {/* Faixa de indicadores */}
       <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 border-y bg-card divide-y sm:divide-y-0">
-        <Stat icon={Package} label="Estoque total" value={estoque.estoqueTotal.toLocaleString("pt-BR")} unit="un" hint={`Valor ${brl(estoque.valorTotal)}`} />
-        <Stat icon={ArrowUpFromLine} label="Entregas no período" value={periodoStats.totalEntregas.toLocaleString("pt-BR")} unit="un" hint={`${periodoLabel} · ${brl(periodoStats.custo)}`} />
+        <Stat icon={Package} label="Estoque total" value={estoque.estoqueTotal.toLocaleString("pt-BR")} unit="un" hint={`Valor ${brl(estoque.valorTotal)}`} loading={carregandoBase} error={erroBase} />
+        <Stat icon={ArrowUpFromLine} label="Entregas no período" value={periodoStats.totalEntregas.toLocaleString("pt-BR")} unit="un" hint={`${periodoLabel} · ${brl(periodoStats.custo)}`} loading={carregandoPeriodo} error={erroPeriodo} />
         <Stat icon={TriangleAlert} label="EPIs críticos" value={String(estoque.criticos.length)} unit="EPIs" sev={estoque.criticos.length ? "critical" : undefined}
-          hint={`+ ${estoque.zerados.length} zerados`} to="/epis" search={{ nivel: "critico" }} />
+          hint={`+ ${estoque.zerados.length} zerados`} loading={carregandoBase || carregandoMovs} error={erroBase || erroMovs} to="/epis" search={{ nivel: "critico" }} />
         <Stat icon={ShoppingCart} label="Compras necessárias" value={String(compras.qtdEpis)} unit="EPIs" sev={compras.alta ? "critical" : undefined}
-          hint={`${compras.unidades.toLocaleString("pt-BR")} un sugeridas · ${compras.alta} alta prioridade`} to="/compras" />
+          hint={`${compras.unidades.toLocaleString("pt-BR")} un sugeridas · ${compras.alta} alta prioridade`} loading={carregandoBase || carregandoMovs} error={erroBase || erroMovs} to="/compras" />
       </section>
 
       {/* Saúde do estoque */}
@@ -528,19 +538,31 @@ function MovementTooltip({ active, payload, label }: {
   </div>;
 }
 
-function Stat({ icon: Icon, label, value, unit, hint, sev, to, search }: {
-  icon: typeof Package; label: string; value: string; unit: string; hint: string; sev?: Sev; to?: "/epis" | "/compras"; search?: Record<string, string>;
+function Stat({ icon: Icon, label, value, unit, hint, sev, to, search, loading, error }: {
+  icon: typeof Package; label: string; value: string; unit: string; hint: string; sev?: Sev; loading?: boolean; error?: boolean; to?: "/epis" | "/compras"; search?: Record<string, string>;
 }) {
   const inner = (
     <div className="px-5 py-6 h-full sm:border-l sm:border-border">
       <div className="flex items-center justify-between gap-3 text-sm font-medium text-muted-foreground">
         <span>{label}</span><Icon className={`h-4 w-4 shrink-0 ${sev ? SEV_TEXT[sev] : "text-muted-foreground"}`} />
       </div>
+      {loading ? (
+        <div aria-busy="true" aria-label={`Carregando ${label}`}>
+          <Skeleton className="my-4 h-9 w-28" />
+          <Skeleton className="h-3 w-40" />
+        </div>
+      ) : error ? (
+        <div role="alert">
+          <div className="my-3 flex items-baseline gap-2"><span className="text-2xl leading-[2.75rem] font-semibold text-destructive">Indisponível</span></div>
+          <div className="text-xs leading-5 text-destructive">Falha ao consultar este indicador.</div>
+        </div>
+      ) : (<>
       <div className="my-3 flex flex-wrap items-baseline gap-2">
         <span className={`text-4xl leading-tight font-semibold num break-all ${sev ? SEV_TEXT[sev] : ""}`}>{value}</span>
         <span className="text-xs text-muted-foreground">{unit}</span>
       </div>
       <div className="text-xs leading-5 text-muted-foreground">{hint}</div>
+      </>)}
     </div>
   );
   return to ? <Link to={to} search={search as any} className="block hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{inner}</Link> : inner;
