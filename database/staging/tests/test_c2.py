@@ -23,7 +23,10 @@ ATOMIC = 'public.registrar_entrega_atomica(uuid,uuid,integer,text,timestamptz,uu
 ENTRY = 'public.registrar_entrada_estoque(uuid,integer,text,text,uuid)'
 DELETE = 'public.excluir_entrega(uuid,uuid)'
 # Após a Etapa 3 (C2_STAGE=3), somente o corpo destas funções muda.
-STAGE3_CHANGED = ('registrar_entrega_multipla', 'finalizar_inventario') if os.environ.get('C2_STAGE') == '3' else ()
+_STAGE = os.environ.get('C2_STAGE')
+STAGE3_CHANGED = (('registrar_entrega_multipla', 'finalizar_inventario') if _STAGE in ('3', '4') else ()) + (('excluir_inventario',) if _STAGE == '4' else ())
+# Após a Etapa 4 (C2.6), objetos novos verificados por test_c2_inventory são excluídos da comparação.
+STAGE4_NEW = 'trg_validar_inventario_item_status' if _STAGE == '4' else None
 
 
 def sql(query, check=True):
@@ -76,6 +79,8 @@ def snapshot():
     triggers = rows("""SELECT t.oid,t.tgname,t.tgenabled,pg_get_triggerdef(t.oid) AS definition
       FROM pg_trigger t JOIN pg_class c ON c.oid=t.tgrelid JOIN pg_namespace n ON n.oid=c.relnamespace
       WHERE n.nspname IN ('public','auth') ORDER BY t.oid""")
+    functions = [f for f in functions if f['proname'] != STAGE4_NEW]
+    triggers = [t for t in triggers if t['tgname'] != STAGE4_NEW]
     for f in functions:
         if f['nspname'] == 'public' and f['proname'] in STAGE3_CHANGED:
             f.pop('prosrc')

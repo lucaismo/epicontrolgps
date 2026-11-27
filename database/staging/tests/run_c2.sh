@@ -83,4 +83,13 @@ python3 "$ROOT/database/staging/tests/test_c2_definer.py"
 # Regressões das Etapas 1 e 2 após a Etapa 3.
 C2_STAGE=3 python3 "$ROOT/database/staging/tests/test_c2.py"
 C2_STAGE=3 python3 "$ROOT/database/staging/tests/test_c2_boundary.py"
-echo 'APROVADO — Etapas 1, 2 e 3 somente locais; cluster será parado e descartado'
+# C2.6 / Etapa 4 — concorrência do inventário (aplicado 2x: idempotência).
+"${PSQL[@]}" -q -f "$ROOT/database/staging/c2_corrections/04_inventario_concurrency.sql"
+"${PSQL[@]}" -q -f "$ROOT/database/staging/c2_corrections/04_inventario_concurrency.sql"
+# Regressões C2.3, C2.4 e C2.5 após a Etapa 4 (antes da suíte C2.6, que confirma dados).
+C2_STAGE=4 python3 "$ROOT/database/staging/tests/test_c2.py"
+C2_STAGE=4 python3 "$ROOT/database/staging/tests/test_c2_boundary.py"
+python3 "$ROOT/database/staging/tests/test_c2_definer.py"
+python3 "$ROOT/database/staging/tests/test_c2_identity.py"
+python3 "$ROOT/database/staging/tests/test_c2_inventory.py"
+echo 'APROVADO — Etapas 1, 2, 3 e 4 somente locais; cluster será parado e descartado'
