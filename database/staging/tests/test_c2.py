@@ -22,6 +22,8 @@ MOV = 'e0000000-0000-0000-0000-000000000001'
 ATOMIC = 'public.registrar_entrega_atomica(uuid,uuid,integer,text,timestamptz,uuid,text,uuid,integer,text,text)'
 ENTRY = 'public.registrar_entrada_estoque(uuid,integer,text,text,uuid)'
 DELETE = 'public.excluir_entrega(uuid,uuid)'
+# Após a Etapa 3 (C2_STAGE=3), somente o corpo destas funções muda.
+STAGE3_CHANGED = ('registrar_entrega_multipla', 'finalizar_inventario') if os.environ.get('C2_STAGE') == '3' else ()
 
 
 def sql(query, check=True):
@@ -52,6 +54,14 @@ def deletion(p_user=ADMIN, mov=MOV):
     return f"SELECT public.excluir_entrega(p_mov_id => '{mov}', p_usuario => {param})"
 
 
+def normalize(snap):
+    """Remove de um snapshot salvo os corpos alterados intencionalmente pela Etapa 3."""
+    for f in snap.get('functions', []):
+        if f['nspname'] == 'public' and f['proname'] in STAGE3_CHANGED:
+            f.pop('prosrc', None)
+    return snap
+
+
 def snapshot():
     def rows(q):
         return json.loads(sql(f'SELECT coalesce(json_agg(t), \'[]\'::json) FROM ({q}) t').stdout)
@@ -66,6 +76,9 @@ def snapshot():
     triggers = rows("""SELECT t.oid,t.tgname,t.tgenabled,pg_get_triggerdef(t.oid) AS definition
       FROM pg_trigger t JOIN pg_class c ON c.oid=t.tgrelid JOIN pg_namespace n ON n.oid=c.relnamespace
       WHERE n.nspname IN ('public','auth') ORDER BY t.oid""")
+    for f in functions:
+        if f['nspname'] == 'public' and f['proname'] in STAGE3_CHANGED:
+            f.pop('prosrc')
     data = {}
     for table in tables:
         name = table['relname']
@@ -87,14 +100,19 @@ class C2Tests(unittest.TestCase):
     def test_02_contracts_and_unchanged_objects(self):
         before = json.loads((DIR / 'before.json').read_text())
         after = snapshot()
+        if STAGE3_CHANGED:
+            # ACLs de tabela mudam por desenho na Etapa 2 e pelas roles de teste da C2.5;
+            # essas ACLs são verificadas por test_c2_boundary e test_c2_identity.
+            for t in before['tables'] + after['tables']:
+                t.pop('acl')
         for key in ('tables', 'policies', 'triggers', 'data'):
             self.assertEqual(after[key], before[key], key)
         self.assertEqual(len(after['functions']), len(before['functions']))
         for old, new in zip(before['functions'], after['functions']):
             with self.subTest(function=old['proname']):
                 old, new = dict(old), dict(new)
-                if old['nspname'] == 'public' and old['proname'] in ('excluir_entrega', 'registrar_entrada_estoque'):
-                    old.pop('prosrc'); new.pop('prosrc')
+                if old['nspname'] == 'public' and old['proname'] in ('excluir_entrega', 'registrar_entrada_estoque') + STAGE3_CHANGED:
+                    old.pop('prosrc', None); new.pop('prosrc', None)
                 if old['nspname'] == 'public' and old['proname'] == 'registrar_entrega_atomica':
                     old.pop('acl'); new.pop('acl')
                 self.assertEqual(new, old)

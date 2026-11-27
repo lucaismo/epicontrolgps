@@ -28,3 +28,9 @@
 - [x] Restringir UPDATE de EPIs às colunas do payload existente e revogar INSERT direto em movimentações.
 - [x] Comprovar compatibilidade de RPCs/triggers, privilégios efetivos, reaplicação e isolamento: 26 testes novos e regressão C2.3 aprovados.
 - [x] Registrar relatório de privilégios, resultados, incompatibilidades e limitações em c2_corrections/RESULTS_C2_4.md sem alterar a operação In-Haus.
+
+## C2.5 — Privilégios SECURITY DEFINER e Etapa 3
+- [x] Parte A: owner não superuser simulado (com e sem BYPASSRLS)
+- [x] Etapa 3: identidade/autoria por auth.uid() em registrar_entrega_multipla e finalizar_inventario
+- [x] Regressões das Etapas 1 e 2 após a Etapa 3
+- [ ] Etapa 4 (concorrência/idempotência do inventário) — aguarda autorização

@@ -192,7 +192,7 @@ class BoundaryTests(unittest.TestCase):
         print('WRITERS LOCAIS:', json.dumps(writers, ensure_ascii=False))
 
     def test_19_catalog_contracts_policies_triggers_unchanged(self):
-        before = json.loads((c2.DIR / 'boundary_before.json').read_text())
+        before = c2.normalize(json.loads((c2.DIR / 'boundary_before.json').read_text()))
         after = boundary_snapshot()
         for key in ('functions', 'policies', 'triggers', 'data', 'service_atomic'):
             self.assertEqual(after[key], before[key], key)
@@ -215,7 +215,7 @@ class BoundaryTests(unittest.TestCase):
             self.assertEqual(new, dict(old, allowed=False) if removed else old)
 
     def test_20_idempotent_reapplication(self):
-        self.assertEqual(boundary_snapshot(), json.loads((c2.DIR / 'boundary_first.json').read_text()))
+        self.assertEqual(boundary_snapshot(), c2.normalize(json.loads((c2.DIR / 'boundary_first.json').read_text())))
 
     def test_21_patch_rejects_wrong_local_database(self):
         args = list(c2.PSQL)

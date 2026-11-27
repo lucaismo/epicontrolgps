@@ -71,4 +71,16 @@ python3 "$ROOT/database/staging/tests/test_c2_boundary.py" --snapshot-before
 python3 "$ROOT/database/staging/tests/test_c2_boundary.py" --snapshot-first
 "${PSQL[@]}" -q -f "$ROOT/database/staging/c2_corrections/02_epis_grants_movimentacoes.sql"
 python3 "$ROOT/database/staging/tests/test_c2_boundary.py"
-echo 'APROVADO — Etapas 1 e 2 somente locais; cluster será parado e descartado'
+# C2.5 Parte A: owner não superuser (alterações de ownership sempre revertidas por ROLLBACK).
+python3 "$ROOT/database/staging/tests/test_c2_definer.py"
+# C2.5 Parte B: Etapa 3 — identidade e autoria.
+python3 "$ROOT/database/staging/tests/test_c2_identity.py" --snapshot-before
+"${PSQL[@]}" -q -f "$ROOT/database/staging/c2_corrections/03_identity_authorship.sql"
+python3 "$ROOT/database/staging/tests/test_c2_identity.py" --snapshot-first
+"${PSQL[@]}" -q -f "$ROOT/database/staging/c2_corrections/03_identity_authorship.sql"
+python3 "$ROOT/database/staging/tests/test_c2_identity.py"
+python3 "$ROOT/database/staging/tests/test_c2_definer.py"
+# Regressões das Etapas 1 e 2 após a Etapa 3.
+C2_STAGE=3 python3 "$ROOT/database/staging/tests/test_c2.py"
+C2_STAGE=3 python3 "$ROOT/database/staging/tests/test_c2_boundary.py"
+echo 'APROVADO — Etapas 1, 2 e 3 somente locais; cluster será parado e descartado'
